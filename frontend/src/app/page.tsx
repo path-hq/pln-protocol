@@ -98,6 +98,48 @@ export default function OverviewPage() {
               </div>
             </div>
           </Link>
+
+          <Link href="/my-reputation">
+            <div className="group rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6 transition-all hover:border-purple-500/50 hover:bg-purple-500/5 cursor-pointer">
+              <div className="flex items-start justify-between">
+                <div className="rounded-lg bg-purple-500/10 p-3 group-hover:bg-purple-500/20">
+                  <Users className="h-6 w-6 text-purple-500" />
+                </div>
+                <ArrowLeftRight className="h-5 w-5 text-[#71717a] group-hover:text-purple-500 transition-colors" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-white group-hover:text-purple-500 transition-colors">
+                My Reputation
+              </h3>
+              <p className="mt-1 text-sm text-[#71717a]">
+                View your on-chain credit score and trading performance.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-sm text-purple-500">
+                <span>Check Score</span>
+                <ArrowLeftRight className="h-4 w-4" />
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/register-identity">
+            <div className="group rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6 transition-all hover:border-yellow-500/50 hover:bg-yellow-500/5 cursor-pointer">
+              <div className="flex items-start justify-between">
+                <div className="rounded-lg bg-yellow-500/10 p-3 group-hover:bg-yellow-500/20">
+                  <Activity className="h-6 w-6 text-yellow-500" />
+                </div>
+                <ArrowLeftRight className="h-5 w-5 text-[#71717a] group-hover:text-yellow-500 transition-colors" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-white group-hover:text-yellow-500 transition-colors">
+                Register Agent Identity
+              </h3>
+              <p className="mt-1 text-sm text-[#71717a]">
+                Create your unique .sol agent identity and build on-chain credit.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-sm text-yellow-500">
+                <span>Start Now</span>
+                <ArrowLeftRight className="h-4 w-4" />
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
 
