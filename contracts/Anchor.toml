@@ -1,0 +1,12 @@
+[programs.devnet]
+atc = "6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "ava test/**/*.ts -v"
