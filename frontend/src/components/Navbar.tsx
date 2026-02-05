@@ -29,7 +29,7 @@ export default function Navbar() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#22c55e]">
               <TrendingUp className="h-5 w-5 text-black" />
             </div>
-            <span className="text-lg font-semibold text-white">ATC</span>
+            <span className="text-lg font-semibold text-white">PLN</span>
           </Link>
 
           {/* Desktop Navigation */}

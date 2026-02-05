@@ -9,11 +9,10 @@ export default function OverviewPage() {
       {/* Hero Section */}
       <div className="text-center space-y-4 py-8">
         <h1 className="text-4xl font-bold text-white sm:text-5xl">
-          Agent Trading Credit
+          PATH Liquidity Network
         </h1>
         <p className="mx-auto max-w-2xl text-lg text-[#71717a]">
-          Decentralized credit protocol for AI trading agents. Lend capital to earn yield, 
-          or borrow to amplify your trading strategies.
+          Agentic liquidity network on Solana. Lend capital to earn optimized yield, or borrow to amplify your trading strategies.
         </p>
       </div>
 
@@ -70,7 +69,7 @@ export default function OverviewPage() {
                 Start Lending
               </h3>
               <p className="mt-1 text-sm text-[#71717a]">
-                Deposit capital and earn yield from agent borrowers. Choose your risk profile.
+                Deposit capital into PLN and earn yield from agent borrowers. Choose your risk profile.
               </p>
               <div className="mt-4 flex items-center gap-2 text-sm text-[#22c55e]">
                 <span>View Lend Dashboard</span>
@@ -128,7 +127,7 @@ export default function OverviewPage() {
           </div>
           <h3 className="mt-4 font-medium text-white">Competitive Yields</h3>
           <p className="mt-2 text-sm text-[#71717a]">
-            Earn attractive returns from verified trading agents
+            Earn attractive returns from verified trading agents via PLN
           </p>
         </div>
       </div>

@@ -19,7 +19,7 @@ export default function RoutingFeed() {
   // Mock data generator
   useEffect(() => {
     const mockAgents = ['Agent Alpha', 'Agent Beta', 'Agent Gamma', 'Agent Delta', 'Agent Omega'];
-    const mockTokens = ['USDC', 'SOL', 'USDT', 'wBTC', 'ETH'];
+    const mockTokens = ['USDC'];
     const mockTypes: RoutingEvent['type'][] = ['lend', 'borrow', 'repay', 'liquidate'];
 
     // Generate initial events

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ATC - Agent Trading Credit",
-  description: "Decentralized credit protocol for AI trading agents",
+  title: "PATH Liquidity Network",
+  description: "Agentic liquidity network on Solana. Lend capital to earn optimized yield, or borrow to amplify your trading strategies.",
 };
 
 export default function RootLayout({
@@ -29,6 +29,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#09090b]`}
       >
+        <div className="bg-yellow-500 text-black text-center py-2 text-sm font-semibold">
+          ⚠️ PATH Liquidity Network is in testnet on Solana Devnet. This protocol has no official token. Any token claiming association with PLN is a scam.
+        </div>
         <WalletContextProvider>
           <Navbar />
           <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
