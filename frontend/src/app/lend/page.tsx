@@ -4,7 +4,10 @@ import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { SystemProgram } from '@solana/web3.js';
+import { BN } from 'bn.js';
+import { Buffer } from 'buffer';
 
 const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
 
@@ -31,39 +34,105 @@ export default function LendPage() {
   const [totalDeposits, setTotalDeposits] = useState<number | null>(null);
   const [currentAPY, setCurrentAPY] = useState<number | null>(null);
 
+  const fetchBalances = async () => {
+    if (!publicKey || !provider) {
+      setUsdcBalance(null);
+      setTotalDeposits(null);
+      setCurrentAPY(null);
+      return;
+    }
+
+    try {
+      // Fetch USDC balance
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
+      const accountInfo = await provider.connection.getTokenAccountBalance(ata);
+      setUsdcBalance(accountInfo.value.uiAmount || 0);
+
+      // Fetch lender position data (placeholder logic for now)
+      // This part needs real on-chain calls which will be implemented later
+      setTotalDeposits(125000); // Mock
+      setCurrentAPY(12.4); // Mock
+
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+      setUsdcBalance(null);
+      setTotalDeposits(null);
+      setCurrentAPY(null);
+    }
+  };
+
   useEffect(() => {
-    const fetchBalances = async () => {
-      if (!publicKey || !provider) {
-        setUsdcBalance(null);
-        setTotalDeposits(null);
-        setCurrentAPY(null);
-        return;
-      }
-
-      try {
-        // Fetch USDC balance
-        const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-        const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
-        const accountInfo = await provider.connection.getTokenAccountBalance(ata);
-        setUsdcBalance(accountInfo.value.uiAmount || 0);
-
-        // Fetch lender position data (placeholder logic for now)
-        // This part needs real on-chain calls which will be implemented later
-        setTotalDeposits(125000); // Mock
-        setCurrentAPY(12.4); // Mock
-
-      } catch (error) {
-        console.error("Error fetching balances:", error);
-        setUsdcBalance(null);
-        setTotalDeposits(null);
-        setCurrentAPY(null);
-      }
-    };
-
     fetchBalances();
     const interval = setInterval(fetchBalances, 15000); // Refresh every 15 seconds
     return () => clearInterval(interval);
-  }, [publicKey, provider]);
+  }, [publicKey, provider, fetchBalances]);
+
+  const handleDeposit = async () => {
+    if (!publicKey || !liquidityRouter || !provider) {
+      alert("Wallet not connected or program not loaded.");
+      return;
+    }
+
+    if (!selectedStrategy) {
+      alert("Please select a lending strategy.");
+      return;
+    }
+
+    const amount = parseFloat(depositAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid deposit amount (greater than 0).");
+      return;
+    }
+
+    try {
+      // 1. Convert amount to u64 (lamports)
+      // Assuming USDC has 6 decimals for Devnet. This should ideally be fetched from mint info.
+      const USDC_DECIMALS = 6;
+      const amountInSmallestUnits = new BN(amount * (10 ** USDC_DECIMALS));
+
+      // 2. Get necessary public keys and PDAs
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [routerConfigPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_config")],
+        liquidityRouter.programId
+      );
+      const [positionPDA] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
+      const [routerVaultPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_vault"), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
+
+      const lenderUsdcAta = await getAssociatedTokenAddress(usdcMint, publicKey);
+
+      // 3. Build and send transaction
+      const tx = await liquidityRouter.methods
+        .deposit(amountInSmallestUnits)
+        .accounts({
+          lender: publicKey,
+          position: positionPDA,
+          lenderUsdc: lenderUsdcAta,
+          routerVault: routerVaultPDA,
+          usdcMint: usdcMint,
+          config: routerConfigPDA,
+          tokenProgram: TOKEN_PROGRAM_ID, // Use the imported TOKEN_PROGRAM_ID
+          systemProgram: SystemProgram.programId,
+        })
+        .transaction();
+
+      const signature = await provider.sendAndConfirm(tx);
+      alert(`Deposit successful! Transaction: ${signature}`);
+      console.log("Deposit successful, transaction:", signature);
+
+      fetchBalances(); // Refresh balances after successful deposit
+    } catch (error: any) {
+      console.error("Deposit failed:", error);
+      alert(`Deposit failed: ${error.message}`);
+    }
+  };
 
   const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
@@ -243,7 +312,9 @@ export default function LendPage() {
                   className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-[#22c55e] focus:outline-none"
                 />
               </div>
-              <button className="rounded-lg bg-[#22c55e] px-6 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors">
+              <button
+                onClick={handleDeposit}
+                className="rounded-lg bg-[#22c55e] px-6 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors">
                 Deposit
               </button>
             </div>
