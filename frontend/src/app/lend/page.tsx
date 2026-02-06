@@ -1,42 +1,80 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronDown, ChevronUp, DollarSign, Percent, Clock } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
+import { usePLNPrograms } from '@/hooks/usePLNPrograms';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
+
+const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
 
 interface Strategy {
   id: string;
   name: string;
   riskLevel: 'low' | 'medium' | 'high';
   apy: number;
-  minDeposit: string;
-  tvl: string;
+  // minDeposit: string; // Will be dynamic
+  // tvl: string; // Will be dynamic
   description: string;
 }
 
-interface ActiveLoan {
-  id: string;
-  borrower: string;
-  amount: string;
-  collateral: string;
-  apy: number;
-  startDate: string;
-  health: number;
-}
+// Placeholder. Will get from chain
+const strategies: Strategy[] = [];
+
+// Placeholder. Will get from chain
+const activeLoans: ActiveLoan[] = [];
 
 export default function LendPage() {
+  const { publicKey } = useWallet();
+  const { liquidityRouter, provider } = usePLNPrograms();
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [totalDeposits, setTotalDeposits] = useState<number | null>(null);
+  const [currentAPY, setCurrentAPY] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (!publicKey || !provider) {
+        setUsdcBalance(null);
+        setTotalDeposits(null);
+        setCurrentAPY(null);
+        return;
+      }
+
+      try {
+        // Fetch USDC balance
+        const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+        const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
+        const accountInfo = await provider.connection.getTokenAccountBalance(ata);
+        setUsdcBalance(accountInfo.value.uiAmount || 0);
+
+        // Fetch lender position data (placeholder logic for now)
+        // This part needs real on-chain calls which will be implemented later
+        setTotalDeposits(125000); // Mock
+        setCurrentAPY(12.4); // Mock
+
+      } catch (error) {
+        console.error("Error fetching balances:", error);
+        setUsdcBalance(null);
+        setTotalDeposits(null);
+        setCurrentAPY(null);
+      }
+    };
+
+    fetchBalances();
+    const interval = setInterval(fetchBalances, 15000); // Refresh every 15 seconds
+    return () => clearInterval(interval);
+  }, [publicKey, provider]);
+
   const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
   const [showStrategyDetails, setShowStrategyDetails] = useState<string | null>(null);
 
-  const strategies: Strategy[] = [
+  const mockStrategies: Strategy[] = [
     {
       id: 'conservative',
       name: 'Conservative',
       riskLevel: 'low',
       apy: 8.5,
-      minDeposit: '100 USDC',
-      tvl: '$4.2M',
       description: 'Lend to agents with proven track records and high collateral ratios',
     },
     {
@@ -44,8 +82,6 @@ export default function LendPage() {
       name: 'Balanced',
       riskLevel: 'medium',
       apy: 14.2,
-      minDeposit: '500 USDC',
-      tvl: '$3.8M',
       description: 'Diversified lending across medium-risk agents with solid performance',
     },
     {
@@ -53,13 +89,11 @@ export default function LendPage() {
       name: 'Aggressive',
       riskLevel: 'high',
       apy: 22.5,
-      minDeposit: '1000 USDC',
-      tvl: '$1.4M',
       description: 'Higher returns from emerging agents with growth potential',
     },
   ];
 
-  const activeLoans: ActiveLoan[] = [
+  const mockActiveLoans: ActiveLoan[] = [
     {
       id: 'loan-1',
       borrower: 'Agent Alpha',
@@ -122,27 +156,23 @@ export default function LendPage() {
       {/* Position Overview */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Your Deposits"
-          value="$125,000"
-          change="+$5,200"
-          changeType="positive"
+          title="Your USDC Balance"
+          value={usdcBalance !== null ? `$${usdcBalance.toFixed(2)}` : 'Loading...'}
           icon={Wallet}
         />
         <StatsCard
-          title="Earned Interest"
-          value="$8,420"
-          change="+$420 this month"
-          changeType="positive"
+          title="Your Deposits"
+          value={totalDeposits !== null ? `$${totalDeposits.toFixed(2)}` : 'Loading...'}
           icon={TrendingUp}
         />
         <StatsCard
           title="Current APY"
-          value="12.4%"
+          value={currentAPY !== null ? `${currentAPY.toFixed(2)}%` : 'Loading...'}
           icon={Percent}
         />
         <StatsCard
           title="Active Loans"
-          value="3"
+          value={mockActiveLoans.length.toString()}
           icon={Clock}
         />
       </div>
@@ -153,7 +183,7 @@ export default function LendPage() {
         <p className="text-sm text-[#71717a]">Choose a lending strategy based on your risk tolerance</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {strategies.map((strategy) => (
+          {mockStrategies.map((strategy) => (
             <div
               key={strategy.id}
               onClick={() => setSelectedStrategy(strategy.id)}
@@ -174,8 +204,8 @@ export default function LendPage() {
                 <span className="ml-1 text-sm text-[#71717a]">APY</span>
               </div>
               <div className="mt-3 space-y-1 text-sm text-[#71717a]">
-                <p>Min: {strategy.minDeposit}</p>
-                <p>TVL: {strategy.tvl}</p>
+                {/* <p>Min: {strategy.minDeposit}</p> */}
+                {/* <p>TVL: {strategy.tvl}</p> */}
               </div>
               <button
                 onClick={(e) => {
@@ -259,7 +289,7 @@ export default function LendPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1f1f24]">
-              {activeLoans.map((loan) => (
+              {mockActiveLoans.map((loan) => (
                 <tr key={loan.id} className="hover:bg-[#1f1f24]/30">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
