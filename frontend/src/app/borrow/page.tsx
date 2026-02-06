@@ -39,12 +39,16 @@ export default function BorrowPage() {
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [agentReputation, setAgentReputation] = useState<number | null>(null);
   const [availableBorrow, setAvailableBorrow] = useState<number | null>(null);
-  const [loanOffers, setLoanOffers] = useState<LoanOffer[]>([]);
+  const [loanOffers, setLoanOffers] = useState<LendOffer[]>([]);
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
   
   const [borrowAmount, setBorrowAmount] = useState('');
   const [borrowDuration, setBorrowDuration] = useState('');
   const [maxRateBps, setMaxRateBps] = useState('');
+
+  const [whitelistedPrograms, setWhitelistedPrograms] = useState<PublicKey[]>([]);
+  const [selectedLoanForTrade, setSelectedLoanForTrade] = useState<string>('');
+  const [instructionData, setInstructionData] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,19 +95,28 @@ export default function BorrowPage() {
         const simulatedAvailableBorrow = (currentAgentReputation / 1000) * maxBorrowCap;
         setAvailableBorrow(simulatedAvailableBorrow);
 
-        // Fetch available loan offers (BorrowRequests)
-        const allBorrowRequests = await creditMarket.account.borrowRequest.all();
-        const offers: LoanOffer[] = allBorrowRequests
-          .filter(req => req.account.isActive && req.account.borrower.equals(publicKey)) // Only show current user's active requests
-          .map(req => ({
-            id: req.publicKey.toString(), // Use PDA as ID
-            lender: "N/A", // Lender is determined when an offer is accepted
-            amount: `${req.account.amount.toNumber() / (10 ** 6)} USDC`, // Assuming 6 decimals
-            rate: req.account.maxRateBps / 100, // BPS to percentage
-            duration: `${req.account.durationSecs.toNumber() / (24 * 60 * 60)} days`, // Seconds to days
-            minReputation: req.account.borrower.equals(publicKey) ? currentAgentReputation : 0, // Placeholder
-          }));
+
+        // Fetch available loan offers (LendOffer)
+        const allLendOffers = await creditMarket.account.lendOffer.all();
+        let totalAvailableToBorrow = 0;
+        const offers: LendOffer[] = allLendOffers
+          .filter(offer => offer.account.isActive && currentAgentReputation >= offer.account.minReputation)
+          .map(offer => {
+            const amount = offer.account.amount.toNumber() / (10 ** 6); // Assuming 6 decimals for USDC
+            totalAvailableToBorrow += amount;
+            return {
+              id: offer.publicKey.toString(), // Use PDA as ID
+              lender: offer.account.lender.toString().substring(0, 4) + '...',
+              amount: amount,
+              minRate: offer.account.minRateBps / 100, // BPS to percentage
+              maxDuration: `${offer.account.maxDurationSecs.toNumber() / (24 * 60 * 60)} days`, // Seconds to days
+              minReputation: offer.account.minReputation,
+              lenderUsdcAccount: offer.account.lender, // Store lender's pubkey for acceptLendOffer call
+            };
+          });
         setLoanOffers(offers);
+        setAvailableBorrow(totalAvailableToBorrow);
+
 
         // Fetch active loans
         const allLoans = await creditMarket.account.loan.all();
@@ -149,7 +162,71 @@ export default function BorrowPage() {
     return () => clearInterval(interval);
   }, [publicKey, provider, creditMarket, reputation]);
 
-  const handleBorrowRequest = async () => {
+  const handleAcceptOffer = async (offer: LendOffer) => {
+    if (!publicKey || !creditMarket || !provider) {
+      alert("Please connect wallet.");
+      return;
+    }
+
+    try {
+      const offerPk = new PublicKey(offer.id);
+
+      // Derive borrower's profile PDA
+      const [borrowerProfilePDA] = PublicKey.findProgramAddressSync(
+        [anchor.utils.bytes.utf8.encode("profile"), publicKey.toBuffer()],
+        reputation.programId
+      );
+
+      // Derive Loan PDA using a unique seed for each loan (e.g., offerPk and borrower PK)
+      // This part might need adjustment based on the actual program logic for loan PDA derivation
+      const [loanPDA] = PublicKey.findProgramAddressSync(
+        [anchor.utils.bytes.utf8.encode("loan_account"), offerPk.toBuffer(), publicKey.toBuffer()], 
+        creditMarket.programId
+      );
+
+      // Derive Loan Vault Token Account PDA
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [loanVaultPDA] = PublicKey.findProgramAddressSync(
+        [anchor.utils.bytes.utf8.encode("loan_vault"), loanPDA.toBuffer()],
+        creditMarket.programId
+      );
+      const loanVaultUsdcATA = await getAssociatedTokenAddress(usdcMint, loanVaultPDA, true); // True for allowOwnerOffCurve
+
+      // Fetch global state to get its PDA
+      const globalStateAccounts = await creditMarket.account.globalState.all();
+      if (globalStateAccounts.length === 0) {
+        throw new Error("GlobalState account not found.");
+      }
+      const globalStatePDA = globalStateAccounts[0].publicKey;
+
+
+      const tx = await creditMarket.methods
+        .acceptLendOffer(
+          offerPk // Pass the offer's public key as argument
+        )
+        .accounts({
+          borrower: publicKey,
+          offer: offerPk,
+          borrowerProfile: borrowerProfilePDA, // Assuming reputation program is integrated and profile exists
+          loan: loanPDA,
+          loanVault: loanVaultUsdcATA,
+          usdcMint: usdcMint,
+          globalState: globalStatePDA, // Use the fetched global state PDA
+          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXAbZ5dJDRSRQXNkKQ2"), // SPL Token program ID
+          systemProgram: SystemProgram.programId,
+          // rent: anchor.web3.SYSVAR_RENT_PUBKEY, // Rent sysvar is usually automatically added by Anchor if needed
+          // You might need to add remaining accounts if required by the program, e.g., associated token program
+        })
+        .rpc();
+
+      alert(`Loan offer accepted successfully! Transaction: ${tx}`);
+      fetchData(); // Refresh data after successful acceptance
+    } catch (error) {
+      console.error("Error accepting offer:", error);
+      alert(`Failed to accept loan offer: \${error.message}`);
+    }
+  };
+
     if (!publicKey || !creditMarket || !provider || !borrowAmount || !borrowDuration || !maxRateBps) {
       alert("Please connect wallet and fill all borrow details.");
       return;
@@ -326,8 +403,8 @@ export default function BorrowPage() {
                 <tr className="border-b border-[#1f1f24] bg-[#09090b]">
                   <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Lender</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Rate (APY)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Duration</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Min Rate (APY)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Max Duration</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Min Rep</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Action</th>
                 </tr>
@@ -336,12 +413,15 @@ export default function BorrowPage() {
                 {loanOffers.map((offer) => (
                   <tr key={offer.id} className="hover:bg-[#1f1f24]/30">
                     <td className="px-6 py-4 whitespace-nowrap text-white">{offer.lender}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-white">{offer.amount}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{offer.rate}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.duration}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-white">{offer.amount.toFixed(2)} USDC</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{offer.minRate}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.maxDuration}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.minReputation}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button className="rounded-lg bg-blue-500 px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 transition-colors">
+                      <button
+                        onClick={() => handleAcceptOffer(offer)}
+                        className="rounded-lg bg-blue-500 px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 transition-colors"
+                      >
                         Accept Offer
                       </button>
                     </td>
