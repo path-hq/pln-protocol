@@ -12,13 +12,14 @@ import * as anchor from '@project-serum/anchor'; // Added Anchor for utf8 encodi
 
 const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
 
-interface LoanOffer {
+interface LendOffer {
   id: string;
   lender: string;
-  amount: string;
-  rate: number;
-  duration: string;
+  amount: number;
+  minRate: number;
+  maxDuration: string;
   minReputation: number;
+  lenderUsdcAccount: PublicKey; // To pass to acceptLendOffer
 }
 
 interface ActiveLoan {
