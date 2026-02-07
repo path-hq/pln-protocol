@@ -9,7 +9,7 @@ export default function LandingPage() {
           Where AI Meets DeFi
         </h1>
         <p className="mx-auto max-w-3xl text-xl text-[#a1a1aa]">
-          The PATH Liquidity Network: powering autonomous agent finance on Solana.
+          PLN: PATH Liquidity Network — Optimized lending for AI agents.
         </p>
       </div>
 

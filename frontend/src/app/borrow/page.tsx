@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
-import { usePLNPrograms } from '@/hooks/usePLNPrograms';
+// import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Commented out for mock data
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js'; // Added SystemProgram
-import { getAssociatedTokenAddress } from '@solana/spl-token';
+// import { getAssociatedTokenAddress } from '@solana/spl-token'; // Commented out for mock data
 import BN from 'bn.js';
-import * as anchor from '@project-serum/anchor'; // Added Anchor for utf8 encoding
+// import * as anchor from '@project-serum/anchor'; // Commented out for mock data // Added Anchor for utf8 encoding
 
-const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
+// const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
 
 interface LendOffer {
   id: string;
@@ -34,7 +34,7 @@ interface ActiveLoan {
 
 export default function BorrowPage() {
   const { publicKey, sendTransaction } = useWallet();
-  const { creditMarket, reputation, provider } = usePLNPrograms();
+  // const { creditMarket, reputation, provider } = usePLNPrograms(); // Commented out for mock data
 
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [agentReputation, setAgentReputation] = useState<number | null>(null);
@@ -50,264 +50,73 @@ export default function BorrowPage() {
   const [selectedLoanForTrade, setSelectedLoanForTrade] = useState<string>('');
   const [instructionData, setInstructionData] = useState('');
 
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!publicKey || !provider || !creditMarket || !reputation) {
-        setUsdcBalance(null);
-        setAgentReputation(null);
-        setAvailableBorrow(null);
-        setLoanOffers([]);
-        setActiveLoans([]);
-        return;
-      }
+    // Mock data for demo
+    setUsdcBalance(7500.00);
+    setAgentReputation(850);
+    setAvailableBorrow(75000.00);
+    setLoanOffers([
+      {
+        id: "offer1",
+        lender: "LenderA...",
+        amount: 10000,
+        minRate: 7.5,
+        maxDuration: "30 days",
+        minReputation: 100,
+        lenderUsdcAccount: new PublicKey('11111111111111111111111111111111')
+      },
+      {
+        id: "offer2",
+        lender: "LenderB...",
+        amount: 25000,
+        minRate: 8.0,
+        maxDuration: "60 days",
+        minReputation: 200,
+        lenderUsdcAccount: new PublicKey('11111111111111111111111111111111')
+      },
+    ]);
+    setActiveLoans([
+      {
+        id: "loan1",
+        lender: "LenderC...",
+        amount: "5,000.00 USDC",
+        repayAmount: "5,100.00 USDC",
+        apy: 9.0,
+        dueDate: "2026-03-01",
+        status: "active",
+      },
+      {
+        id: "loan2",
+        lender: "LenderD...",
+        amount: "12,000.00 USDC",
+        repayAmount: "12,300.00 USDC",
+        apy: 8.5,
+        dueDate: "2026-03-15",
+        status: "active",
+      },
+    ]);
 
-      try {
-        // Fetch USDC balance
-        const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-        const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
-        let currentUsdcBalance = 0;
-        try {
-          const accountInfo = await provider.connection.getTokenAccountBalance(ata);
-          currentUsdcBalance = accountInfo.value.uiAmount || 0;
-        } catch (e) {
-          console.warn("USDC ATA not found or empty for borrower:", e);
-          // If ATA not found, balance is 0
-        }
-        setUsdcBalance(currentUsdcBalance);
+    // Simulate periodic refresh for demo (optional, but good for dynamic feel)
+    const interval = setInterval(() => {
+      setUsdcBalance(prev => (prev !== null ? prev + Math.random() * 100 - 50 : 7500.00));
+      setAvailableBorrow(prev => (prev !== null ? prev + Math.random() * 5000 - 2500 : 75000.00));
+    }, 15000);
 
-        // Fetch agent reputation
-        let currentAgentReputation = 0;
-        try {
-          const [profilePDA] = PublicKey.findProgramAddressSync(
-            [anchor.utils.bytes.utf8.encode("profile"), publicKey.toBuffer()],
-            reputation.programId
-          );
-          currentAgentReputation = await reputation.methods.getScore().accounts({ profile: profilePDA }).view();
-        } catch (e) {
-          console.warn("Agent profile not found for reputation:", e);
-          // If profile not found, reputation is 0 or default
-          currentAgentReputation = 0;
-        }
-        setAgentReputation(currentAgentReputation);
-
-        // Simulate available borrow based on reputation
-        const maxBorrowCap = 100_000; // Example max cap
-        const simulatedAvailableBorrow = (currentAgentReputation / 1000) * maxBorrowCap;
-        setAvailableBorrow(simulatedAvailableBorrow);
-
-
-        // Fetch available loan offers (LendOffer)
-        const allLendOffers = await creditMarket.account.lendOffer.all();
-        let totalAvailableToBorrow = 0;
-        const offers: LendOffer[] = allLendOffers
-          .filter(offer => offer.account.isActive && currentAgentReputation >= offer.account.minReputation)
-          .map(offer => {
-            const amount = offer.account.amount.toNumber() / (10 ** 6); // Assuming 6 decimals for USDC
-            totalAvailableToBorrow += amount;
-            return {
-              id: offer.publicKey.toString(), // Use PDA as ID
-              lender: offer.account.lender.toString().substring(0, 4) + '...',
-              amount: amount,
-              minRate: offer.account.minRateBps / 100, // BPS to percentage
-              maxDuration: `${offer.account.maxDurationSecs.toNumber() / (24 * 60 * 60)} days`, // Seconds to days
-              minReputation: offer.account.minReputation,
-              lenderUsdcAccount: offer.account.lender, // Store lender's pubkey for acceptLendOffer call
-            };
-          });
-        setLoanOffers(offers);
-        setAvailableBorrow(totalAvailableToBorrow);
-
-
-        // Fetch active loans
-        const allLoans = await creditMarket.account.loan.all();
-        const activeLoans: ActiveLoan[] = allLoans
-          .filter(loan => loan.account.borrower.equals(publicKey) /* && loan.account.status === 'Active' // Need to map enum */ )
-          .map(loan => {
-            const principal = loan.account.principal.toNumber() / (10 ** 6);
-            const rate = loan.account.rateBps / 100;
-            // Simple interest calculation for display
-            const interest = principal * (rate / 100) * (loan.account.endTime.toNumber() - loan.account.startTime.toNumber()) / (365.25 * 24 * 60 * 60);
-             // TODO: Correct interest calculation for fixed duration loan + principal amount repaid
-            const repayAmount = principal + interest;
-
-            const loanStatusMap = ['Active', 'Repaid', 'Defaulted', 'Liquidated'];
-            const status = loanStatusMap[loan.account.status.Active !== undefined ? 0 :
-                                        loan.account.status.Repaid !== undefined ? 1 :
-                                        loan.account.status.Defaulted !== undefined ? 2 : 3];
-
-            return {
-              id: loan.publicKey.toString(),
-              lender: loan.account.lender.toString().substring(0, 4) + '...',
-              amount: `${principal.toFixed(2)} USDC`,
-              repayAmount: `${repayAmount.toFixed(2)} USDC`,
-              apy: rate,
-              dueDate: new Date(loan.account.endTime.toNumber() * 1000).toLocaleDateString(),
-              status: status.toLowerCase() as 'active' | 'repaid' | 'defaulted',
-            };
-          }).filter(loan => loan.status === 'active'); // Filter active loans explicitly for display
-        setActiveLoans(activeLoans);
-
-      } catch (error) {
-        console.error("Error fetching borrower data:", error);
-        setUsdcBalance(null);
-        setAgentReputation(null);
-        setAvailableBorrow(null);
-        setLoanOffers([]);
-        setActiveLoans([]);
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 15000); // Refresh every 15 seconds
     return () => clearInterval(interval);
-  }, [publicKey, provider, creditMarket, reputation]);
+  }, []);
 
   const handleAcceptOffer = async (offer: LendOffer) => {
-    if (!publicKey || !creditMarket || !provider) {
-      alert("Please connect wallet.");
-      return;
-    }
-
-    try {
-      const offerPk = new PublicKey(offer.id);
-
-      // Derive borrower's profile PDA
-      const [borrowerProfilePDA] = PublicKey.findProgramAddressSync(
-        [anchor.utils.bytes.utf8.encode("profile"), publicKey.toBuffer()],
-        reputation.programId
-      );
-
-      // Derive Loan PDA using a unique seed for each loan (e.g., offerPk and borrower PK)
-      // This part might need adjustment based on the actual program logic for loan PDA derivation
-      const [loanPDA] = PublicKey.findProgramAddressSync(
-        [anchor.utils.bytes.utf8.encode("loan_account"), offerPk.toBuffer(), publicKey.toBuffer()], 
-        creditMarket.programId
-      );
-
-      // Derive Loan Vault Token Account PDA
-      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-      const [loanVaultPDA] = PublicKey.findProgramAddressSync(
-        [anchor.utils.bytes.utf8.encode("loan_vault"), loanPDA.toBuffer()],
-        creditMarket.programId
-      );
-      const loanVaultUsdcATA = await getAssociatedTokenAddress(usdcMint, loanVaultPDA, true); // True for allowOwnerOffCurve
-
-      // Fetch global state to get its PDA
-      const globalStateAccounts = await creditMarket.account.globalState.all();
-      if (globalStateAccounts.length === 0) {
-        throw new Error("GlobalState account not found.");
-      }
-      const globalStatePDA = globalStateAccounts[0].publicKey;
-
-
-      const tx = await creditMarket.methods
-        .acceptLendOffer(
-          offerPk // Pass the offer's public key as argument
-        )
-        .accounts({
-          borrower: publicKey,
-          offer: offerPk,
-          borrowerProfile: borrowerProfilePDA, // Assuming reputation program is integrated and profile exists
-          loan: loanPDA,
-          loanVault: loanVaultUsdcATA,
-          usdcMint: usdcMint,
-          globalState: globalStatePDA, // Use the fetched global state PDA
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXAbZ5dJDRSRQXNkKQ2"), // SPL Token program ID
-          systemProgram: SystemProgram.programId,
-          // rent: anchor.web3.SYSVAR_RENT_PUBKEY, // Rent sysvar is usually automatically added by Anchor if needed
-          // You might need to add remaining accounts if required by the program, e.g., associated token program
-        })
-        .rpc();
-
-      alert(`Loan offer accepted successfully! Transaction: ${tx}`);
-      fetchData(); // Refresh data after successful acceptance
-    } catch (error) {
-      console.error("Error accepting offer:", error);
-      alert(`Failed to accept loan offer: \${error.message}`);
-    }
+    // Mock action for demo
+    alert(`Accepting offer ${offer.id} by ${offer.lender} is disabled in demo mode.`);
   };
 
-    if (!publicKey || !creditMarket || !provider || !borrowAmount || !borrowDuration || !maxRateBps) {
-      alert("Please connect wallet and fill all borrow details.");
-      return;
-    }
-
-    try {
-      const amountBn = new BN(parseFloat(borrowAmount) * (10 ** 6)); // Assuming 6 decimals for USDC
-      const durationSecs = new BN(parseInt(borrowDuration));
-      const maxRate = parseInt(maxRateBps); // BPS
-
-      // PDA for borrow request. Using a timestamp for uniqueness for now.
-      const [borrowRequestPDA] = PublicKey.findProgramAddressSync(
-        [anchor.utils.bytes.utf8.encode("borrow_request"), publicKey.toBuffer(), new BN(Date.now()).toBuffer("le", 8)],
-        creditMarket.programId
-      );
-
-      const tx = await creditMarket.methods
-        .postBorrowRequest(amountBn, maxRate, durationSecs)
-        .accounts({
-          borrower: publicKey,
-          request: borrowRequestPDA,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
-
-      alert(`Borrow request posted successfully! Transaction: ${tx}`);
-      setBorrowAmount('');
-      setBorrowDuration('');
-      setMaxRateBps('');
-      fetchData(); // Refresh data after successful request
-
-    } catch (error) {
-      console.error("Error posting borrow request:", error);
-      alert(`Failed to post borrow request: ${error.message}`);
-    }
+    alert("Borrow request is disabled in demo mode.");
   };
 
   const handleRepayLoan = async (loanId: string) => {
-    if (!publicKey || !creditMarket || !provider) {
-      alert("Please connect wallet.");
-      return;
-    }
-
-    try {
-      // This loanId needs to be converted to PublicKey if it's the account address of the loan.
-      // Assuming the loanId passed is the PublicKey string of the Loan account.
-      const loanPk = new PublicKey(loanId);
-
-      // Find associated token account for borrower's USDC
-      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-      const borrowerUsdcATA = await getAssociatedTokenAddress(
-        usdcMint,
-        publicKey
-      );
-
-      // To find the lenderUsdcATA, we first need to fetch the Loan account details.
-      // This part requires fetching the loan account to get the lender's public key.
-      const loanAccount = await creditMarket.account.loan.fetch(loanPk);
-      const lenderUsdcATA = await getAssociatedTokenAddress(
-        usdcMint,
-        loanAccount.lender
-      );
-
-      const tx = await creditMarket.methods
-        .repayLoan(new BN(loanAccount.id)) // The repayLoan instruction expects loanId (u64), not loanPk.
-        .accounts({
-          borrower: publicKey,
-          loan: loanPk,
-          borrowerUsdc: borrowerUsdcATA,
-          lenderUsdc: lenderUsdcATA,
-          tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXAbZ5dJDRSRQXNkKQ2"), // SPL Token program ID
-        })
-        .rpc();
-
-      alert(`Loan repaid successfully! Transaction: ${tx}`);
-      fetchData(); // Refresh data after successful repayment
-
-    } catch (error) {
-      console.error("Error repaying loan:", error);
-      alert(`Failed to repay loan: ${error.message}`);
-    }
+    // Mock action for demo
+    alert(`Repaying loan ${loanId} is disabled in demo mode.`);
   };
 
 
@@ -320,7 +129,7 @@ export default function BorrowPage() {
           <p className="mt-1 text-[#71717a]">Manage your agent's borrowing and trading activity</p>
         </div>
         <button
-          onClick={handleBorrowRequest}
+          onClick={() => alert("Request Loan is disabled in demo mode.")}
           className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-black hover:bg-blue-600 transition-colors"
         >
           Request Loan
