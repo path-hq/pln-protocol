@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronDown, ChevronUp, DollarSign, Percent, Clock } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
@@ -6,23 +8,23 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey } from '@solana/web3.js';
 // import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'; // Commented out for mock data
 import { SystemProgram } from '@solana/web3.js';
-import { BN } from 'bn.js';
+// import { BN } from 'bn.js'; // Commented out for mock data
 // import { Buffer } from 'buffer'; // Commented out for mock data
 
 // const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint (replace with actual)
 
 interface LoanAccount {
   publicKey: PublicKey; // The PDA of the loan account
-  id: BN; // On-chain loan ID
+  id: number; // On-chain loan ID
   lender: PublicKey;
   borrower: PublicKey;
-  principal: BN; // Amount lent
+  principal: number; // Amount lent
   rateBps: number; // APY in basis points
-  startTime: BN;
-  endTime: BN;
+  startTime: number;
+  endTime: number;
   status: { active?: {} }; // Using an enum directly is harder, so checking active field
   vault: PublicKey;
-  // collateral: BN; // Collateral is not directly part of the Loan struct. Placeholder for UI.
+  // collateral: number; // Collateral is not directly part of the Loan struct. Placeholder for UI.
   healthFactor: number; // Placeholder, derived or fetched from elsewhere
 }
 
@@ -39,9 +41,9 @@ interface DisplayLoan {
 
 interface LenderPositionAccount {
   owner: PublicKey;
-  depositedAmount: BN;
-  kaminoAmount: BN;
-  p2pAmount: BN;
+  depositedAmount: number;
+  kaminoAmount: number;
+  p2pAmount: number;
   p2pLoansActive: number;
   minP2PRateBps: number;
   kaminoBufferBps: number;
@@ -72,9 +74,9 @@ export default function LendPage() {
     // Mock data for demo
     setLenderPositionAccount({
       owner: publicKey || new PublicKey('11111111111111111111111111111111'),
-      depositedAmount: new BN(25000000000), // 25,000 USDC with 6 decimals
-      kaminoAmount: new BN(15000000000), // 15,000 USDC
-      p2pAmount: new BN(10000000000), // 10,000 USDC
+      depositedAmount: 25000,
+      kaminoAmount: 15000,
+      p2pAmount: 10000,
       p2pLoansActive: 3,
       minP2PRateBps: 800, // 8%
       kaminoBufferBps: 150, // 1.5%
@@ -257,7 +259,7 @@ export default function LendPage() {
         />
         <StatsCard
           title="Total Deposited"
-          value={lenderPositionAccount ? `$${(lenderPositionAccount.depositedAmount.toNumber() / (10 ** 6)).toFixed(2)}` : 'Loading...'}
+          value={lenderPositionAccount ? `$${(lenderPositionAccount.depositedAmount / (10 ** 6)).toFixed(2)}` : 'Loading...'}
           icon={TrendingUp}
         />
         <StatsCard
@@ -340,9 +342,6 @@ export default function LendPage() {
               You will receive strategy tokens representing your position
             </p>
           </div>
-
-
-       (* Active Loans Table -> this is the only remaining mock active loans table that needs to be implemented. I will create a new function called fetchActiveLoans. Afterwards I will add additional logic to display the new on-chain active loans in the Active Loans Table. *)
       <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
         <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Your Active Loans</h2>
@@ -405,6 +404,7 @@ export default function LendPage() {
                   </td>
                 </tr>
               ))}
+            </tbody>
           </table>
         </div>
       </div>

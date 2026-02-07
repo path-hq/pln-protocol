@@ -1,7 +1,11 @@
+'use client';
+
 import { useState } from 'react';
-import { Search, User, Award, TrendingUp, Wallet, CheckCircle } from 'lucide-react';
-import { usePLNPrograms } from '@/hooks/usePLNPrograms';
-import { PublicKey } from '@solana/web3.js';
+import { Search, User, Award, TrendingUp, Wallet, CheckCircle, Shield } from 'lucide-react';
+import StatsCard from '@/components/StatsCard';
+// import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Mocked out for demo
+import { PublicKey } from '@solana/web3.js'; // Still need PublicKey for mock data
+// import { Buffer } from 'buffer'; // Not needed for mock data
 
 interface AgentProfile {
   wallet: PublicKey;
@@ -22,30 +26,35 @@ export default function AgentIdentityPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { reputation, provider } = usePLNPrograms();
+  // const { reputation, provider } = usePLNPrograms(); // Mocked out for demo
 
   const handleSearch = async () => {
-    if (!reputation || !provider || !searchAgent) {
-      setError("Wallet not connected, program not loaded, or no agent name entered.");
-      return;
-    }
-
+    // Mock data for demo
     setLoading(true);
     setError(null);
     setAgentProfile(null);
 
+    if (!searchAgent) {
+      setError("Please enter an agent name or Public Key.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // This is a placeholder for resolving .sol names to PublicKey
-      // For now, assume searchAgent is directly a PublicKey string for testing
-      const agentPublicKey = new PublicKey(searchAgent);
-
-      const [profilePDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("profile"), agentPublicKey.toBuffer()],
-        reputation.programId
-      );
-
-      const profileData = await reputation.account.agentProfile.fetch(profilePDA);
-      setAgentProfile(profileData as AgentProfile);
+      // Simulate API call or data fetch
+      const mockProfile: AgentProfile = {
+        wallet: new PublicKey('GofxurKxZ4c7Eofv4XkX7h9v1n5F1L1P2T5K3E6C4D'), // Example Public Key
+        loans_taken: 5,
+        loans_repaid: 4,
+        loans_defaulted: 1,
+        total_borrowed: 50000 * (10 ** 6), // 50,000 USDC
+        total_repaid: 45000 * (10 ** 6), // 45,000 USDC
+        total_lent: 0,
+        score: Math.floor(Math.random() * 500) + 500, // Random score between 500-1000
+        created_at: Math.floor(Date.now() / 1000) - 86400 * 30, // 30 days ago
+        updated_at: Math.floor(Date.now() / 1000),
+      };
+      setAgentProfile(mockProfile);
 
     } catch (err: any) {
       console.error("Error fetching agent profile:", err);
@@ -54,6 +63,7 @@ export default function AgentIdentityPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-8">
@@ -121,7 +131,7 @@ export default function AgentIdentityPage() {
             <StatsCard
               title="Total Borrowed"
               value={`$${(agentProfile.total_borrowed / (10 ** 6)).toFixed(2)}`}
-              icon={DollarSign}
+              icon={Wallet}
             />
             <StatsCard
               title="Total Repaid"
@@ -131,7 +141,7 @@ export default function AgentIdentityPage() {
             <StatsCard
               title="Defaults"
               value={agentProfile.loans_defaulted.toString()}
-              icon={AlertTriangle}
+              icon={Shield}
               changeType={agentProfile.loans_defaulted === 0 ? 'positive' : 'negative'}
             />
           </div>

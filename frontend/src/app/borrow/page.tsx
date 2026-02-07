@@ -5,9 +5,9 @@ import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, P
 import StatsCard from '@/components/StatsCard';
 // import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Commented out for mock data
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey, SystemProgram } from '@solana/web3.js'; // Added SystemProgram
+import { Connection, PublicKey } from '@solana/web3.js'; // Added SystemProgram
 // import { getAssociatedTokenAddress } from '@solana/spl-token'; // Commented out for mock data
-import BN from 'bn.js';
+// import BN from 'bn.js'; // Mocked out for demo
 // import * as anchor from '@project-serum/anchor'; // Commented out for mock data // Added Anchor for utf8 encoding
 
 // const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
@@ -111,6 +111,8 @@ export default function BorrowPage() {
     alert(`Accepting offer ${offer.id} by ${offer.lender} is disabled in demo mode.`);
   };
 
+  const handleBorrowRequest = async () => {
+    // Mock action for demo
     alert("Borrow request is disabled in demo mode.");
   };
 
