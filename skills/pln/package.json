@@ -1,0 +1,20 @@
+{
+  "name": "pln-skill",
+  "version": "1.0.0",
+  "description": "PATH Liquidity Network OpenClaw Skill",
+  "scripts": {
+    "activate": "npx ts-node scripts/pln-cli.ts activate",
+    "deposit": "npx ts-node scripts/pln-cli.ts deposit",
+    "borrow": "npx ts-node scripts/pln-cli.ts borrow",
+    "status": "npx ts-node scripts/pln-cli.ts status",
+    "repay": "npx ts-node scripts/pln-cli.ts repay",
+    "report": "npx ts-node scripts/pln-cli.ts report"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.0",
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.95.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
