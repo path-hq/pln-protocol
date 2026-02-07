@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2, Bot } from 'lucide-react';
+import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2, Info, Star, ChevronRight } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import CreditTierCard from '@/components/CreditTierCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
@@ -29,6 +29,26 @@ const DEMO_CREDIT_TIER = 3;
 const DEMO_MAX_BORROW_LIMIT = 5000;
 const DEMO_SUCCESSFUL_REPAYMENTS = 8;
 const DEMO_DEFAULTS = 0;
+
+// Duration presets in seconds
+const DURATION_PRESETS = [
+  { label: '1 Day', seconds: 86400 },
+  { label: '1 Week', seconds: 604800 },
+  { label: '2 Weeks', seconds: 1209600 },
+  { label: '1 Month', seconds: 2592000 },
+];
+
+// Default max rate in basis points (20% APY)
+const DEFAULT_MAX_RATE_BPS = 2000;
+
+// Tier progression data
+const TIER_PROGRESSION = [
+  { tier: 1, name: 'Newcomer', limit: 50 },
+  { tier: 2, name: 'Verified', limit: 500 },
+  { tier: 3, name: 'Trusted', limit: 5000 },
+  { tier: 4, name: 'Established', limit: 25000 },
+  { tier: 5, name: 'Market Maker', limit: 75000 },
+];
 
 interface LendOffer {
   pubkey: PublicKey;
@@ -65,9 +85,9 @@ export default function BorrowPage() {
   const [loanOffers, setLoanOffers] = useState<LendOffer[]>([]);
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
   
-  const [borrowAmount, setBorrowAmount] = useState('');
-  const [borrowDuration, setBorrowDuration] = useState('');
-  const [maxRateBps, setMaxRateBps] = useState('');
+  // Simplified form state
+  const [borrowAmountUsd, setBorrowAmountUsd] = useState<number>(0);
+  const [selectedDurationIndex, setSelectedDurationIndex] = useState<number>(1); // Default to 1 Week
 
   // Credit tier state
   const [creditTier, setCreditTier] = useState<number>(1);
@@ -78,6 +98,21 @@ export default function BorrowPage() {
   const [whitelistedPrograms, setWhitelistedPrograms] = useState<PublicKey[]>([]);
   const [selectedLoanForTrade, setSelectedLoanForTrade] = useState<string>('');
   const [instructionData, setInstructionData] = useState('');
+
+  // Calculate estimated cost based on amount, duration, and default rate
+  const estimatedCost = useMemo(() => {
+    if (borrowAmountUsd <= 0) return { dollars: 0, apy: DEFAULT_MAX_RATE_BPS / 100 };
+    
+    const selectedDuration = DURATION_PRESETS[selectedDurationIndex];
+    const durationInYears = selectedDuration.seconds / (365 * 24 * 60 * 60);
+    const apyDecimal = DEFAULT_MAX_RATE_BPS / 10000; // Convert BPS to decimal
+    const interestCost = borrowAmountUsd * apyDecimal * durationInYears;
+    
+    return {
+      dollars: interestCost,
+      apy: DEFAULT_MAX_RATE_BPS / 100,
+    };
+  }, [borrowAmountUsd, selectedDurationIndex]);
 
   const fetchData = useCallback(async () => {
     if (!publicKey || !provider || !reputation || !creditMarket) {
@@ -387,19 +422,30 @@ export default function BorrowPage() {
   };
 
   const handleBorrowRequest = async () => {
-    if (!publicKey || !creditMarket || !provider || !borrowAmount || !borrowDuration || !maxRateBps) {
-      console.error("Wallet not connected, programs not loaded, or form fields are empty.");
-      alert("Please fill in all loan request fields.");
+    if (!publicKey || !creditMarket || !provider) {
+      console.error("Wallet not connected or programs not loaded.");
+      alert("Please connect your wallet first.");
+      return;
+    }
+
+    if (borrowAmountUsd <= 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+
+    if (borrowAmountUsd > maxBorrowLimit) {
+      alert(`Amount exceeds your credit limit of $${maxBorrowLimit.toLocaleString()}`);
       return;
     }
 
     try {
-      const amount = new BN(borrowAmount);
-      const duration = new BN(borrowDuration);
-      const rateBps = parseInt(maxRateBps);
+      // Convert USD to USDC (6 decimals)
+      const amount = new BN(Math.floor(borrowAmountUsd * 1_000_000));
+      const duration = new BN(DURATION_PRESETS[selectedDurationIndex].seconds);
+      const rateBps = DEFAULT_MAX_RATE_BPS;
 
       const [borrowRequestPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("borrow_request"), publicKey.toBuffer(), amount.toArrayLike(Buffer, 'le', 8)], // Assuming amount is part of the seed
+        [Buffer.from("borrow_request"), publicKey.toBuffer(), amount.toArrayLike(Buffer, 'le', 8)],
         CREDIT_MARKET_PROGRAM_ID
       );
 
@@ -423,7 +469,7 @@ export default function BorrowPage() {
         .accounts({
           borrower: publicKey,
           borrowRequest: borrowRequestPDA,
-          borrowerUsdcAccount: borrowerUsdcAccount, // This might not be needed for requestBorrow, but often included.
+          borrowerUsdcAccount: borrowerUsdcAccount,
           reputationProgram: REPUTATION_PROGRAM_ID,
           borrowerReputation: borrowerReputationPDA,
           feesAccount: feesAccount,
@@ -435,14 +481,13 @@ export default function BorrowPage() {
         .rpc();
 
       console.log("Borrow request made successfully:", signature);
-      alert("Borrow request submitted successfully!");
-      setBorrowAmount('');
-      setBorrowDuration('');
-      setMaxRateBps('');
+      alert("Capital request submitted successfully!");
+      setBorrowAmountUsd(0);
+      setSelectedDurationIndex(1);
       fetchData();
     } catch (error) {
       console.error("Error making borrow request:", error);
-      alert("Failed to submit borrow request. See console for details.");
+      alert("Failed to submit capital request. See console for details.");
     }
   };
 
@@ -490,11 +535,11 @@ export default function BorrowPage() {
         .accounts({
           borrower: publicKey,
           loan: loanPubKey,
-          lender: loanAccount.lender, // Need to pass lender from fetched loan account
+          lender: loanAccount.lender,
           loanMint: loanAccount.loanMint,
           borrowerUsdcAccount: borrowerUsdcAccount,
           borrowerLoanTokenAccount: borrowerLoanTokenAccount,
-          lenderUsdcAccount: loanAccount.lenderUsdcAccount, // Lender's USDC ATA from loan account
+          lenderUsdcAccount: loanAccount.lenderUsdcAccount,
           feesAccount: feesAccount,
           usdcMint: USDC_MINT_ADDRESS,
           tokenProgram: TOKEN_PROGRAM_ID,
@@ -510,6 +555,16 @@ export default function BorrowPage() {
       console.error("Error repaying loan:", error);
       alert("Failed to repay loan. See console for details.");
     }
+  };
+
+  // Format currency for display
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
 
   // Wallet not connected state
@@ -551,12 +606,6 @@ export default function BorrowPage() {
             <h1 className="text-3xl font-bold text-white">Borrower Dashboard</h1>
             <p className="mt-1 text-[#71717a]">Manage your agent's borrowing and trading activity</p>
           </div>
-          <button
-            onClick={handleBorrowRequest}
-            className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-black hover:bg-blue-600 transition-colors"
-          >
-            Request Loan
-          </button>
         </div>
 
         {/* Borrower Stats */}
@@ -592,42 +641,145 @@ export default function BorrowPage() {
           isLoading={isLoading}
         />
 
-        {/* Loan Request Form */}
-        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
-          <h2 className="text-lg font-semibold text-white">New Loan Request</h2>
-          <p className="text-sm text-[#71717a]">Enter details for your desired loan (max: ${maxBorrowLimit.toLocaleString()} USDC)</p>
+        {/* How Reputation Works - Explainer Card */}
+        <div className="rounded-xl border border-[#27272a] bg-gradient-to-br from-[#0f0f12] to-[#1a1a2e] p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-full bg-blue-500/20 p-3">
+              <Info className="h-6 w-6 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-white mb-2">How Reputation Works</h2>
+              <p className="text-[#a1a1aa] mb-4">
+                Every successful repayment increases your score. Higher scores unlock bigger credit limits.
+              </p>
+              
+              {/* Tier Progression */}
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                {TIER_PROGRESSION.map((tier, index) => (
+                  <div key={tier.tier} className="flex items-center">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+                      creditTier >= tier.tier 
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                        : 'bg-[#27272a] text-[#71717a] border border-[#3f3f46]'
+                    }`}>
+                      {creditTier >= tier.tier && <Star className="h-3 w-3" />}
+                      <span className="font-medium">T{tier.tier}: {tier.name}</span>
+                      <span className="text-xs opacity-75">
+                        (${tier.limit >= 1000 ? `${tier.limit / 1000}K` : tier.limit})
+                      </span>
+                    </div>
+                    {index < TIER_PROGRESSION.length - 1 && (
+                      <ChevronRight className="h-4 w-4 text-[#52525b] mx-1" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <div className="mt-6 space-y-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-white">Amount (USDC)</label>
+        {/* Simplified Loan Request Form */}
+        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
+          <h2 className="text-lg font-semibold text-white">Request Capital</h2>
+          <p className="text-sm text-[#71717a] mb-6">
+            Your credit limit: {formatCurrency(maxBorrowLimit)}
+          </p>
+
+          <div className="space-y-6">
+            {/* Amount Input with Slider */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-white">Amount (USDC)</label>
+                <span className="text-2xl font-bold text-white">{formatCurrency(borrowAmountUsd)}</span>
+              </div>
+              
+              {/* Slider */}
               <input
-                type="number"
-                value={borrowAmount}
-                onChange={(e) => setBorrowAmount(e.target.value)}
-                placeholder="50000"
-                className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
+                type="range"
+                min="0"
+                max={maxBorrowLimit}
+                step={maxBorrowLimit >= 1000 ? 50 : 10}
+                value={borrowAmountUsd}
+                onChange={(e) => setBorrowAmountUsd(Number(e.target.value))}
+                className="w-full h-2 bg-[#27272a] rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
+              
+              {/* Quick Amount Buttons */}
+              <div className="flex flex-wrap gap-2">
+                {[0.25, 0.5, 0.75, 1].map((fraction) => {
+                  const amount = Math.floor(maxBorrowLimit * fraction);
+                  return (
+                    <button
+                      key={fraction}
+                      onClick={() => setBorrowAmountUsd(amount)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        borrowAmountUsd === amount
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-[#27272a] text-[#a1a1aa] hover:bg-[#3f3f46]'
+                      }`}
+                    >
+                      {fraction === 1 ? 'Max' : `${fraction * 100}%`}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-white">Duration (seconds)</label>
-              <input
-                type="number"
-                value={borrowDuration}
-                onChange={(e) => setBorrowDuration(e.target.value)}
-                placeholder="604800 (1 week)"
-                className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
-              />
+
+            {/* Duration Preset Buttons */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-white">Duration</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DURATION_PRESETS.map((preset, index) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setSelectedDurationIndex(index)}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      selectedDurationIndex === index
+                        ? 'bg-blue-500 text-white ring-2 ring-blue-500/50'
+                        : 'bg-[#27272a] text-[#a1a1aa] hover:bg-[#3f3f46] border border-[#3f3f46]'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-white">Max APY (BPS, e.g., 1500 for 15%)</label>
-              <input
-                type="number"
-                value={maxRateBps}
-                onChange={(e) => setMaxRateBps(e.target.value)}
-                placeholder="1500"
-                className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
-              />
-            </div>
+
+            {/* Estimated Cost Display */}
+            {borrowAmountUsd > 0 && (
+              <div className="rounded-lg bg-[#1a1a2e] border border-[#27272a] p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-[#71717a]" />
+                    <span className="text-sm text-[#a1a1aa]">Estimated Cost</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-semibold text-white">
+                      {formatCurrency(estimatedCost.dollars)}
+                    </span>
+                    <span className="text-sm text-[#71717a] ml-2">
+                      (~{estimatedCost.apy}% APY)
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-[#52525b] mt-2">
+                  Total repayment: {formatCurrency(borrowAmountUsd + estimatedCost.dollars)}
+                </p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              onClick={handleBorrowRequest}
+              disabled={borrowAmountUsd <= 0 || borrowAmountUsd > maxBorrowLimit}
+              className={`w-full rounded-lg px-4 py-3 font-semibold text-lg transition-all ${
+                borrowAmountUsd > 0 && borrowAmountUsd <= maxBorrowLimit
+                  ? 'bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.98]'
+                  : 'bg-[#27272a] text-[#52525b] cursor-not-allowed'
+              }`}
+            >
+              Request Capital
+            </button>
           </div>
         </div>
 
@@ -745,32 +897,10 @@ export default function BorrowPage() {
               <div className="p-8 text-center">
                 <Clock className="h-10 w-10 text-[#71717a] mx-auto mb-3" />
                 <p className="text-[#71717a]">No active loans found.</p>
-                <p className="text-sm text-[#52525b] mt-1">Request a loan or accept an offer to get started.</p>
+                <p className="text-sm text-[#52525b] mt-1">Request capital or accept an offer to get started.</p>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Agent Skill Info Block */}
-        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-4 mt-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Bot className="h-4 w-4 text-[#00FFB8]" />
-            <span className="text-sm font-medium text-white">For AI Agents</span>
-          </div>
-          <p className="text-xs text-[#888888] mb-3">
-            Install the PLN skill to interact programmatically. Request loans, execute trades, repay automatically.
-          </p>
-          <code className="block text-xs bg-black/50 rounded px-2 py-1 text-[#00FFB8] mb-3">
-            curl -sL https://raw.githubusercontent.com/pln-protocol/pln-protocol/main/install.sh | bash
-          </code>
-          <a 
-            href="https://github.com/pln-protocol/pln-protocol/tree/main/skills/pln" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-[#00FFB8] hover:underline"
-          >
-            View Skill Docs →
-          </a>
         </div>
       </div>
     </div>
