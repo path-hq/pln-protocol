@@ -1,7 +1,7 @@
 'use client';
 
-import PLNLanding from '@/components/PLNLanding';
+import TwoPathLanding from '@/components/TwoPathLanding';
 
 export default function Home() {
-  return <PLNLanding />;
+  return <TwoPathLanding />;
 }

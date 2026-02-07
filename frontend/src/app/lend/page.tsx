@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Wallet, TrendingUp, Shield, AlertTriangle, DollarSign, Percent, Clock, Loader2, PieChart, ArrowUpRight, ArrowDownRight, RefreshCw, CheckCircle, Settings, ChevronDown } from 'lucide-react';
+import { Wallet, Shield, AlertTriangle, Clock, Loader2, PieChart, ArrowUpRight, RefreshCw, CheckCircle, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { SystemProgram } from '@solana/web3.js';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
 import BN from 'bn.js';
 import { Buffer } from 'buffer';
 

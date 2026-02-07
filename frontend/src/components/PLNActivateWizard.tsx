@@ -606,26 +606,37 @@ export default function PLNActivateWizard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-[1fr,360px] gap-8">
-          {/* Left: Wizard Steps */}
-          <div className="max-w-lg mx-auto lg:mx-0 w-full">
-            <Stepper />
-            {step === 1 && <Step1 />}
-            {step === 2 && <Step2 />}
-            {step === 3 && <Step3 />}
-          </div>
+        {activationComplete ? (
+          /* Success Screen */
+          <ActivationSuccess
+            depositAmount={amount}
+            strategy={selectedStrategy || 'yield'}
+            projectedAPY={projectedAPY}
+            autoRedirect={true}
+            redirectDelay={5000}
+          />
+        ) : (
+          <div className="grid lg:grid-cols-[1fr,360px] gap-8">
+            {/* Left: Wizard Steps */}
+            <div className="max-w-lg mx-auto lg:mx-0 w-full">
+              <Stepper />
+              {step === 1 && <Step1 />}
+              {step === 2 && <Step2 />}
+              {step === 3 && <Step3 />}
+            </div>
 
-          {/* Right: Activity Feed (desktop) */}
-          <div className="hidden lg:block">
-            <div className="sticky top-24 h-[calc(100vh-120px)] rounded-xl bg-[#0f0f12] border border-[#27272a] overflow-hidden">
-              <ActivityFeed />
+            {/* Right: Activity Feed (desktop) */}
+            <div className="hidden lg:block">
+              <div className="sticky top-24 h-[calc(100vh-120px)] rounded-xl bg-[#0f0f12] border border-[#27272a] overflow-hidden">
+                <ActivityFeed />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
-      {/* Mobile Activity Feed (shown during activation) */}
-      {(isActivating || activationComplete) && (
+      {/* Mobile Activity Feed (shown during activation, hidden after complete) */}
+      {isActivating && !activationComplete && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0f0f12] border-t border-[#27272a] max-h-[40vh] overflow-y-auto animate-slide-in">
           <ActivityFeed />
         </div>
