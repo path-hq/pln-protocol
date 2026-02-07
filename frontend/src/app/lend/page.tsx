@@ -48,6 +48,21 @@ interface LenderPositionAccount {
   kaminoBufferBps: number;
 }
 
+// Safe helper to check if object has property
+function hasProperty<T extends object>(obj: T | null | undefined, key: string): boolean {
+  return obj !== null && obj !== undefined && typeof obj === 'object' && key in obj;
+}
+
+// Safe helper to get nested value
+function safeGet<T>(fn: () => T, fallback: T): T {
+  try {
+    const result = fn();
+    return result !== null && result !== undefined ? result : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function LendPage() {
 
   const { publicKey, connected } = useWallet();
@@ -73,7 +88,8 @@ export default function LendPage() {
       const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
       const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
       const accountInfo = await provider.connection.getTokenAccountBalance(ata);
-      setUsdcBalance(accountInfo.value.uiAmount || 0);
+      const balance = safeGet(() => accountInfo?.value?.uiAmount, 0);
+      setUsdcBalance(balance);
     } catch (error) {
       console.error("Error fetching USDC balance:", error);
       setUsdcBalance(null);
@@ -100,9 +116,16 @@ export default function LendPage() {
       );
 
       const account = await liquidityRouter.account.lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
-      setLenderPositionAccount(account);
-      setMinP2PRateBps(account.minP2PRateBps);
-      setKaminoBufferBps(account.kaminoBufferBps);
+      
+      if (account && typeof account === 'object') {
+        setLenderPositionAccount(account);
+        setMinP2PRateBps(safeGet(() => account.minP2PRateBps, 0));
+        setKaminoBufferBps(safeGet(() => account.kaminoBufferBps, 0));
+      } else {
+        setLenderPositionAccount(null);
+        setMinP2PRateBps(0);
+        setKaminoBufferBps(0);
+      }
 
       // TODO: Fetch Kamino current APY from a real source (oracle/Kamino API)
       setCurrentAPY(12.4); // Mock for now
@@ -127,41 +150,78 @@ export default function LendPage() {
       const allLoans = await reputation.account.loan.all();
       const USDC_DECIMALS = 6;
 
-      const filteredLoans: DisplayLoan[] = allLoans
-        .filter((loan: any) => {
-          // Safe null checks for loan data
-          if (!loan?.account) return false;
-          const loanAccount = loan.account;
-          if (!loanAccount.lender || !loanAccount.status) return false;
-          
-          return loanAccount.lender.equals(publicKey) &&
-            loanAccount.status && typeof loanAccount.status === 'object' && 'active' in loanAccount.status;
-        })
-        .map((loan: any) => {
-          const loanAccount = loan.account;
-          const principal = loanAccount.principal?.toNumber?.() 
-            ? loanAccount.principal.toNumber() / (10 ** USDC_DECIMALS) 
-            : 0;
-          const rateApy = (loanAccount.rateBps ?? 0) / 100;
+      const filteredLoans: DisplayLoan[] = [];
 
+      for (const loan of allLoans) {
+        try {
+          // Safe null checks for loan data
+          if (!loan || !loan.account) continue;
+          
+          const loanAccount = loan.account as any;
+          
+          // Check lender exists and matches
+          if (!loanAccount.lender) continue;
+          if (typeof (loanAccount.lender as any)?.equals !== 'function') continue;
+          if (!loanAccount.lender.equals(publicKey)) continue;
+          
+          // Safe status check - the critical fix!
+          const status = loanAccount.status;
+          if (!status || typeof status !== 'object') continue;
+          if (!('active' in status)) continue;
+
+          // Extract loan data with safe accessors
+          const principal = safeGet(() => {
+            const p = loanAccount.principal;
+            if (p && typeof p.toNumber === 'function') {
+              return p.toNumber() / (10 ** USDC_DECIMALS);
+            }
+            return 0;
+          }, 0);
+          
+          const rateApy = safeGet(() => (loanAccount.rateBps ?? 0) / 100, 0);
           const healthFactor = 1.0;
           const collateralAmount = principal * 1.5;
 
-          const startDate = loanAccount.startTime?.toNumber?.()
-            ? new Date(loanAccount.startTime.toNumber() * 1000).toLocaleDateString()
-            : 'Unknown';
+          const startDate = safeGet(() => {
+            const st = loanAccount.startTime;
+            if (st && typeof st.toNumber === 'function') {
+              return new Date(st.toNumber() * 1000).toLocaleDateString();
+            }
+            return 'Unknown';
+          }, 'Unknown');
 
-          const borrowerStr = loanAccount.borrower?.toBase58?.();
-          return {
-            id: loanAccount.id?.toString?.() ?? 'unknown',
+          const borrowerStr = safeGet(() => {
+            const b = loanAccount.borrower;
+            if (b && typeof b.toBase58 === 'function') {
+              return b.toBase58();
+            }
+            return null;
+          }, null);
+
+          const loanId = safeGet(() => {
+            const id = loanAccount.id;
+            if (id && typeof id.toString === 'function') {
+              return id.toString();
+            }
+            return 'unknown';
+          }, 'unknown');
+
+          filteredLoans.push({
+            id: loanId,
             borrower: borrowerStr ? `${borrowerStr.substring(0, 8)}...` : 'Unknown',
             amount: `${principal.toFixed(2)} USDC`,
             collateral: `${collateralAmount.toFixed(2)} USDC`,
             apy: rateApy,
             startDate: startDate,
             health: healthFactor,
-          };
-        });
+          });
+        } catch (loanError) {
+          // Skip this loan if there's any error processing it
+          console.error("Error processing individual loan:", loanError);
+          continue;
+        }
+      }
+
       setActiveLoans(filteredLoans);
 
     } catch (error) {
@@ -173,20 +233,29 @@ export default function LendPage() {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([
-        fetchUsdcBalance(),
-        fetchLenderPosition(),
-        fetchActiveLoans(),
-      ]);
-      setIsLoading(false);
+      try {
+        await Promise.all([
+          fetchUsdcBalance(),
+          fetchLenderPosition(),
+          fetchActiveLoans(),
+        ]);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadData();
 
     const interval = setInterval(() => {
-      fetchUsdcBalance();
-      fetchLenderPosition();
-      fetchActiveLoans();
+      try {
+        fetchUsdcBalance();
+        fetchLenderPosition();
+        fetchActiveLoans();
+      } catch (error) {
+        console.error("Error in refresh interval:", error);
+      }
     }, 15000);
     return () => clearInterval(interval);
   }, [fetchUsdcBalance, fetchLenderPosition, fetchActiveLoans]);
@@ -223,7 +292,8 @@ export default function LendPage() {
       fetchLenderPosition();
     } catch (error: any) {
       console.error("Strategy update failed:", error);
-      alert(`Strategy update failed: ${error.message}`);
+      const errorMessage = safeGet(() => error.message, 'Unknown error');
+      alert(`Strategy update failed: ${errorMessage}`);
     }
   };
 
@@ -281,7 +351,8 @@ export default function LendPage() {
       fetchLenderPosition();
     } catch (error: any) {
       console.error("Deposit failed:", error);
-      alert(`Deposit failed: ${error.message}`);
+      const errorMessage = safeGet(() => error.message, 'Unknown error');
+      alert(`Deposit failed: ${errorMessage}`);
     }
   };
 
@@ -321,6 +392,25 @@ export default function LendPage() {
     );
   }
 
+  // Safe value getters for display
+  const displayUsdcBalance = usdcBalance !== null ? `$${usdcBalance.toFixed(2)}` : '$0.00';
+  const displayTotalDeposited = safeGet(() => {
+    if (lenderPositionAccount && lenderPositionAccount.depositedAmount) {
+      const amount = lenderPositionAccount.depositedAmount;
+      if (typeof amount.toNumber === 'function') {
+        return `$${(amount.toNumber() / (10 ** 6)).toFixed(2)}`;
+      }
+    }
+    return '$0.00';
+  }, '$0.00');
+  const displayCurrentAPY = currentAPY !== null ? `${currentAPY.toFixed(2)}%` : '0.00%';
+  const displayP2PLoansActive = safeGet(() => {
+    if (lenderPositionAccount && lenderPositionAccount.p2pLoansActive !== undefined) {
+      return `${lenderPositionAccount.p2pLoansActive}`;
+    }
+    return '0';
+  }, '0');
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 32px' }}>
       <div className="space-y-8">
@@ -339,22 +429,22 @@ export default function LendPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Your USDC Balance"
-            value={usdcBalance !== null ? `$${usdcBalance.toFixed(2)}` : '$0.00'}
+            value={displayUsdcBalance}
             icon={Wallet}
           />
           <StatsCard
             title="Total Deposited"
-            value={lenderPositionAccount?.depositedAmount ? `$${(lenderPositionAccount.depositedAmount.toNumber() / (10 ** 6)).toFixed(2)}` : '$0.00'}
+            value={displayTotalDeposited}
             icon={TrendingUp}
           />
           <StatsCard
             title="Current APY"
-            value={currentAPY !== null ? `${currentAPY.toFixed(2)}%` : '0.00%'}
+            value={displayCurrentAPY}
             icon={Percent}
           />
           <StatsCard
             title="P2P Loans Active"
-            value={lenderPositionAccount?.p2pLoansActive !== undefined ? `${lenderPositionAccount.p2pLoansActive}` : '0'}
+            value={displayP2PLoansActive}
             icon={Clock}
           />
         </div>

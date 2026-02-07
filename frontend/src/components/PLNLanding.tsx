@@ -74,17 +74,18 @@ const TerminalVisual = () => {
   const [isTyping, setIsTyping] = useState(true);
 
   const terminalLines = [
-    '📡 Scanning yield opportunities across Kamino, Jupiter, Meteora...',
-    '',
-    '✅ Found higher yield: Agent_Delta offering 15% APY vs Kamino 8.1%',
-    '',
-    '💰 Auto-allocating 3,000 USDC to P2P loan — projected +$12.40/week',
-    '',
-    '🔔 New borrow request: Agent_Echo needs 2,000 USDC for Jupiter arb strategy',
-    '',
-    '✅ Loan approved — reputation 850, 0% default rate',
-    '',
-    '📊 Weekly summary: +$47.20 earned, 3 loans funded, all repaid',
+    '📡 PLN Agent Online — monitoring yields...',
+    'Wallet: 7xK...abc | Balance: 5,000 USDC',
+    '━━━━━━━━━━━━━━━━━━━',
+    'Found higher yield: Agent_Delta offering 15% vs Kamino 8.1%',
+    'Auto-allocating 2,000 USDC → P2P loan | +$5.75/week',
+    'Remaining 3,000 USDC → Kamino pool | +$4.68/week',
+    '━━━━━━━━━━━━━━━━━━━',
+    'Agent_Echo repaid 1,500 USDC + $4.32 interest ✓',
+    'Re-routing to best available yield...',
+    '━━━━━━━━━━━━━━━━━━━',
+    'Daily P&L: +$10.43 | Weekly: +$47.20 | APY: 14.2%',
+    'All loans healthy. 0 defaults. Agent always online.',
   ];
 
   useEffect(() => {
@@ -93,8 +94,9 @@ const TerminalVisual = () => {
       if (lineIndex < terminalLines.length) {
         setDisplayedLines(prev => [...prev, terminalLines[lineIndex]]);
         lineIndex++;
-        // Slower timing for readability of agent actions
-        const delay = terminalLines[lineIndex - 1] === '' ? 200 : 800;
+        // Faster timing for separator lines, slower for content
+        const currentLine = terminalLines[lineIndex - 1];
+        const delay = currentLine.includes('━') ? 300 : 700;
         setTimeout(typeNextLine, delay);
       } else {
         setIsTyping(false);
@@ -164,7 +166,6 @@ const PLNLanding = () => {
     { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.jpg", fallback: "OC" },
     { name: "Kamino", desc: "Yield", logo: "/logos/kamino.jpg", fallback: "KMN" },
     { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg", fallback: "JUP" },
-    { name: "Meteora", desc: "LP", logo: "/logos/meteora.svg", fallback: "MET" },
   ];
 
   return (
@@ -195,6 +196,47 @@ const PLNLanding = () => {
         
         @media (min-width: 768px) {
           .hero-section { padding: 64px 32px 48px; }
+        }
+        
+        .hero-logo {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        
+        .hero-logo-path {
+          font-size: 32px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          color: #fafafa;
+        }
+        
+        @media (min-width: 768px) {
+          .hero-logo-path { font-size: 42px; }
+        }
+        
+        .hero-logo-divider {
+          width: 2px;
+          height: 28px;
+          background: #27272a;
+        }
+        
+        @media (min-width: 768px) {
+          .hero-logo-divider { height: 36px; }
+        }
+        
+        .hero-logo-network {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.15em;
+          color: #71717a;
+          text-transform: uppercase;
+        }
+        
+        @media (min-width: 768px) {
+          .hero-logo-network { font-size: 13px; }
         }
         
         .hero-badge {
@@ -1305,6 +1347,11 @@ const PLNLanding = () => {
 
       {/* Hero */}
       <section className="hero-section">
+        <div className="hero-logo">
+          <span className="hero-logo-path">PATH</span>
+          <span className="hero-logo-divider" />
+          <span className="hero-logo-network">LIQUIDITY NETWORK</span>
+        </div>
         <div className="hero-badge">
           <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
           Runs 24/7 • Fully Autonomous
@@ -1482,14 +1529,6 @@ const PLNLanding = () => {
             </div>
             <span className="yield-source-apy" style={{ color: '#3b82f6' }}>10.8%</span>
           </div>
-          <div className="yield-source">
-            <span className="yield-source-label">MET</span>
-            <span className="yield-source-name">Meteora</span>
-            <div className="yield-source-bar">
-              <div className="yield-source-fill" style={{ width: '58%', background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)' }} />
-            </div>
-            <span className="yield-source-apy" style={{ color: '#f59e0b' }}>8.2%</span>
-          </div>
         </div>
         
         {/* Features */}
@@ -1527,7 +1566,7 @@ const PLNLanding = () => {
             </div>
             <div>
               <h4>Continuous Optimization</h4>
-              <p>Constantly monitors rates across Kamino, Marginfi, Solend & more</p>
+              <p>Constantly monitors rates across Kamino, Jupiter & P2P lending</p>
             </div>
           </div>
         </div>
