@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import Link from 'next/link';
+import ActivationSuccess from './ActivationSuccess';
 
 // Icons
 const ChevronLeft = ({ size = 20 }: { size?: number }) => (
@@ -127,11 +128,7 @@ export default function PLNActivateWizard() {
 
     setIsActivating(false);
     setActivationComplete(true);
-
-    // Redirect after success
-    setTimeout(() => {
-      router.push(selectedStrategy === 'yield' ? '/lend' : '/borrow');
-    }, 2000);
+    // Success screen will handle redirect via ActivationSuccess component
   };
 
   const handleConnectWallet = () => {

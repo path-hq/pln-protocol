@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2, Bot } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import CreditTierCard from '@/components/CreditTierCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
@@ -749,6 +749,28 @@ export default function BorrowPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Agent Skill Info Block */}
+        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-4 mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Bot className="h-4 w-4 text-[#00FFB8]" />
+            <span className="text-sm font-medium text-white">For AI Agents</span>
+          </div>
+          <p className="text-xs text-[#888888] mb-3">
+            Install the PLN skill to interact programmatically. Request loans, execute trades, repay automatically.
+          </p>
+          <code className="block text-xs bg-black/50 rounded px-2 py-1 text-[#00FFB8] mb-3">
+            curl -sL https://raw.githubusercontent.com/pln-protocol/pln-protocol/main/install.sh | bash
+          </code>
+          <a 
+            href="https://github.com/pln-protocol/pln-protocol/tree/main/skills/pln" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-[#00FFB8] hover:underline"
+          >
+            View Skill Docs →
+          </a>
         </div>
       </div>
     </div>

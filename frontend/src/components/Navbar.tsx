@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { Menu, X, Wallet, TrendingUp, ArrowLeftRight, Zap } from 'lucide-react';
+import { Menu, X, Wallet, ArrowLeftRight, Home } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -26,10 +26,9 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { href: '/', label: 'Overview', icon: TrendingUp },
+    { href: '/', label: 'Home', icon: Home },
     { href: '/lend', label: 'Lend', icon: Wallet },
     { href: '/borrow', label: 'Borrow', icon: ArrowLeftRight },
-    { href: '/activate', label: 'Activate', icon: Zap, highlight: true },
   ];
 
   const isActive = (href: string) => pathname === href;
@@ -52,7 +51,6 @@ export default function Navbar() {
           <div className="hidden md:flex md:items-center md:gap-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
-              const isHighlight = 'highlight' in link && link.highlight;
               return (
                 <Link
                   key={link.href}
@@ -60,9 +58,7 @@ export default function Navbar() {
                   className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     isActive(link.href)
                       ? 'bg-[#111111] text-[#00FFB8]'
-                      : isHighlight
-                        ? 'bg-[#00FFB8]/10 text-[#00FFB8] hover:bg-[#00FFB8]/20'
-                        : 'text-[#888888] hover:text-white'
+                      : 'text-[#888888] hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -98,7 +94,6 @@ export default function Navbar() {
           <div className="space-y-1 px-4 py-3">
             {navLinks.map((link) => {
               const Icon = link.icon;
-              const isHighlight = 'highlight' in link && link.highlight;
               return (
                 <Link
                   key={link.href}
@@ -107,9 +102,7 @@ export default function Navbar() {
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(link.href)
                       ? 'bg-[#111111] text-[#00FFB8]'
-                      : isHighlight
-                        ? 'bg-[#00FFB8]/10 text-[#00FFB8]'
-                        : 'text-[#888888] hover:text-white'
+                      : 'text-[#888888] hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4" />

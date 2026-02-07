@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Wallet, TrendingUp, Shield, AlertTriangle, DollarSign, Percent, Clock, Loader2, PieChart, ArrowUpRight, ArrowDownRight, RefreshCw, CheckCircle } from 'lucide-react';
+import { Wallet, TrendingUp, Shield, AlertTriangle, DollarSign, Percent, Clock, Loader2, PieChart, ArrowUpRight, ArrowDownRight, RefreshCw, CheckCircle, Settings, ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -67,11 +68,14 @@ export default function LendPage() {
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [lenderPositionAccount, setLenderPositionAccount] = useState<LenderPositionAccount | null>(null);
   const [currentAPY, setCurrentAPY] = useState<number | null>(null);
-  const [depositAmount, setDepositAmount] = useState('');
 
   // Strategy States
   const [minP2PRateBps, setMinP2PRateBps] = useState<number>(0);
   const [kaminoBufferBps, setKaminoBufferBps] = useState<number>(0);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+
+  // Deposit/Withdraw States
+  const [depositAmount, setDepositAmount] = useState<string>('');
 
   // Fetch user's USDC balance
   const fetchUsdcBalance = useCallback(async () => {
@@ -212,63 +216,6 @@ export default function LendPage() {
     }
   };
 
-  const handleDeposit = async () => {
-    if (!publicKey || !liquidityRouter || !provider) {
-      alert("Wallet not connected or program not loaded.");
-      return;
-    }
-
-    const amount = parseFloat(depositAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid deposit amount (greater than 0).");
-      return;
-    }
-
-    try {
-      const USDC_DECIMALS = 6;
-      const amountInSmallestUnits = new BN(amount * (10 ** USDC_DECIMALS));
-
-      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-      const [routerConfigPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("router_config")],
-        liquidityRouter.programId
-      );
-      const [positionPDA] = PublicKey.findProgramAddressSync(
-        [publicKey.toBuffer(), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
-        liquidityRouter.programId
-      );
-      const [routerVaultPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("router_vault"), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
-        liquidityRouter.programId
-      );
-
-      const lenderUsdcAta = await getAssociatedTokenAddress(usdcMint, publicKey);
-
-      const transaction = await liquidityRouter.methods
-        .deposit(amountInSmallestUnits)
-        .accounts({
-          lender: publicKey,
-          position: positionPDA,
-          lenderUsdc: lenderUsdcAta,
-          routerVault: routerVaultPDA,
-          usdcMint: usdcMint,
-          config: routerConfigPDA,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .transaction();
-
-      const signature = await provider.sendAndConfirm(transaction);
-      alert(`Deposit successful! Transaction: ${signature}`);
-      setDepositAmount('');
-      fetchUsdcBalance();
-      fetchLenderPosition();
-    } catch (error: any) {
-      console.error("Deposit failed:", error);
-      alert(`Deposit failed: ${safeGet(() => error.message, 'Unknown error')}`);
-    }
-  };
-
   const getHealthColor = (status: string) => {
     if (status === 'healthy') return 'text-[#00FFB8]';
     if (status === 'warning') return 'text-yellow-500';
@@ -343,14 +290,14 @@ export default function LendPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Lender Dashboard</h1>
-            <p className="mt-1 text-[#888888]">Monitor your positions and earnings in real-time</p>
+            <p className="mt-1 text-[#888888]">Manage your lending positions</p>
           </div>
-          <button 
-            onClick={() => document.getElementById('deposit-section')?.scrollIntoView({ behavior: 'smooth' })}
-            className="rounded-lg bg-[#00FFB8] px-4 py-2 font-medium text-black hover:bg-[#00E6A5] transition-colors"
+          <Link 
+            href="/activate"
+            className="rounded-lg bg-[#00FFB8] px-4 py-2 font-medium text-black hover:bg-[#00E6A5] transition-colors text-center"
           >
             Deposit Capital
-          </button>
+          </Link>
         </div>
 
         {/* Your Position - Main Stats */}
@@ -525,74 +472,57 @@ export default function LendPage() {
           </div>
         </div>
 
-        {/* Strategy Configuration */}
-        <div className="rounded-xl border border-[#222222] bg-[#111111] p-6">
-          <h2 className="text-lg font-semibold text-white">Lending Strategy</h2>
-          <p className="text-sm text-[#888888]">Configure your automatic yield routing preferences</p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="p-4 rounded-lg bg-[#000000] border border-[#222222]">
-              <label className="text-sm font-medium text-white">Min P2P Rate (BPS)</label>
-              <p className="text-xs text-[#888888] mt-1 mb-2">Minimum APY for direct P2P loans vs. Kamino</p>
-              <input
-                type="number"
-                value={minP2PRateBps}
-                onChange={(e) => setMinP2PRateBps(parseInt(e.target.value) || 0)}
-                className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 px-3 text-white focus:border-[#00FFB8] focus:outline-none"
-                placeholder="e.g., 700 (7%)"
-              />
-            </div>
-
-            <div className="p-4 rounded-lg bg-[#000000] border border-[#222222]">
-              <label className="text-sm font-medium text-white">Kamino Buffer (BPS)</label>
-              <p className="text-xs text-[#888888] mt-1 mb-2">P2P rate must exceed Kamino APY by this much</p>
-              <input
-                type="number"
-                value={kaminoBufferBps}
-                onChange={(e) => setKaminoBufferBps(parseInt(e.target.value) || 0)}
-                className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 px-3 text-white focus:border-[#00FFB8] focus:outline-none"
-                placeholder="e.g., 100 (1%)"
-              />
-            </div>
-          </div>
-
+        {/* Advanced Settings - Collapsed by default */}
+        <div className="rounded-xl border border-[#222222] bg-[#111111] overflow-hidden">
           <button
-            onClick={handleUpdateStrategy}
-            className="mt-4 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white hover:bg-blue-600 transition-colors"
+            onClick={() => setAdvancedSettingsOpen(!advancedSettingsOpen)}
+            className="w-full flex items-center justify-between p-4 hover:bg-[#222222]/30 transition-colors"
           >
-            Update Strategy
-          </button>
-        </div>
-
-        {/* Deposit Section */}
-        <div id="deposit-section" className="rounded-xl border border-[#222222] bg-[#111111] p-6">
-          <h2 className="text-lg font-semibold text-white">Deposit Capital</h2>
-          <p className="mt-1 text-[#888888]">Deposit USDC to start earning yield automatically.</p>
-          
-          <div className="mt-4 p-4 rounded-lg bg-[#000000] border border-[#222222]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-[#888888]">Available Balance</span>
-              <span className="text-sm font-medium text-white">${(usdcBalance ?? DEMO_DATA.usdcBalance).toFixed(2)} USDC</span>
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-[#888888]" />
+              <span className="text-sm font-medium text-[#888888]">Advanced Settings</span>
             </div>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#888888]" />
-                <input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 pl-10 pr-4 text-white placeholder-[#888888] focus:border-[#00FFB8] focus:outline-none"
-                />
+            <ChevronDown className={`h-4 w-4 text-[#888888] transition-transform duration-200 ${advancedSettingsOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {advancedSettingsOpen && (
+            <div className="p-6 pt-2 border-t border-[#222222]">
+              <p className="text-sm text-[#888888] mb-4">Configure your automatic yield routing preferences</p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="p-4 rounded-lg bg-[#000000] border border-[#222222]">
+                  <label className="text-sm font-medium text-white">Min P2P Rate (BPS)</label>
+                  <p className="text-xs text-[#888888] mt-1 mb-2">Minimum APY for direct P2P loans vs. Kamino</p>
+                  <input
+                    type="number"
+                    value={minP2PRateBps}
+                    onChange={(e) => setMinP2PRateBps(parseInt(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 px-3 text-white focus:border-[#00FFB8] focus:outline-none"
+                    placeholder="e.g., 700 (7%)"
+                  />
+                </div>
+
+                <div className="p-4 rounded-lg bg-[#000000] border border-[#222222]">
+                  <label className="text-sm font-medium text-white">Kamino Buffer (BPS)</label>
+                  <p className="text-xs text-[#888888] mt-1 mb-2">P2P rate must exceed Kamino APY by this much</p>
+                  <input
+                    type="number"
+                    value={kaminoBufferBps}
+                    onChange={(e) => setKaminoBufferBps(parseInt(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 px-3 text-white focus:border-[#00FFB8] focus:outline-none"
+                    placeholder="e.g., 100 (1%)"
+                  />
+                </div>
               </div>
+
               <button
-                onClick={handleDeposit}
-                className="rounded-lg bg-[#00FFB8] px-6 py-2 font-medium text-black hover:bg-[#00E6A5] transition-colors"
+                onClick={handleUpdateStrategy}
+                className="mt-4 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white hover:bg-blue-600 transition-colors"
               >
-                Deposit
+                Update Strategy
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
