@@ -1,6 +1,33 @@
 {
   "version": "0.1.0",
   "name": "liquidity_router",
+  "constants": [
+    {
+      "name": "MAX_SINGLE_LOAN_PCT",
+      "type": "u16",
+      "value": "500"
+    },
+    {
+      "name": "MAX_SINGLE_BORROWER_PCT",
+      "type": "u16",
+      "value": "1000"
+    },
+    {
+      "name": "INSURANCE_FEE_BPS",
+      "type": "u16",
+      "value": "100"
+    },
+    {
+      "name": "MAX_INSURANCE_CLAIM_PCT",
+      "type": "u16",
+      "value": "1000"
+    },
+    {
+      "name": "BPS_DIVISOR",
+      "type": "u64",
+      "value": "10000"
+    }
+  ],
   "instructions": [
     {
       "name": "initializeRouter",
@@ -12,6 +39,11 @@
         },
         {
           "name": "config",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
           "isMut": true,
           "isSigner": false
         },
@@ -42,6 +74,11 @@
         },
         {
           "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
           "isMut": true,
           "isSigner": false
         },
@@ -84,6 +121,64 @@
       ]
     },
     {
+      "name": "routeToLoan",
+      "docs": [
+        "Route funds to a loan with diversification checks.",
+        "If loan exceeds caps (5% per loan, 10% per borrower), excess stays in Kamino."
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowerExposure",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "loanAmount",
+          "type": "u64"
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey"
+        },
+        {
+          "name": "rateBps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "onBorrowRequest",
       "accounts": [
         {
@@ -118,7 +213,53 @@
       ]
     },
     {
+      "name": "collectRepayment",
+      "docs": [
+        "Collect loan repayment with insurance fee split.",
+        "99% of interest to lender, 1% to insurance pool."
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowerExposure",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "principal",
+          "type": "u64"
+        },
+        {
+          "name": "interest",
+          "type": "u64"
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
       "name": "onLoanRepaid",
+      "docs": [
+        "Legacy compatibility - use collectRepayment for new integrations."
+      ],
       "accounts": [
         {
           "name": "authority",
@@ -143,6 +284,36 @@
       ]
     },
     {
+      "name": "claimInsurance",
+      "docs": [
+        "Claim from insurance pool on loan default.",
+        "Max 10% of insurance pool per claim."
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "defaultAmount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "withdraw",
       "accounts": [
         {
@@ -152,6 +323,11 @@
         },
         {
           "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
           "isMut": true,
           "isSigner": false
         },
@@ -233,6 +409,20 @@
           "type": "u16"
         }
       ]
+    },
+    {
+      "name": "getPoolStats",
+      "docs": [
+        "View pool statistics (emits logs)."
+      ],
+      "accounts": [
+        {
+          "name": "liquidityPool",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -260,6 +450,66 @@
           {
             "name": "feeBps",
             "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityPool",
+      "docs": [
+        "Global liquidity pool tracking with diversification and insurance."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalDeposits",
+            "docs": ["Total USDC deposited across all lenders"],
+            "type": "u64"
+          },
+          {
+            "name": "totalLoaned",
+            "docs": ["Total USDC currently in P2P loans"],
+            "type": "u64"
+          },
+          {
+            "name": "totalInKamino",
+            "docs": ["Total USDC currently in Kamino"],
+            "type": "u64"
+          },
+          {
+            "name": "insurancePoolBalance",
+            "docs": ["Insurance pool balance (1% of all interest)"],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BorrowerExposure",
+      "docs": [
+        "Per-borrower exposure tracking for diversification caps."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrower",
+            "docs": ["Borrower pubkey"],
+            "type": "publicKey"
+          },
+          {
+            "name": "totalExposure",
+            "docs": ["Total exposure to this borrower across all lenders"],
+            "type": "u64"
           },
           {
             "name": "bump",
@@ -337,6 +587,21 @@
       "code": 6003,
       "name": "ExceedsMaxDeposit",
       "msg": "Exceeds max deposit of $100 USDC (mainnet safety)"
+    },
+    {
+      "code": 6004,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientInsurance",
+      "msg": "Insufficient insurance pool balance"
+    },
+    {
+      "code": 6006,
+      "name": "ExceedsDiversificationCap",
+      "msg": "Exceeds diversification cap"
     }
   ]
 }

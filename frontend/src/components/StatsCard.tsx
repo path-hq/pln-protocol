@@ -10,16 +10,16 @@ interface StatsCardProps {
 
 export default function StatsCard({ title, value, change, changeType = 'neutral', icon: Icon }: StatsCardProps) {
   const changeColor = {
-    positive: 'text-[#22c55e]',
+    positive: 'text-[#00FFB8]',
     negative: 'text-red-500',
-    neutral: 'text-[#71717a]',
+    neutral: 'text-[#888888]',
   };
 
   return (
-    <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6 transition-all hover:border-[#22c55e]/30">
+    <div className="rounded-xl border border-[#222222] bg-[#111111] p-6 transition-all hover:border-[#00FFB8]/30">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-[#71717a]">{title}</p>
+          <p className="text-sm font-medium text-[#888888]">{title}</p>
           <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
           {change && (
             <p className={`mt-1 text-sm ${changeColor[changeType]}`}>
@@ -27,8 +27,8 @@ export default function StatsCard({ title, value, change, changeType = 'neutral'
             </p>
           )}
         </div>
-        <div className="rounded-lg bg-[#22c55e]/10 p-3">
-          <Icon className="h-5 w-5 text-[#22c55e]" />
+        <div className="rounded-lg bg-[#00FFB8]/10 p-3">
+          <Icon className="h-5 w-5 text-[#00FFB8]" />
         </div>
       </div>
     </div>

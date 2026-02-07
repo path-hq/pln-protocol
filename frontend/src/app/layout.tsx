@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#09090b]`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#000000]`}
       >
         <div className="bg-yellow-500 text-black text-center py-2 text-sm font-semibold">
           WARNING: PATH Liquidity Network is in testnet on Solana Devnet. This protocol has no official token. Any token claiming association with PLN is a scam.

@@ -56,7 +56,7 @@ export default function RoutingFeed() {
   const getEventIcon = (type: RoutingEvent['type']) => {
     switch (type) {
       case 'lend':
-        return <div className="h-2 w-2 rounded-full bg-[#22c55e]" />;
+        return <div className="h-2 w-2 rounded-full bg-[#00FFB8]" />;
       case 'borrow':
         return <div className="h-2 w-2 rounded-full bg-blue-500" />;
       case 'repay':
@@ -91,18 +91,18 @@ export default function RoutingFeed() {
   };
 
   return (
-    <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
+    <div className="rounded-xl border border-[#222222] bg-[#111111] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[#222222] px-6 py-4">
         <div className="flex items-center gap-2">
-          <ArrowRightLeft className="h-4 w-4 text-[#22c55e]" />
+          <ArrowRightLeft className="h-4 w-4 text-[#00FFB8]" />
           <h3 className="font-medium text-white">Live Routing Feed</h3>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22c55e]"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00FFB8] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00FFB8]"></span>
           </span>
-          <span className="text-xs text-[#71717a]">Live</span>
+          <span className="text-xs text-[#888888]">Live</span>
         </div>
       </div>
       
@@ -110,8 +110,8 @@ export default function RoutingFeed() {
         {events.map((event, index) => (
           <div
             key={event.id}
-            className={`flex items-center justify-between px-6 py-4 transition-colors hover:bg-[#1f1f24]/50 ${
-              index !== events.length - 1 ? 'border-b border-[#1f1f24]' : ''
+            className={`flex items-center justify-between px-6 py-4 transition-colors hover:bg-[#222222]/50 ${
+              index !== events.length - 1 ? 'border-b border-[#222222]' : ''
             } animate-slide-in`}
             style={{ animationDelay: `${index * 50}ms` }}
           >
@@ -119,19 +119,19 @@ export default function RoutingFeed() {
               {getEventIcon(event.type)}
               <div>
                 <p className="text-sm font-medium text-white">
-                  {getEventLabel(event.type)} <span className="text-[#22c55e]">{event.amount}</span> {event.token}
+                  {getEventLabel(event.type)} <span className="text-[#00FFB8]">{event.amount}</span> {event.token}
                 </p>
-                <p className="text-xs text-[#71717a]">{event.agent}</p>
+                <p className="text-xs text-[#888888]">{event.agent}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {event.status === 'pending' && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#71717a]" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#888888]" />
               )}
               {event.status === 'completed' && (
-                <CheckCircle className="h-3.5 w-3.5 text-[#22c55e]" />
+                <CheckCircle className="h-3.5 w-3.5 text-[#00FFB8]" />
               )}
-              <span className="text-xs text-[#71717a] flex items-center gap-1">
+              <span className="text-xs text-[#888888] flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {formatTime(event.timestamp)}
               </span>

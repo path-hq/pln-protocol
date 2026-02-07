@@ -118,6 +118,32 @@
       ],
       "args": [],
       "returns": "u16"
+    },
+    {
+      "name": "getMaxBorrow",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "getCreditTierInfo",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "returns": {
+        "defined": "CreditTierInfo"
+      }
     }
   ],
   "accounts": [
@@ -159,6 +185,22 @@
             "type": "u16"
           },
           {
+            "name": "successfulRepayments",
+            "type": "u32"
+          },
+          {
+            "name": "defaults",
+            "type": "u32"
+          },
+          {
+            "name": "creditTier",
+            "type": "u8"
+          },
+          {
+            "name": "maxBorrowLimit",
+            "type": "u64"
+          },
+          {
             "name": "createdAt",
             "type": "i64"
           },
@@ -174,6 +216,40 @@
       }
     }
   ],
+  "types": [
+    {
+      "name": "CreditTierInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "currentTier",
+            "type": "u8"
+          },
+          {
+            "name": "maxBorrowLimit",
+            "type": "u64"
+          },
+          {
+            "name": "successfulRepayments",
+            "type": "u32"
+          },
+          {
+            "name": "defaults",
+            "type": "u32"
+          },
+          {
+            "name": "nextTier",
+            "type": "u8"
+          },
+          {
+            "name": "repaymentsToNextTier",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -184,6 +260,11 @@
       "code": 6001,
       "name": "Unauthorized",
       "msg": "Unauthorized"
+    },
+    {
+      "code": 6002,
+      "name": "ExceedsCreditLimit",
+      "msg": "Borrow amount exceeds credit limit"
     }
   ]
 }
