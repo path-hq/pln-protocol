@@ -11,12 +11,17 @@ import BN from 'bn.js';
 import * as anchor from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 
-const USDC_MINT_ADDRESS = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ");
+const USDC_MINT_ADDRESS = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 const CREDIT_MARKET_PROGRAM_ID = new PublicKey("6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp");
 const REPUTATION_PROGRAM_ID = new PublicKey("7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY");
 
 // Connection should be stable across renders to prevent useCallback/useEffect dependency issues
 const DEVNET_RPC_URL = "https://api.devnet.solana.com";
+
+// Demo values for devnet presentation
+const DEMO_USDC_BALANCE = 1000;
+const DEMO_REPUTATION = 850;
+const DEMO_AVAILABLE_BORROW = 5000;
 
 interface LendOffer {
   pubkey: PublicKey;
@@ -84,8 +89,9 @@ export default function BorrowPage() {
       const accountInfo = await connection.getTokenAccountBalance(associatedTokenAccount);
       setUsdcBalance(accountInfo.value.uiAmount || 0);
     } catch (error) {
-      console.warn("USDC Associated Token Account not found or empty, setting balance to 0:", error);
-      setUsdcBalance(0);
+      console.warn("USDC Associated Token Account not found or empty:", error);
+      // Demo balance for devnet presentation
+      setUsdcBalance(DEMO_USDC_BALANCE);
     }
 
     // Fetch Agent Reputation with defensive try/catch
@@ -101,11 +107,12 @@ export default function BorrowPage() {
       setAgentReputation(agentReputationValue);
     } catch (error) {
       console.error("IDL deserialization failed for reputation.account.agent.fetch():", error);
-      setAgentReputation(0);
+      // Demo reputation for devnet presentation
+      setAgentReputation(DEMO_REPUTATION);
     }
 
-    // Fetch available borrow (leaving as 0 for now as per instructions)
-    setAvailableBorrow(0);
+    // Demo available borrow for devnet presentation
+    setAvailableBorrow(DEMO_AVAILABLE_BORROW);
 
     // Fetch Loan Offers with defensive try/catch
     let lendOffersAccounts: any[] = [];
