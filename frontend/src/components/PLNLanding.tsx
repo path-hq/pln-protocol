@@ -41,10 +41,6 @@ const Terminal = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
 );
 
-const AlertTriangle = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-);
-
 const Check = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 );
@@ -98,63 +94,6 @@ const PLNLanding = () => {
         @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(34,197,94,0.1); } 50% { box-shadow: 0 0 40px rgba(34,197,94,0.2); } }
       `}</style>
-
-      {/* Devnet Banner */}
-      <div style={{
-        background: "linear-gradient(90deg, #f59e0b22 0%, #f59e0b11 100%)",
-        borderBottom: "1px solid #f59e0b33",
-        padding: "8px 24px",
-        fontSize: "13px",
-        color: "#f59e0b",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        fontFamily: "'IBM Plex Mono', monospace",
-      }}>
-        <span style={{ animation: "pulse 2s infinite", display: "flex", alignItems: "center" }}><AlertTriangle size={14} /></span>
-        PATH Liquidity Network is on Solana Devnet. This protocol has no official token.
-      </div>
-
-      {/* Nav */}
-      <nav style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "16px 32px",
-        borderBottom: "1px solid #27272a",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "28px",
-            height: "28px",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-            borderRadius: "6px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
-          </div>
-          <span style={{ fontSize: "18px", fontWeight: "700", letterSpacing: "-0.03em" }}>PATH</span>
-          <span style={{ fontSize: "12px", color: "#71717a", fontWeight: "500", marginLeft: "4px" }}>LIQUIDITY NETWORK</span>
-        </div>
-        <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
-          {["Overview", "Lend", "Borrow", "Docs"].map(item => (
-            <a
-              key={item}
-              href={item === "Lend" ? "/lend" : item === "Borrow" ? "/borrow" : "#"}
-              style={{ color: item === "Overview" ? "#fafafa" : "#71717a", textDecoration: "none", fontSize: "14px", fontWeight: "500", transition: "color 0.2s" }}
-              onMouseEnter={e => (e.target as HTMLElement).style.color = "#fafafa"}
-              onMouseLeave={e => { if (item !== "Overview") (e.target as HTMLElement).style.color = "#71717a"; }}
-            >{item}</a>
-          ))}
-          <button
-            style={{ background: "#22c55e", border: "none", borderRadius: "8px", padding: "10px 20px", color: "#09090b", fontSize: "14px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
-            onMouseEnter={e => (e.target as HTMLElement).style.background = "#16a34a"}
-            onMouseLeave={e => (e.target as HTMLElement).style.background = "#22c55e"}
-          >Select Wallet</button>
-        </div>
-      </nav>
 
       {/* Hero */}
       <section style={{
