@@ -144,7 +144,7 @@ const PLNLanding = () => {
   const integrations = [
     { name: "Solana", desc: "Chain", logo: "/logos/solana-sol-logo.svg" },
     { name: "USDC", desc: "Stablecoin", logo: "/logos/usd-coin-usdc-logo.svg" },
-    { name: "SNS", desc: "Identity", logo: "/logos/sns.svg" },
+    { name: "SNS", desc: "Identity", logo: "/logos/sns.jpg" },
     { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.svg" },
     { name: "Kamino", desc: "Yield", logo: "/logos/kamino.svg" },
     { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg" },
