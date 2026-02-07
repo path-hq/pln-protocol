@@ -411,6 +411,145 @@
       ]
     },
     {
+      "name": "depositToKamino",
+      "docs": [
+        "Deposit USDC to Kamino vault, receive kTokens (kvUSDC).",
+        "MVP: Simulates deposit by tracking allocation in pool state."
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdrawFromKamino",
+      "docs": [
+        "Withdraw USDC from Kamino vault by redeeming kTokens.",
+        "MVP: Simulates withdrawal by tracking allocation in pool state."
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "routeFunds",
+      "docs": [
+        "Route funds between Kamino and P2P based on rate comparison.",
+        "Logic:",
+        "- If no P2P demand OR P2P rate < Kamino rate: deposit to Kamino",
+        "- If P2P rate > Kamino rate + buffer (100 bps): withdraw from Kamino → fund P2P"
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "targetP2pRateBps",
+          "type": "u16"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "hasP2pDemand",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "getAllocation",
+      "docs": [
+        "Get allocation breakdown for a lender position (for frontend display)."
+      ],
+      "accounts": [
+        {
+          "name": "position",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "liquidityPool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "lender",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "getPoolStats",
       "docs": [
         "View pool statistics (emits logs)."
@@ -565,6 +704,151 @@
           }
         ]
       }
+    }
+  ],
+  "types": [
+    {
+      "name": "RouteDestination",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Kamino"
+          },
+          {
+            "name": "P2P"
+          }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "KaminoDepositEvent",
+      "fields": [
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": true
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "kaminoRateBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "KaminoWithdrawEvent",
+      "fields": [
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": true
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "FundsRoutedEvent",
+      "fields": [
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": true
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "destination",
+          "type": {
+            "defined": "RouteDestination"
+          },
+          "index": false
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "AllocationSnapshot",
+      "fields": [
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": true
+        },
+        {
+          "name": "totalDeposited",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "inKamino",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "inP2p",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "kaminoRateBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "poolTotal",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "poolInKamino",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "poolInP2p",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "insuranceBalance",
+          "type": "u64",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [

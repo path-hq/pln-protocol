@@ -471,6 +471,214 @@ pub mod liquidity_router {
         Ok(())
     }
 
+    // =========================================================================
+    // KAMINO INTEGRATION FUNCTIONS (Stubbed for Hackathon MVP)
+    // =========================================================================
+    // In production, these would CPI to Kamino's actual vault program.
+    // For MVP, we simulate/track the allocation without actual CPI calls.
+
+    /// Deposit USDC to Kamino vault, receive kTokens (kvUSDC)
+    /// MVP: Simulates deposit by tracking allocation in pool state
+    pub fn deposit_to_kamino(
+        ctx: Context<KaminoDeposit>,
+        amount: u64,
+    ) -> Result<()> {
+        let position = &mut ctx.accounts.position;
+        let pool = &mut ctx.accounts.liquidity_pool;
+        let config = &ctx.accounts.config;
+        let clock = Clock::get()?;
+        
+        require!(position.wallet == ctx.accounts.lender.key(), ErrorCode::Unauthorized);
+        require!(amount <= position.total_deposited - position.in_kamino - position.in_p2p, 
+            ErrorCode::InsufficientFunds);
+        
+        // MVP: Track the deposit (in production: CPI to Kamino deposit)
+        // Kamino CPI would look like:
+        // kamino_lending::cpi::deposit(cpi_ctx, amount)?;
+        // And we'd receive kTokens (kvUSDC) in return
+        
+        position.in_kamino += amount;
+        pool.total_in_kamino += amount;
+        position.updated_at = clock.unix_timestamp;
+        
+        msg!("📥 Deposited {} USDC to Kamino vault @ {} bps APY", 
+            amount, config.kamino_rate_bps);
+        msg!("   Position: {} USDC in Kamino, {} USDC in P2P", 
+            position.in_kamino, position.in_p2p);
+        
+        // Emit event for frontend
+        emit!(KaminoDepositEvent {
+            lender: position.wallet,
+            amount,
+            kamino_rate_bps: config.kamino_rate_bps,
+            timestamp: clock.unix_timestamp,
+        });
+        
+        Ok(())
+    }
+
+    /// Withdraw USDC from Kamino vault by redeeming kTokens
+    /// MVP: Simulates withdrawal by tracking allocation in pool state
+    pub fn withdraw_from_kamino(
+        ctx: Context<KaminoWithdraw>,
+        amount: u64,
+    ) -> Result<()> {
+        let position = &mut ctx.accounts.position;
+        let pool = &mut ctx.accounts.liquidity_pool;
+        let clock = Clock::get()?;
+        
+        require!(position.wallet == ctx.accounts.lender.key(), ErrorCode::Unauthorized);
+        require!(amount <= position.in_kamino, ErrorCode::InsufficientFunds);
+        
+        // MVP: Track the withdrawal (in production: CPI to Kamino withdraw)
+        // Kamino CPI would look like:
+        // kamino_lending::cpi::withdraw(cpi_ctx, amount)?;
+        // Burning kTokens to receive USDC back
+        
+        position.in_kamino -= amount;
+        pool.total_in_kamino -= amount;
+        position.updated_at = clock.unix_timestamp;
+        
+        msg!("📤 Withdrew {} USDC from Kamino vault", amount);
+        msg!("   Position: {} USDC in Kamino, {} USDC in P2P", 
+            position.in_kamino, position.in_p2p);
+        
+        // Emit event for frontend
+        emit!(KaminoWithdrawEvent {
+            lender: position.wallet,
+            amount,
+            timestamp: clock.unix_timestamp,
+        });
+        
+        Ok(())
+    }
+
+    /// Route funds between Kamino and P2P based on rate comparison
+    /// Logic: 
+    /// - If no P2P demand OR P2P rate < Kamino rate: deposit to Kamino
+    /// - If P2P rate > Kamino rate + buffer (100 bps): withdraw from Kamino → fund P2P
+    pub fn route_funds(
+        ctx: Context<RouteFunds>,
+        target_p2p_rate_bps: u16,
+        amount: u64,
+        has_p2p_demand: bool,
+    ) -> Result<()> {
+        let position = &mut ctx.accounts.position;
+        let pool = &mut ctx.accounts.liquidity_pool;
+        let config = &ctx.accounts.config;
+        let clock = Clock::get()?;
+        
+        require!(position.wallet == ctx.accounts.lender.key(), ErrorCode::Unauthorized);
+        require!(position.auto_route, ErrorCode::AutoRouteDisabled);
+        
+        let kamino_rate = config.kamino_rate_bps;
+        let buffer = position.kamino_buffer_bps; // Default 100 bps
+        let threshold_rate = kamino_rate + buffer;
+        
+        // Decision logic
+        if !has_p2p_demand || target_p2p_rate_bps < kamino_rate {
+            // No P2P demand OR P2P rate worse than Kamino → deposit to Kamino
+            let available = position.total_deposited - position.in_kamino - position.in_p2p;
+            let to_kamino = amount.min(available);
+            
+            if to_kamino > 0 {
+                position.in_kamino += to_kamino;
+                pool.total_in_kamino += to_kamino;
+                
+                msg!("🔄 Routed {} USDC → Kamino (no P2P demand or rate too low)", to_kamino);
+                msg!("   P2P rate: {} bps, Kamino rate: {} bps", target_p2p_rate_bps, kamino_rate);
+                
+                emit!(FundsRoutedEvent {
+                    lender: position.wallet,
+                    amount: to_kamino,
+                    destination: RouteDestination::Kamino,
+                    reason: "No P2P demand or rate below Kamino".to_string(),
+                    timestamp: clock.unix_timestamp,
+                });
+            }
+        } else if target_p2p_rate_bps > threshold_rate {
+            // P2P rate exceeds Kamino + buffer → withdraw from Kamino → fund P2P
+            let available_in_kamino = position.in_kamino;
+            let to_p2p = amount.min(available_in_kamino);
+            
+            if to_p2p > 0 {
+                position.in_kamino -= to_p2p;
+                position.in_p2p += to_p2p;
+                pool.total_in_kamino -= to_p2p;
+                pool.total_loaned += to_p2p;
+                
+                msg!("🔄 Routed {} USDC: Kamino → P2P (rate {} bps > threshold {} bps)", 
+                    to_p2p, target_p2p_rate_bps, threshold_rate);
+                
+                emit!(FundsRoutedEvent {
+                    lender: position.wallet,
+                    amount: to_p2p,
+                    destination: RouteDestination::P2P,
+                    reason: format!("P2P rate {} > Kamino {} + buffer {}", 
+                        target_p2p_rate_bps, kamino_rate, buffer),
+                    timestamp: clock.unix_timestamp,
+                });
+            }
+        } else {
+            // P2P rate is better than Kamino but not by enough → keep in current allocation
+            msg!("⏸️ No route change: P2P {} bps, Kamino {} bps, threshold {} bps",
+                target_p2p_rate_bps, kamino_rate, threshold_rate);
+        }
+        
+        position.updated_at = clock.unix_timestamp;
+        
+        msg!("📊 Current allocation: {} USDC Kamino, {} USDC P2P (total: {} USDC)", 
+            position.in_kamino, position.in_p2p, position.total_deposited);
+        
+        Ok(())
+    }
+
+    /// Get allocation breakdown for a lender position (for frontend display)
+    pub fn get_allocation(ctx: Context<GetAllocation>) -> Result<()> {
+        let position = &ctx.accounts.position;
+        let pool = &ctx.accounts.liquidity_pool;
+        let config = &ctx.accounts.config;
+        
+        // Calculate percentages
+        let total = position.total_deposited;
+        let kamino_pct = if total > 0 { position.in_kamino * 10000 / total } else { 0 };
+        let p2p_pct = if total > 0 { position.in_p2p * 10000 / total } else { 0 };
+        let unallocated = total - position.in_kamino - position.in_p2p;
+        let unallocated_pct = if total > 0 { unallocated * 10000 / total } else { 0 };
+        
+        msg!("=== Lender Allocation Breakdown ===");
+        msg!("Wallet: {}", position.wallet);
+        msg!("Total deposited: {} USDC", total);
+        msg!("In Kamino: {} USDC ({}%)", position.in_kamino, kamino_pct / 100);
+        msg!("In P2P: {} USDC ({}%)", position.in_p2p, p2p_pct / 100);
+        msg!("Unallocated: {} USDC ({}%)", unallocated, unallocated_pct / 100);
+        msg!("Kamino APY: {} bps", config.kamino_rate_bps);
+        msg!("Auto-route: {}", position.auto_route);
+        msg!("Min P2P rate: {} bps", position.min_p2p_rate_bps);
+        msg!("Kamino buffer: {} bps", position.kamino_buffer_bps);
+        
+        msg!("=== Pool Statistics ===");
+        msg!("Total pool deposits: {} USDC", pool.total_deposits);
+        msg!("Pool in Kamino: {} USDC", pool.total_in_kamino);
+        msg!("Pool in P2P: {} USDC", pool.total_loaned);
+        msg!("Insurance pool: {} USDC", pool.insurance_pool_balance);
+        
+        // Emit for frontend consumption
+        emit!(AllocationSnapshot {
+            lender: position.wallet,
+            total_deposited: position.total_deposited,
+            in_kamino: position.in_kamino,
+            in_p2p: position.in_p2p,
+            kamino_rate_bps: config.kamino_rate_bps,
+            pool_total: pool.total_deposits,
+            pool_in_kamino: pool.total_in_kamino,
+            pool_in_p2p: pool.total_loaned,
+            insurance_balance: pool.insurance_pool_balance,
+        });
+        
+        Ok(())
+    }
+
     /// View pool statistics
     pub fn get_pool_stats(ctx: Context<GetPoolStats>) -> Result<()> {
         let pool = &ctx.accounts.liquidity_pool;
@@ -680,6 +888,60 @@ pub struct GetPoolStats<'info> {
     pub liquidity_pool: Account<'info, LiquidityPool>,
 }
 
+#[derive(Accounts)]
+pub struct KaminoDeposit<'info> {
+    #[account(mut)]
+    pub lender: Signer<'info>,
+    
+    #[account(mut, seeds = [b"position", lender.key().as_ref()], bump)]
+    pub position: Account<'info, LenderPosition>,
+    
+    #[account(mut, seeds = [b"liquidity_pool"], bump)]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    
+    pub config: Account<'info, RouterConfig>,
+}
+
+#[derive(Accounts)]
+pub struct KaminoWithdraw<'info> {
+    #[account(mut)]
+    pub lender: Signer<'info>,
+    
+    #[account(mut, seeds = [b"position", lender.key().as_ref()], bump)]
+    pub position: Account<'info, LenderPosition>,
+    
+    #[account(mut, seeds = [b"liquidity_pool"], bump)]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+}
+
+#[derive(Accounts)]
+pub struct RouteFunds<'info> {
+    #[account(mut)]
+    pub lender: Signer<'info>,
+    
+    #[account(mut, seeds = [b"position", lender.key().as_ref()], bump)]
+    pub position: Account<'info, LenderPosition>,
+    
+    #[account(mut, seeds = [b"liquidity_pool"], bump)]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    
+    pub config: Account<'info, RouterConfig>,
+}
+
+#[derive(Accounts)]
+pub struct GetAllocation<'info> {
+    #[account(seeds = [b"position", lender.key().as_ref()], bump)]
+    pub position: Account<'info, LenderPosition>,
+    
+    #[account(seeds = [b"liquidity_pool"], bump)]
+    pub liquidity_pool: Account<'info, LiquidityPool>,
+    
+    pub config: Account<'info, RouterConfig>,
+    
+    /// CHECK: Lender for position lookup
+    pub lender: AccountInfo<'info>,
+}
+
 // === DATA ACCOUNTS ===
 
 #[account]
@@ -744,6 +1006,52 @@ pub struct LenderPosition {
 
 impl LenderPosition {
     pub const SIZE: usize = 32 + 8 + 8 + 8 + 2 + 2 + 1 + 8 + 8 + 1;
+}
+
+// === EVENTS ===
+
+#[event]
+pub struct KaminoDepositEvent {
+    pub lender: Pubkey,
+    pub amount: u64,
+    pub kamino_rate_bps: u16,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct KaminoWithdrawEvent {
+    pub lender: Pubkey,
+    pub amount: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct FundsRoutedEvent {
+    pub lender: Pubkey,
+    pub amount: u64,
+    pub destination: RouteDestination,
+    pub reason: String,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct AllocationSnapshot {
+    pub lender: Pubkey,
+    pub total_deposited: u64,
+    pub in_kamino: u64,
+    pub in_p2p: u64,
+    pub kamino_rate_bps: u16,
+    pub pool_total: u64,
+    pub pool_in_kamino: u64,
+    pub pool_in_p2p: u64,
+    pub insurance_balance: u64,
+}
+
+/// Route destination enum for events
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
+pub enum RouteDestination {
+    Kamino,
+    P2P,
 }
 
 // === ERRORS ===
