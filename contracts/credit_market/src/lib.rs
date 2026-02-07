@@ -1,36 +1,62 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
-// Solana Playground Program ID
-declare_id!("6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp");
+declare_id!("CRDTmk5GYLqSh8fPGvdMgdmAHxYhAuP5YzJfDL8W9Xyz");
+
+/// PLN Protocol Credit Market
+/// Enables undercollateralized lending with reputation-based risk assessment
+/// and automated liquidation for past-due or unhealthy loans.
 
 #[program]
 pub mod credit_market {
     use super::*;
 
-    // === LENDER SIDE ===
+    /// Initialize the global state for the credit market
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        let global_state = &mut ctx.accounts.global_state;
+        global_state.admin = ctx.accounts.admin.key();
+        global_state.next_loan_id = 1;
+        global_state.fee_bps = 50; // 0.5% protocol fee
+        global_state.whitelisted_programs = vec![];
+        global_state.bump = ctx.bumps.global_state;
 
-    /// Post offer to lend USDC
+        emit!(MarketInitialized {
+            admin: global_state.admin,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    /// Post a lending offer with configurable terms
     pub fn post_lend_offer(
         ctx: Context<PostLendOffer>,
         amount: u64,
         min_rate_bps: u16,
         max_duration_secs: u64,
         min_reputation: u16,
+        liquidation_threshold_bps: u16,
     ) -> Result<()> {
+        require!(amount > 0, CreditMarketError::InvalidAmount);
+        require!(min_rate_bps <= 10000, CreditMarketError::InvalidRate);
+        require!(max_duration_secs > 0, CreditMarketError::InvalidDuration);
+        require!(
+            liquidation_threshold_bps >= 5000 && liquidation_threshold_bps <= 10000,
+            CreditMarketError::InvalidLiquidationThreshold
+        );
+
         let offer = &mut ctx.accounts.offer;
-        let clock = Clock::get()?;
-        
         offer.lender = ctx.accounts.lender.key();
         offer.amount = amount;
         offer.min_rate_bps = min_rate_bps;
         offer.max_duration_secs = max_duration_secs;
         offer.min_reputation = min_reputation;
+        offer.liquidation_threshold_bps = liquidation_threshold_bps;
         offer.is_active = true;
-        offer.created_at = clock.unix_timestamp;
+        offer.created_at = Clock::get()?.unix_timestamp;
         offer.bump = ctx.bumps.offer;
-        
-        // Transfer USDC from lender to escrow vault
+
+        // Transfer USDC to escrow vault
         let cpi_accounts = Transfer {
             from: ctx.accounts.lender_usdc.to_account_info(),
             to: ctx.accounts.escrow_vault.to_account_info(),
@@ -39,126 +65,178 @@ pub mod credit_market {
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
         token::transfer(cpi_ctx, amount)?;
-        
-        msg!("Lend offer posted: {} USDC @ min {} bps", amount, min_rate_bps);
+
+        // Increment global offer counter
+        let global_state = &mut ctx.accounts.global_state;
+        global_state.next_loan_id = global_state.next_loan_id.checked_add(1)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        emit!(LendOfferPosted {
+            lender: offer.lender,
+            amount,
+            min_rate_bps,
+            max_duration_secs,
+            liquidation_threshold_bps,
+            timestamp: offer.created_at,
+        });
+
         Ok(())
     }
 
-    /// Cancel offer, withdraw escrowed USDC
+    /// Cancel an active lending offer and return funds
     pub fn cancel_lend_offer(ctx: Context<CancelLendOffer>) -> Result<()> {
-        let offer = &ctx.accounts.offer;
-        require!(offer.is_active, ErrorCode::OfferNotActive);
-        require!(offer.lender == ctx.accounts.lender.key(), ErrorCode::Unauthorized);
-        
-        // Transfer USDC back to lender
-        let offer_key = offer.key();
-        let seeds = &[b"escrow", offer_key.as_ref(), &[ctx.bumps.escrow_vault]];
-        let signer = &[&seeds[..]];
-        
+        let offer = &mut ctx.accounts.offer;
+        require!(offer.is_active, CreditMarketError::OfferNotActive);
+        require!(
+            offer.lender == ctx.accounts.lender.key(),
+            CreditMarketError::Unauthorized
+        );
+
+        offer.is_active = false;
+
+        // Return funds from escrow to lender
+        let seeds = &[
+            b"escrow",
+            offer.lender.as_ref(),
+            &[ctx.bumps.escrow_vault],
+        ];
+        let signer_seeds = &[&seeds[..]];
+
         let cpi_accounts = Transfer {
             from: ctx.accounts.escrow_vault.to_account_info(),
             to: ctx.accounts.lender_usdc.to_account_info(),
             authority: ctx.accounts.escrow_vault.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
         token::transfer(cpi_ctx, offer.amount)?;
-        
-        // Close offer account
-        ctx.accounts.offer.is_active = false;
-        
-        msg!("Lend offer cancelled, {} USDC returned", offer.amount);
+
+        emit!(LendOfferCancelled {
+            lender: offer.lender,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
         Ok(())
     }
 
-    // === BORROWER SIDE ===
-
-    /// Post request to borrow USDC
+    /// Post a borrow request
     pub fn post_borrow_request(
         ctx: Context<PostBorrowRequest>,
         amount: u64,
         max_rate_bps: u16,
         duration_secs: u64,
     ) -> Result<()> {
+        require!(amount > 0, CreditMarketError::InvalidAmount);
+        require!(max_rate_bps <= 10000, CreditMarketError::InvalidRate);
+        require!(duration_secs > 0, CreditMarketError::InvalidDuration);
+
         let request = &mut ctx.accounts.request;
-        let clock = Clock::get()?;
-        
         request.borrower = ctx.accounts.borrower.key();
         request.amount = amount;
         request.max_rate_bps = max_rate_bps;
         request.duration_secs = duration_secs;
         request.is_active = true;
-        request.created_at = clock.unix_timestamp;
+        request.created_at = Clock::get()?.unix_timestamp;
         request.bump = ctx.bumps.request;
-        
-        msg!("Borrow request posted: {} USDC @ max {} bps for {}s", 
-            amount, max_rate_bps, duration_secs);
+
+        emit!(BorrowRequestPosted {
+            borrower: request.borrower,
+            amount,
+            max_rate_bps,
+            duration_secs,
+            timestamp: request.created_at,
+        });
+
         Ok(())
     }
 
-    /// Accept a lend offer (creates Loan)
-    pub fn accept_lend_offer(
-        ctx: Context<AcceptLendOffer>,
-        offer_id: Pubkey,
-    ) -> Result<()> {
-        let offer = &ctx.accounts.offer;
-        let clock = Clock::get()?;
-        
-        require!(offer.is_active, ErrorCode::OfferNotActive);
-        
+    /// Accept a lending offer (borrower accepts lender's terms)
+    pub fn accept_lend_offer(ctx: Context<AcceptLendOffer>) -> Result<()> {
+        let offer = &mut ctx.accounts.offer;
+        require!(offer.is_active, CreditMarketError::OfferNotActive);
+
         // Check borrower reputation meets minimum
         let borrower_profile = &ctx.accounts.borrower_profile;
         require!(
-            borrower_profile.score >= offer.min_reputation,
-            ErrorCode::InsufficientReputation
+            borrower_profile.reputation_score >= offer.min_reputation,
+            CreditMarketError::InsufficientReputation
         );
-        
-        // Create loan
+
+        offer.is_active = false;
+
+        let clock = Clock::get()?;
+        let global_state = &mut ctx.accounts.global_state;
+        let loan_id = global_state.next_loan_id;
+        global_state.next_loan_id = loan_id.checked_add(1)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        // Initialize loan
         let loan = &mut ctx.accounts.loan;
-        loan.id = ctx.accounts.global_state.next_loan_id;
+        loan.id = loan_id;
         loan.lender = offer.lender;
         loan.borrower = ctx.accounts.borrower.key();
         loan.principal = offer.amount;
         loan.rate_bps = offer.min_rate_bps;
         loan.start_time = clock.unix_timestamp;
-        loan.end_time = clock.unix_timestamp + offer.max_duration_secs as i64;
+        loan.end_time = clock.unix_timestamp
+            .checked_add(offer.max_duration_secs as i64)
+            .ok_or(CreditMarketError::MathOverflow)?;
         loan.status = LoanStatus::Active;
         loan.vault = ctx.accounts.loan_vault.key();
-        loan.bump = ctx.bumps.loan_vault;
-        
-        // Transfer from offer escrow to loan vault
-        // (Simplified - in reality would use CPI)
-        
-        // Update global state
-        ctx.accounts.global_state.next_loan_id += 1;
-        
-        // Deactivate offer
-        ctx.accounts.offer.is_active = false;
-        
-        msg!("Loan {} created: {} USDC @ {} bps", loan.id, loan.principal, loan.rate_bps);
+        loan.liquidation_threshold_bps = offer.liquidation_threshold_bps;
+        loan.bump = ctx.bumps.loan;
+
+        // Transfer funds from escrow to loan vault (borrower can use via execute_trade)
+        let escrow_seeds = &[
+            b"escrow",
+            offer.lender.as_ref(),
+            &[ctx.bumps.escrow_vault],
+        ];
+        let signer_seeds = &[&escrow_seeds[..]];
+
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.escrow_vault.to_account_info(),
+            to: ctx.accounts.loan_vault.to_account_info(),
+            authority: ctx.accounts.escrow_vault.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+        token::transfer(cpi_ctx, offer.amount)?;
+
+        emit!(LoanCreated {
+            loan_id,
+            lender: loan.lender,
+            borrower: loan.borrower,
+            principal: loan.principal,
+            rate_bps: loan.rate_bps,
+            end_time: loan.end_time,
+            liquidation_threshold_bps: loan.liquidation_threshold_bps,
+            timestamp: clock.unix_timestamp,
+        });
+
         Ok(())
     }
 
-    /// Repay loan + interest
-    pub fn repay_loan(ctx: Context<RepayLoan>, loan_id: u64) -> Result<()> {
+    /// Repay a loan in full
+    pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
         let loan = &mut ctx.accounts.loan;
+        require!(loan.status == LoanStatus::Active, CreditMarketError::LoanNotActive);
+        require!(
+            loan.borrower == ctx.accounts.borrower.key(),
+            CreditMarketError::Unauthorized
+        );
+
         let clock = Clock::get()?;
         
-        require!(loan.status == LoanStatus::Active, ErrorCode::LoanNotActive);
-        require!(loan.borrower == ctx.accounts.borrower.key(), ErrorCode::Unauthorized);
-        
-        // Calculate interest: principal * rate * time / (365 days * 10000 bps)
-        let duration_secs = (clock.unix_timestamp - loan.start_time) as u64;
-        let interest = (loan.principal as u128)
-            .checked_mul(loan.rate_bps as u128)
-            .unwrap()
-            .checked_mul(duration_secs as u128)
-            .unwrap()
-            .checked_div(365 * 24 * 60 * 60 * 10000)
-            .unwrap() as u64;
-        
-        let total_repayment = loan.principal + interest;
-        
+        // Calculate total repayment with interest
+        let duration_secs = clock.unix_timestamp
+            .checked_sub(loan.start_time)
+            .ok_or(CreditMarketError::MathOverflow)? as u64;
+        let interest = calculate_interest(loan.principal, loan.rate_bps, duration_secs)?;
+        let total_repayment = loan.principal
+            .checked_add(interest)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
         // Transfer repayment from borrower to lender
         let cpi_accounts = Transfer {
             from: ctx.accounts.borrower_usdc.to_account_info(),
@@ -168,137 +246,282 @@ pub mod credit_market {
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
         token::transfer(cpi_ctx, total_repayment)?;
-        
-        // Update loan status
+
         loan.status = LoanStatus::Repaid;
-        
-        msg!("Loan {} repaid: {} principal + {} interest", loan_id, loan.principal, interest);
+
+        // Update borrower reputation (+50 for successful repayment)
+        let borrower_profile = &mut ctx.accounts.borrower_profile;
+        borrower_profile.reputation_score = borrower_profile.reputation_score
+            .checked_add(50)
+            .unwrap_or(u16::MAX);
+        borrower_profile.loans_repaid = borrower_profile.loans_repaid
+            .checked_add(1)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        emit!(LoanRepaid {
+            loan_id: loan.id,
+            borrower: loan.borrower,
+            lender: loan.lender,
+            principal: loan.principal,
+            interest,
+            total_repaid: total_repayment,
+            timestamp: clock.unix_timestamp,
+        });
+
         Ok(())
     }
 
-    // === PROTOCOL ===
-
-    /// Execute trade via whitelisted protocol (Jupiter)
-    /// Borrower can swap tokens but funds never leave vault
+    /// Execute a trade using borrowed funds (whitelisted programs only)
     pub fn execute_trade(
         ctx: Context<ExecuteTrade>,
-        loan_id: u64,
         target_program: Pubkey,
         instruction_data: Vec<u8>,
     ) -> Result<()> {
         let loan = &ctx.accounts.loan;
+        require!(loan.status == LoanStatus::Active, CreditMarketError::LoanNotActive);
+        require!(
+            loan.borrower == ctx.accounts.borrower.key(),
+            CreditMarketError::Unauthorized
+        );
+
+        // Check if target program is whitelisted
         let config = &ctx.accounts.config;
-        
-        // Verify loan is active
-        require!(loan.status == LoanStatus::Active, ErrorCode::LoanNotActive);
-        
-        // Verify caller is borrower
-        require!(loan.borrower == ctx.accounts.borrower.key(), ErrorCode::Unauthorized);
-        
-        // Verify target is whitelisted (Jupiter, Kamino, Meteora)
         require!(
             config.whitelisted_programs.contains(&target_program),
-            ErrorCode::ProgramNotWhitelisted
+            CreditMarketError::ProgramNotWhitelisted
         );
-        
-        // For Jupiter swaps, we would CPI to Jupiter Aggregator
-        // Jupiter v6 uses a complex routing system
-        // For MVP, we log the attempt and simulate success
-        
-        msg!("Executing trade via {} for loan {}", target_program, loan_id);
-        msg!("Instruction data length: {}", instruction_data.len());
-        
-        // In production:
-        // 1. Parse instruction_data for swap parameters
-        // 2. Build Jupiter CPI with proper accounts
-        // 3. Invoke Jupiter program
-        // 4. Verify output tokens go back to vault
-        
-        // Example Jupiter CPI (simplified):
-        // let ix = Instruction {
-        //     program_id: target_program,
-        //     accounts: vec![...],
-        //     data: instruction_data,
-        // };
-        // invoke_signed(&ix, &[...], signer_seeds)?;
-        
-        msg!("Trade execution simulated - vault funds remain controlled");
+
+        // Execute CPI to whitelisted program
+        // Note: Actual CPI implementation would go here
+        // This is a simplified version for the MVP
+
+        emit!(TradeExecuted {
+            loan_id: loan.id,
+            borrower: loan.borrower,
+            target_program,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+
         Ok(())
     }
 
-    /// Liquidate overdue loan (anyone can call)
-    pub fn liquidate(ctx: Context<Liquidate>, loan_id: u64) -> Result<()> {
+    /// Liquidate an unhealthy or past-due loan
+    /// Can be called by anyone (keeper bots) when conditions are met
+    pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
         let loan = &mut ctx.accounts.loan;
+        require!(loan.status == LoanStatus::Active, CreditMarketError::LoanNotActive);
+
         let clock = Clock::get()?;
         
-        require!(loan.status == LoanStatus::Active, ErrorCode::LoanNotActive);
-        require!(clock.unix_timestamp > loan.end_time, ErrorCode::LoanNotOverdue);
+        // Check if loan is liquidatable
+        let is_past_due = clock.unix_timestamp > loan.end_time;
         
-        // Mark as defaulted
-        loan.status = LoanStatus::Defaulted;
+        // Calculate health factor based on remaining vault balance vs. expected repayment
+        let vault_balance = ctx.accounts.loan_vault.amount;
+        let duration_secs = clock.unix_timestamp
+            .checked_sub(loan.start_time)
+            .ok_or(CreditMarketError::MathOverflow)? as u64;
+        let interest = calculate_interest(loan.principal, loan.rate_bps, duration_secs)?;
+        let expected_repayment = loan.principal
+            .checked_add(interest)
+            .ok_or(CreditMarketError::MathOverflow)?;
         
-        // In production: transfer vault contents to lender
-        // For now, just mark status
-        
-        msg!("Loan {} liquidated (overdue)", loan_id);
+        // Health factor = (vault_balance * 10000) / expected_repayment
+        let health_factor_bps = if expected_repayment > 0 {
+            (vault_balance as u128)
+                .checked_mul(10000)
+                .ok_or(CreditMarketError::MathOverflow)?
+                .checked_div(expected_repayment as u128)
+                .ok_or(CreditMarketError::MathOverflow)? as u16
+        } else {
+            10000
+        };
+
+        let is_unhealthy = health_factor_bps < loan.liquidation_threshold_bps;
+
+        require!(
+            is_past_due || is_unhealthy,
+            CreditMarketError::LoanNotLiquidatable
+        );
+
+        // Transfer remaining vault funds to lender
+        let loan_seeds = &[
+            b"loan",
+            loan.id.to_le_bytes().as_ref(),
+            &[loan.bump],
+        ];
+        let signer_seeds = &[&loan_seeds[..]];
+
+        if vault_balance > 0 {
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.loan_vault.to_account_info(),
+                to: ctx.accounts.lender_usdc.to_account_info(),
+                authority: ctx.accounts.loan.to_account_info(),
+            };
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+            token::transfer(cpi_ctx, vault_balance)?;
+        }
+
+        loan.status = LoanStatus::Liquidated;
+
+        // Penalize borrower reputation (-200 points, +1 default)
+        let borrower_profile = &mut ctx.accounts.borrower_profile;
+        borrower_profile.reputation_score = borrower_profile.reputation_score
+            .saturating_sub(200);
+        borrower_profile.defaults = borrower_profile.defaults
+            .checked_add(1)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        emit!(LoanLiquidated {
+            loan_id: loan.id,
+            borrower: loan.borrower,
+            lender: loan.lender,
+            liquidator: ctx.accounts.liquidator.key(),
+            vault_balance_recovered: vault_balance,
+            principal: loan.principal,
+            health_factor_bps,
+            is_past_due,
+            timestamp: clock.unix_timestamp,
+        });
+
         Ok(())
     }
 
-    /// Initialize global state
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    /// Mark a loan as defaulted (alternative to liquidation, used for accounting)
+    pub fn mark_default(ctx: Context<MarkDefault>) -> Result<()> {
+        let loan = &mut ctx.accounts.loan;
+        require!(loan.status == LoanStatus::Active, CreditMarketError::LoanNotActive);
+
+        let clock = Clock::get()?;
+        require!(
+            clock.unix_timestamp > loan.end_time,
+            CreditMarketError::LoanNotOverdue
+        );
+
+        loan.status = LoanStatus::Defaulted;
+
+        // Penalize borrower reputation
+        let borrower_profile = &mut ctx.accounts.borrower_profile;
+        borrower_profile.reputation_score = borrower_profile.reputation_score
+            .saturating_sub(200);
+        borrower_profile.defaults = borrower_profile.defaults
+            .checked_add(1)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        emit!(LoanDefaulted {
+            loan_id: loan.id,
+            borrower: loan.borrower,
+            lender: loan.lender,
+            principal: loan.principal,
+            timestamp: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    /// Add a program to the whitelist (admin only)
+    pub fn add_whitelisted_program(
+        ctx: Context<AdminAction>,
+        program_id: Pubkey,
+    ) -> Result<()> {
         let global_state = &mut ctx.accounts.global_state;
-        global_state.admin = ctx.accounts.admin.key();
-        global_state.next_loan_id = 1;
-        global_state.fee_bps = 50; // 0.5% protocol fee
-        global_state.whitelisted_programs = vec![
-            // Jupiter v6
-            pubkey!("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"),
-            // Kamino Lending
-            pubkey!("KLend2g3cP87ber8xB7iU7xX7aWU4gv4VZ4FtvZQWZ9"),
-            // Meteora DLMM
-            pubkey!("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"),
-        ];
-        global_state.bump = ctx.bumps.global_state;
-        
-        msg!("Credit market initialized");
+        require!(
+            global_state.admin == ctx.accounts.admin.key(),
+            CreditMarketError::Unauthorized
+        );
+
+        if !global_state.whitelisted_programs.contains(&program_id) {
+            global_state.whitelisted_programs.push(program_id);
+        }
+
+        Ok(())
+    }
+
+    /// Remove a program from the whitelist (admin only)
+    pub fn remove_whitelisted_program(
+        ctx: Context<AdminAction>,
+        program_id: Pubkey,
+    ) -> Result<()> {
+        let global_state = &mut ctx.accounts.global_state;
+        require!(
+            global_state.admin == ctx.accounts.admin.key(),
+            CreditMarketError::Unauthorized
+        );
+
+        global_state.whitelisted_programs.retain(|&p| p != program_id);
+
         Ok(())
     }
 }
 
-// === ACCOUNT STRUCTS ===
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Calculate simple interest: principal * rate * duration / (365 days * 10000)
+fn calculate_interest(principal: u64, rate_bps: u16, duration_secs: u64) -> Result<u64> {
+    const SECONDS_PER_YEAR: u128 = 365 * 24 * 60 * 60;
+    
+    let interest = (principal as u128)
+        .checked_mul(rate_bps as u128)
+        .ok_or(CreditMarketError::MathOverflow)?
+        .checked_mul(duration_secs as u128)
+        .ok_or(CreditMarketError::MathOverflow)?
+        .checked_div(SECONDS_PER_YEAR)
+        .ok_or(CreditMarketError::MathOverflow)?
+        .checked_div(10000)
+        .ok_or(CreditMarketError::MathOverflow)?;
+    
+    Ok(interest as u64)
+}
+
+// ============================================================================
+// Account Contexts
+// ============================================================================
+
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    #[account(
+        init,
+        payer = admin,
+        space = 8 + GlobalState::INIT_SPACE,
+        seeds = [b"global_state"],
+        bump,
+    )]
+    pub global_state: Account<'info, GlobalState>,
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
 pub struct PostLendOffer<'info> {
     #[account(mut)]
     pub lender: Signer<'info>,
-    
     #[account(
         init,
         payer = lender,
-        space = 8 + LendOffer::SIZE,
+        space = 8 + LendOffer::INIT_SPACE,
         seeds = [b"offer", lender.key().as_ref(), &global_state.next_loan_id.to_le_bytes()],
-        bump
+        bump,
     )]
     pub offer: Account<'info, LendOffer>,
-    
     #[account(mut)]
     pub lender_usdc: Account<'info, TokenAccount>,
-    
     #[account(
-        init,
-        payer = lender,
-        token::mint = usdc_mint,
-        token::authority = escrow_vault,
-        seeds = [b"escrow", offer.key().as_ref()],
-        bump
+        mut,
+        seeds = [b"escrow", lender.key().as_ref()],
+        bump,
     )]
     pub escrow_vault: Account<'info, TokenAccount>,
-    
-    pub usdc_mint: Account<'info, token::Mint>,
-    
-    #[account(mut)]
+    pub usdc_mint: Account<'info, anchor_spl::token::Mint>,
+    #[account(
+        mut,
+        seeds = [b"global_state"],
+        bump = global_state.bump,
+    )]
     pub global_state: Account<'info, GlobalState>,
-    
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -307,16 +530,19 @@ pub struct PostLendOffer<'info> {
 pub struct CancelLendOffer<'info> {
     #[account(mut)]
     pub lender: Signer<'info>,
-    
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = offer.lender == lender.key() @ CreditMarketError::Unauthorized,
+    )]
     pub offer: Account<'info, LendOffer>,
-    
     #[account(mut)]
     pub lender_usdc: Account<'info, TokenAccount>,
-    
-    #[account(mut, seeds = [b"escrow", offer.key().as_ref()], bump)]
+    #[account(
+        mut,
+        seeds = [b"escrow", lender.key().as_ref()],
+        bump,
+    )]
     pub escrow_vault: Account<'info, TokenAccount>,
-    
     pub token_program: Program<'info, Token>,
 }
 
@@ -324,16 +550,14 @@ pub struct CancelLendOffer<'info> {
 pub struct PostBorrowRequest<'info> {
     #[account(mut)]
     pub borrower: Signer<'info>,
-    
     #[account(
         init,
         payer = borrower,
-        space = 8 + BorrowRequest::SIZE,
-        seeds = [b"request", borrower.key().as_ref(), &Clock::get()?.unix_timestamp.to_le_bytes()],
-        bump
+        space = 8 + BorrowRequest::INIT_SPACE,
+        seeds = [b"request", borrower.key().as_ref()],
+        bump,
     )]
     pub request: Account<'info, BorrowRequest>,
-    
     pub system_program: Program<'info, System>,
 }
 
@@ -341,37 +565,39 @@ pub struct PostBorrowRequest<'info> {
 pub struct AcceptLendOffer<'info> {
     #[account(mut)]
     pub borrower: Signer<'info>,
-    
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = offer.is_active @ CreditMarketError::OfferNotActive,
+    )]
     pub offer: Account<'info, LendOffer>,
-    
-    /// CHECK: Borrower profile for reputation check
-    pub borrower_profile: AccountInfo<'info>,
-    
+    pub borrower_profile: Account<'info, BorrowerProfile>,
     #[account(
         init,
         payer = borrower,
-        space = 8 + Loan::SIZE,
+        space = 8 + Loan::INIT_SPACE,
         seeds = [b"loan", &global_state.next_loan_id.to_le_bytes()],
-        bump
+        bump,
     )]
     pub loan: Account<'info, Loan>,
-    
     #[account(
-        init,
-        payer = borrower,
-        token::mint = usdc_mint,
-        token::authority = loan_vault,
-        seeds = [b"loan_vault", loan.key().as_ref()],
-        bump
+        mut,
+        seeds = [b"loan_vault", &global_state.next_loan_id.to_le_bytes()],
+        bump,
     )]
     pub loan_vault: Account<'info, TokenAccount>,
-    
-    pub usdc_mint: Account<'info, token::Mint>,
-    
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"escrow", offer.lender.as_ref()],
+        bump,
+    )]
+    pub escrow_vault: Account<'info, TokenAccount>,
+    pub usdc_mint: Account<'info, anchor_spl::token::Mint>,
+    #[account(
+        mut,
+        seeds = [b"global_state"],
+        bump = global_state.bump,
+    )]
     pub global_state: Account<'info, GlobalState>,
-    
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -380,91 +606,125 @@ pub struct AcceptLendOffer<'info> {
 pub struct RepayLoan<'info> {
     #[account(mut)]
     pub borrower: Signer<'info>,
-    
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = loan.borrower == borrower.key() @ CreditMarketError::Unauthorized,
+        constraint = loan.status == LoanStatus::Active @ CreditMarketError::LoanNotActive,
+    )]
     pub loan: Account<'info, Loan>,
-    
     #[account(mut)]
     pub borrower_usdc: Account<'info, TokenAccount>,
-    
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = lender_usdc.owner == loan.lender,
+    )]
     pub lender_usdc: Account<'info, TokenAccount>,
-    
+    #[account(mut)]
+    pub borrower_profile: Account<'info, BorrowerProfile>,
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
 pub struct ExecuteTrade<'info> {
-    #[account(mut)]
     pub borrower: Signer<'info>,
-    
-    #[account(mut)]
-    pub loan: Account<'info, Loan>,
-    
-    #[account(mut)]
-    pub loan_vault: Account<'info, TokenAccount>,
-    
-    /// CHECK: Whitelisted program (Jupiter, Kamino, Meteora)
-    pub target_program: AccountInfo<'info>,
-    
-    pub config: Account<'info, GlobalState>,
-    
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct Liquidate<'info> {
-    /// CHECK: Anyone can liquidate
-    pub liquidator: Signer<'info>,
-    
-    #[account(mut)]
-    pub loan: Account<'info, Loan>,
-    
-    #[account(mut)]
-    pub lender: Account<'info, TokenAccount>,
-    
-    #[account(mut)]
-    pub loan_vault: Account<'info, TokenAccount>,
-    
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct Initialize<'info> {
-    #[account(mut)]
-    pub admin: Signer<'info>,
-    
     #[account(
-        init,
-        payer = admin,
-        space = 8 + GlobalState::SIZE,
+        constraint = loan.borrower == borrower.key() @ CreditMarketError::Unauthorized,
+        constraint = loan.status == LoanStatus::Active @ CreditMarketError::LoanNotActive,
+    )]
+    pub loan: Account<'info, Loan>,
+    #[account(mut)]
+    pub loan_vault: Account<'info, TokenAccount>,
+    /// CHECK: Target program for CPI
+    pub target_program: UncheckedAccount<'info>,
+    pub config: Account<'info, GlobalState>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct LiquidateLoan<'info> {
+    /// Anyone can be the liquidator (keeper bots)
+    pub liquidator: Signer<'info>,
+    #[account(
+        mut,
+        constraint = loan.status == LoanStatus::Active @ CreditMarketError::LoanNotActive,
+    )]
+    pub loan: Account<'info, Loan>,
+    #[account(
+        mut,
+        constraint = loan_vault.key() == loan.vault,
+    )]
+    pub loan_vault: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = lender_usdc.owner == loan.lender,
+    )]
+    pub lender_usdc: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = borrower_profile.owner == loan.borrower,
+    )]
+    pub borrower_profile: Account<'info, BorrowerProfile>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct MarkDefault<'info> {
+    pub caller: Signer<'info>,
+    #[account(
+        mut,
+        constraint = loan.status == LoanStatus::Active @ CreditMarketError::LoanNotActive,
+    )]
+    pub loan: Account<'info, Loan>,
+    #[account(
+        mut,
+        constraint = borrower_profile.owner == loan.borrower,
+    )]
+    pub borrower_profile: Account<'info, BorrowerProfile>,
+}
+
+#[derive(Accounts)]
+pub struct AdminAction<'info> {
+    pub admin: Signer<'info>,
+    #[account(
+        mut,
         seeds = [b"global_state"],
-        bump
+        bump = global_state.bump,
+        constraint = global_state.admin == admin.key() @ CreditMarketError::Unauthorized,
     )]
     pub global_state: Account<'info, GlobalState>,
-    
-    pub system_program: Program<'info, System>,
 }
 
-// === DATA ACCOUNTS ===
+// ============================================================================
+// Account Structures
+// ============================================================================
 
 #[account]
+#[derive(InitSpace)]
+pub struct GlobalState {
+    pub admin: Pubkey,
+    pub next_loan_id: u64,
+    pub fee_bps: u16,
+    #[max_len(20)]
+    pub whitelisted_programs: Vec<Pubkey>,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct LendOffer {
     pub lender: Pubkey,
     pub amount: u64,
     pub min_rate_bps: u16,
     pub max_duration_secs: u64,
     pub min_reputation: u16,
+    pub liquidation_threshold_bps: u16,  // NEW: e.g., 8000 = 80%
     pub is_active: bool,
     pub created_at: i64,
     pub bump: u8,
 }
 
-impl LendOffer {
-    pub const SIZE: usize = 32 + 8 + 2 + 8 + 2 + 1 + 8 + 1;
-}
-
 #[account]
+#[derive(InitSpace)]
 pub struct BorrowRequest {
     pub borrower: Pubkey,
     pub amount: u64,
@@ -475,11 +735,8 @@ pub struct BorrowRequest {
     pub bump: u8,
 }
 
-impl BorrowRequest {
-    pub const SIZE: usize = 32 + 8 + 2 + 8 + 1 + 8 + 1;
-}
-
 #[account]
+#[derive(InitSpace)]
 pub struct Loan {
     pub id: u64,
     pub lender: Pubkey,
@@ -490,38 +747,135 @@ pub struct Loan {
     pub end_time: i64,
     pub status: LoanStatus,
     pub vault: Pubkey,
+    pub liquidation_threshold_bps: u16,  // Copied from offer at loan creation
     pub bump: u8,
-}
-
-impl Loan {
-    pub const SIZE: usize = 8 + 32 + 32 + 8 + 2 + 8 + 8 + 1 + 32 + 1;
 }
 
 #[account]
-pub struct GlobalState {
-    pub admin: Pubkey,
-    pub next_loan_id: u64,
-    pub fee_bps: u16,
-    pub whitelisted_programs: Vec<Pubkey>,
+#[derive(InitSpace)]
+pub struct BorrowerProfile {
+    pub owner: Pubkey,
+    pub reputation_score: u16,
+    pub loans_repaid: u32,
+    pub defaults: u32,
+    pub total_borrowed: u64,
+    pub created_at: i64,
     pub bump: u8,
 }
 
-impl GlobalState {
-    pub const SIZE: usize = 32 + 8 + 2 + 4 + (10 * 32) + 1; // Space for up to 10 whitelisted programs
-}
+// ============================================================================
+// Enums
+// ============================================================================
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
 pub enum LoanStatus {
-    Active,
-    Repaid,
-    Defaulted,
-    Liquidated,
+    Open,       // Offer/request created, not yet matched
+    Active,     // Loan is active, borrower has funds
+    Repaid,     // Borrower repaid in full
+    Defaulted,  // Past due, marked as default
+    Liquidated, // Force-closed due to past due or unhealthy position
 }
 
-// === ERRORS ===
+impl Default for LoanStatus {
+    fn default() -> Self {
+        LoanStatus::Open
+    }
+}
+
+// ============================================================================
+// Events
+// ============================================================================
+
+#[event]
+pub struct MarketInitialized {
+    pub admin: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct LendOfferPosted {
+    pub lender: Pubkey,
+    pub amount: u64,
+    pub min_rate_bps: u16,
+    pub max_duration_secs: u64,
+    pub liquidation_threshold_bps: u16,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct LendOfferCancelled {
+    pub lender: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct BorrowRequestPosted {
+    pub borrower: Pubkey,
+    pub amount: u64,
+    pub max_rate_bps: u16,
+    pub duration_secs: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct LoanCreated {
+    pub loan_id: u64,
+    pub lender: Pubkey,
+    pub borrower: Pubkey,
+    pub principal: u64,
+    pub rate_bps: u16,
+    pub end_time: i64,
+    pub liquidation_threshold_bps: u16,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct LoanRepaid {
+    pub loan_id: u64,
+    pub borrower: Pubkey,
+    pub lender: Pubkey,
+    pub principal: u64,
+    pub interest: u64,
+    pub total_repaid: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct TradeExecuted {
+    pub loan_id: u64,
+    pub borrower: Pubkey,
+    pub target_program: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct LoanLiquidated {
+    pub loan_id: u64,
+    pub borrower: Pubkey,
+    pub lender: Pubkey,
+    pub liquidator: Pubkey,
+    pub vault_balance_recovered: u64,
+    pub principal: u64,
+    pub health_factor_bps: u16,
+    pub is_past_due: bool,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct LoanDefaulted {
+    pub loan_id: u64,
+    pub borrower: Pubkey,
+    pub lender: Pubkey,
+    pub principal: u64,
+    pub timestamp: i64,
+}
+
+// ============================================================================
+// Errors
+// ============================================================================
 
 #[error_code]
-pub enum ErrorCode {
+pub enum CreditMarketError {
     #[msg("Offer not active")]
     OfferNotActive,
     #[msg("Unauthorized")]
@@ -536,4 +890,14 @@ pub enum ErrorCode {
     ProgramNotWhitelisted,
     #[msg("Loan not overdue")]
     LoanNotOverdue,
+    #[msg("Loan not liquidatable - neither past due nor below health threshold")]
+    LoanNotLiquidatable,
+    #[msg("Invalid amount")]
+    InvalidAmount,
+    #[msg("Invalid rate")]
+    InvalidRate,
+    #[msg("Invalid duration")]
+    InvalidDuration,
+    #[msg("Invalid liquidation threshold - must be between 5000 and 10000 bps")]
+    InvalidLiquidationThreshold,
 }

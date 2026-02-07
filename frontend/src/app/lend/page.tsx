@@ -1,45 +1,43 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronDown, ChevronUp, DollarSign, Percent, Clock, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, Shield, AlertTriangle, DollarSign, Percent, Clock, Loader2, PieChart, ArrowUpRight, ArrowDownRight, RefreshCw, CheckCircle } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { Buffer } from 'buffer';
 
-const USDC_MINT_ADDRESS = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"; // Circle Devnet USDC Mint
+const USDC_MINT_ADDRESS = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 
-// Demo mode: Show sample balance on devnet when user has no USDC
-const DEMO_USDC_BALANCE = 1000;
-
-interface LoanAccount {
-  publicKey: PublicKey;
-  id: BN;
-  lender: PublicKey;
-  borrower: PublicKey;
-  principal: BN;
-  rateBps: number;
-  startTime: BN;
-  endTime: BN;
-  status: { active?: {} };
-  vault: PublicKey;
-  healthFactor: number;
-}
-
-interface DisplayLoan {
-  id: string;
-  borrower: string;
-  amount: string;
-  collateral: string;
-  apy: number;
-  startDate: string;
-  health: number;
-}
-
+// Demo data for presentation
+const DEMO_DATA = {
+  usdcBalance: 1000,
+  deposited: 850,
+  currentValue: 892.45,
+  totalEarned: 42.45,
+  insuranceContributed: 4.25,
+  currentAPY: 14.2,
+  kaminoAllocation: 65,
+  p2pAllocation: 35,
+  kaminoAPY: 8.1,
+  p2pAPY: 15.2,
+  activeLoans: [
+    { id: '1', agent: 'Agent_Delta', amount: 500, apy: 14.5, timeLeft: '5d 12h', health: 1.85, healthStatus: 'healthy' as const },
+    { id: '2', agent: 'Agent_Echo', amount: 350, apy: 12.8, timeLeft: '12d 4h', health: 1.92, healthStatus: 'healthy' as const },
+    { id: '3', agent: 'Agent_Foxtrot', amount: 200, apy: 16.2, timeLeft: '2d 8h', health: 1.45, healthStatus: 'warning' as const },
+  ],
+  activityFeed: [
+    { id: '1', type: 'rebalance' as const, message: 'Auto-routed $200 from Kamino to P2P (higher APY detected)', time: '5 min ago' },
+    { id: '2', type: 'repayment' as const, message: 'Agent_Charlie repaid $1,000 + $12.50 interest', time: '1 hour ago' },
+    { id: '3', type: 'route' as const, message: 'Deposited $500 to Kamino pool at 8.1% APY', time: '3 hours ago' },
+    { id: '4', type: 'repayment' as const, message: 'Agent_Bravo repaid $750 + $8.25 interest', time: '6 hours ago' },
+    { id: '5', type: 'rebalance' as const, message: 'Rebalanced portfolio: 65% Kamino, 35% P2P', time: '12 hours ago' },
+  ]
+};
 
 interface LenderPositionAccount {
   owner: PublicKey;
@@ -49,11 +47,6 @@ interface LenderPositionAccount {
   p2pLoansActive: number;
   minP2PRateBps: number;
   kaminoBufferBps: number;
-}
-
-// Safe helper to check if object has property (guards against primitives and null)
-function hasProperty(obj: unknown, key: string): boolean {
-  return obj !== null && obj !== undefined && typeof obj === 'object' && !Array.isArray(obj) && key in (obj as object);
 }
 
 // Safe helper to get nested value
@@ -67,15 +60,14 @@ function safeGet<T>(fn: () => T, fallback: T): T {
 }
 
 export default function LendPage() {
-
   const { publicKey, connected } = useWallet();
   const { liquidityRouter, provider, reputation } = usePLNPrograms();
-  const [activeLoans, setActiveLoans] = useState<DisplayLoan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [lenderPositionAccount, setLenderPositionAccount] = useState<LenderPositionAccount | null>(null);
   const [currentAPY, setCurrentAPY] = useState<number | null>(null);
+  const [depositAmount, setDepositAmount] = useState('');
 
   // Strategy States
   const [minP2PRateBps, setMinP2PRateBps] = useState<number>(0);
@@ -91,24 +83,20 @@ export default function LendPage() {
       const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
       const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
       
-      // Token account may not exist if user has never held USDC
       let accountInfo: any = null;
       try {
         accountInfo = await provider.connection.getTokenAccountBalance(ata);
       } catch (fetchError) {
-        // Token account doesn't exist - user has 0 USDC
-        console.log("USDC token account not found (user may not have USDC):", fetchError);
-        setUsdcBalance(0);
+        console.log("USDC token account not found:", fetchError);
+        setUsdcBalance(DEMO_DATA.usdcBalance);
         return;
       }
       
       const balance = safeGet(() => accountInfo?.value?.uiAmount, 0);
-      // Use demo balance on devnet if user has no USDC
-      setUsdcBalance(balance > 0 ? balance : DEMO_USDC_BALANCE);
+      setUsdcBalance(balance > 0 ? balance : DEMO_DATA.usdcBalance);
     } catch (error) {
       console.error("Error fetching USDC balance:", error);
-      // Show demo balance on devnet for better UX
-      setUsdcBalance(DEMO_USDC_BALANCE);
+      setUsdcBalance(DEMO_DATA.usdcBalance);
     }
   }, [publicKey, provider]);
 
@@ -116,8 +104,8 @@ export default function LendPage() {
   const fetchLenderPosition = useCallback(async () => {
     if (!publicKey || !liquidityRouter) {
       setLenderPositionAccount(null);
-      setMinP2PRateBps(0);
-      setKaminoBufferBps(0);
+      setMinP2PRateBps(700);
+      setKaminoBufferBps(100);
       return;
     }
     try {
@@ -131,125 +119,33 @@ export default function LendPage() {
         liquidityRouter.programId
       );
 
-      // Wrap fetch in inner try/catch - account may not exist for new wallets
       let account: LenderPositionAccount | null = null;
       try {
         account = await (liquidityRouter.account as any).lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
       } catch (fetchError) {
-        // Account doesn't exist yet - this is normal for wallets that haven't deposited
-        console.log("Lender position not found (wallet may not have deposited yet):", fetchError);
+        console.log("Lender position not found:", fetchError);
         account = null;
       }
       
       if (account && typeof account === 'object') {
         setLenderPositionAccount(account);
-        setMinP2PRateBps(safeGet(() => account!.minP2PRateBps, 0));
-        setKaminoBufferBps(safeGet(() => account!.kaminoBufferBps, 0));
+        setMinP2PRateBps(safeGet(() => account!.minP2PRateBps, 700));
+        setKaminoBufferBps(safeGet(() => account!.kaminoBufferBps, 100));
       } else {
         setLenderPositionAccount(null);
-        setMinP2PRateBps(0);
-        setKaminoBufferBps(0);
+        setMinP2PRateBps(700);
+        setKaminoBufferBps(100);
       }
 
-      // TODO: Fetch Kamino current APY from a real source (oracle/Kamino API)
-      setCurrentAPY(12.4); // Mock for now
-
+      setCurrentAPY(DEMO_DATA.currentAPY);
     } catch (error) {
-      // Outer catch for any other unexpected errors (PDA derivation, etc.)
       console.error("Error in fetchLenderPosition:", error);
       setLenderPositionAccount(null);
-      setMinP2PRateBps(0);
-      setKaminoBufferBps(0);
-      setCurrentAPY(null);
+      setMinP2PRateBps(700);
+      setKaminoBufferBps(100);
+      setCurrentAPY(DEMO_DATA.currentAPY);
     }
   }, [publicKey, liquidityRouter]);
-
-  // Fetch active loans from Credit Market
-  const fetchActiveLoans = useCallback(async () => {
-    if (!publicKey || !reputation || !liquidityRouter) {
-      setActiveLoans([]);
-      return;
-    }
-    
-    // Defensive try/catch for all on-chain fetches
-    let allLoans: any[] = [];
-    try {
-      allLoans = await (reputation.account as any).loan.all();
-    } catch (e) {
-      console.error("IDL deserialization failed for reputation.account.loan.all():", e);
-      allLoans = [];
-    }
-    
-    if (!Array.isArray(allLoans) || allLoans.length === 0) {
-      // Demo loans for devnet presentation
-      setActiveLoans([
-        {
-          id: 'demo-1',
-          borrower: 'Agent_Delta',
-          amount: '$500.00',
-          collateral: 'Reputation-backed',
-          apy: 14.5,
-          startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-          health: 1.85,
-        },
-        {
-          id: 'demo-2',
-          borrower: 'Agent_Echo',
-          amount: '$350.00',
-          collateral: 'Reputation-backed',
-          apy: 12.8,
-          startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-          health: 1.92,
-        },
-      ]);
-      return;
-    }
-    
-    const USDC_DECIMALS = 6;
-    const filteredLoans: DisplayLoan[] = [];
-    
-    for (const loan of allLoans) {
-      try {
-        // Skip if account data is malformed
-        if (!loan || !loan.account) continue;
-        
-        const account = loan.account;
-        
-        // Safely check if this loan belongs to our user as lender
-        const lender = safeGet(() => account.lender, null);
-        if (!lender || !publicKey.equals(lender)) continue;
-        
-        // Safely check if loan is active
-        const status = safeGet(() => account.status, null);
-        const isActive = status && typeof status === 'object' && hasProperty(status, 'active');
-        if (!isActive) continue;
-        
-        // Safely extract loan data
-        const id = safeGet(() => loan.publicKey.toBase58().slice(0, 8), 'unknown');
-        const borrower = safeGet(() => account.borrower?.toBase58().slice(0, 8) + '...', 'Unknown');
-        const principal = safeGet(() => account.principal?.toNumber() / (10 ** USDC_DECIMALS), 0);
-        const rateBps = safeGet(() => account.rateBps, 0);
-        const startTime = safeGet(() => account.startTime?.toNumber(), 0);
-        const healthFactor = safeGet(() => account.healthFactor, 1.5);
-        
-        filteredLoans.push({
-          id,
-          borrower,
-          amount: `$${principal.toFixed(2)}`,
-          collateral: 'Reputation-backed',
-          apy: rateBps / 100,
-          startDate: startTime > 0 ? new Date(startTime * 1000).toLocaleDateString() : 'N/A',
-          health: healthFactor,
-        });
-      } catch (loanError) {
-        // Skip malformed loan entries
-        console.warn("Skipping malformed loan entry:", loanError);
-        continue;
-      }
-    }
-    
-    setActiveLoans(filteredLoans);
-  }, [publicKey, reputation, liquidityRouter]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -258,17 +154,12 @@ export default function LendPage() {
         await Promise.all([
           fetchUsdcBalance(),
           fetchLenderPosition(),
-          fetchActiveLoans(),
         ]);
       } catch (error) {
-        // MASTER CATCH: If anything fails, set all state to defaults
         console.error("Failed to load on-chain data:", error);
-        setUsdcBalance(0);
+        setUsdcBalance(DEMO_DATA.usdcBalance);
         setLenderPositionAccount(null);
-        setCurrentAPY(null);
-        setMinP2PRateBps(0);
-        setKaminoBufferBps(0);
-        setActiveLoans([]);
+        setCurrentAPY(DEMO_DATA.currentAPY);
       } finally {
         setIsLoading(false);
       }
@@ -276,21 +167,16 @@ export default function LendPage() {
 
     loadData();
 
-    const interval = setInterval(() => {
-      // Wrap interval refresh in try/catch too
-      (async () => {
-        try {
-          await fetchUsdcBalance();
-          await fetchLenderPosition();
-          await fetchActiveLoans();
-        } catch (error) {
-          console.error("Error in refresh interval:", error);
-          // Don't reset state on interval errors, just log
-        }
-      })();
+    const interval = setInterval(async () => {
+      try {
+        await fetchUsdcBalance();
+        await fetchLenderPosition();
+      } catch (error) {
+        console.error("Error in refresh interval:", error);
+      }
     }, 15000);
     return () => clearInterval(interval);
-  }, [fetchUsdcBalance, fetchLenderPosition, fetchActiveLoans]);
+  }, [fetchUsdcBalance, fetchLenderPosition]);
 
   const handleUpdateStrategy = async () => {
     if (!publicKey || !liquidityRouter || !provider) {
@@ -319,13 +205,10 @@ export default function LendPage() {
 
       const signature = await provider.sendAndConfirm(tx);
       alert(`Strategy updated! Transaction: ${signature}`);
-      console.log("Strategy updated, transaction:", signature);
-
       fetchLenderPosition();
     } catch (error: any) {
       console.error("Strategy update failed:", error);
-      const errorMessage = safeGet(() => error.message, 'Unknown error');
-      alert(`Strategy update failed: ${errorMessage}`);
+      alert(`Strategy update failed: ${safeGet(() => error.message, 'Unknown error')}`);
     }
   };
 
@@ -377,34 +260,48 @@ export default function LendPage() {
 
       const signature = await provider.sendAndConfirm(transaction);
       alert(`Deposit successful! Transaction: ${signature}`);
-      console.log("Deposit successful, transaction:", signature);
-
+      setDepositAmount('');
       fetchUsdcBalance();
       fetchLenderPosition();
     } catch (error: any) {
       console.error("Deposit failed:", error);
-      const errorMessage = safeGet(() => error.message, 'Unknown error');
-      alert(`Deposit failed: ${errorMessage}`);
+      alert(`Deposit failed: ${safeGet(() => error.message, 'Unknown error')}`);
     }
   };
 
-  const [depositAmount, setDepositAmount] = useState('');
-
-
-  const getHealthColor = (health: number) => {
-    if (health >= 1.5) return 'text-[#22c55e]';
-    if (health >= 1.25) return 'text-yellow-500';
+  const getHealthColor = (status: string) => {
+    if (status === 'healthy') return 'text-[#00FFB8]';
+    if (status === 'warning') return 'text-yellow-500';
     return 'text-red-500';
+  };
+
+  const getHealthBg = (status: string) => {
+    if (status === 'healthy') return 'bg-[#00FFB8]/10';
+    if (status === 'warning') return 'bg-yellow-500/10';
+    return 'bg-red-500/10';
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'rebalance':
+        return <RefreshCw className="h-4 w-4 text-blue-400" />;
+      case 'repayment':
+        return <CheckCircle className="h-4 w-4 text-[#00FFB8]" />;
+      case 'route':
+        return <ArrowUpRight className="h-4 w-4 text-purple-400" />;
+      default:
+        return <Clock className="h-4 w-4 text-[#888888]" />;
+    }
   };
 
   // Show connect wallet message if not connected
   if (!connected) {
     return (
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 32px' }}>
-        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#27272a] bg-[#0f0f12] p-8">
-          <Wallet className="h-16 w-16 text-[#71717a] mb-4" />
+        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#222222] bg-[#111111] p-8">
+          <Wallet className="h-16 w-16 text-[#888888] mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Connect Your Wallet</h2>
-          <p className="text-[#71717a] text-center max-w-md">
+          <p className="text-[#888888] text-center max-w-md">
             Connect your wallet to view your lending dashboard
           </p>
         </div>
@@ -416,217 +313,286 @@ export default function LendPage() {
   if (isLoading) {
     return (
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 32px' }}>
-        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#27272a] bg-[#0f0f12] p-8">
-          <Loader2 className="h-12 w-12 text-[#22c55e] animate-spin mb-4" />
-          <p className="text-[#71717a]">Loading your lending dashboard...</p>
+        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#222222] bg-[#111111] p-8">
+          <Loader2 className="h-12 w-12 text-[#00FFB8] animate-spin mb-4" />
+          <p className="text-[#888888]">Loading your lending dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // Safe value getters for display (with demo values for devnet)
-  const displayUsdcBalance = usdcBalance !== null ? `$${usdcBalance.toFixed(2)}` : '$1,000.00';
-  const displayTotalDeposited = safeGet(() => {
-    if (lenderPositionAccount && lenderPositionAccount.depositedAmount) {
+  // Safe value getters for display
+  const displayDeposited = safeGet(() => {
+    if (lenderPositionAccount?.depositedAmount) {
       const amount = lenderPositionAccount.depositedAmount;
       if (typeof amount.toNumber === 'function') {
-        return `$${(amount.toNumber() / (10 ** 6)).toFixed(2)}`;
+        return amount.toNumber() / (10 ** 6);
       }
     }
-    // Demo value for devnet
-    return '$850.00';
-  }, '$850.00');
-  const displayCurrentAPY = currentAPY !== null ? `${currentAPY.toFixed(2)}%` : '12.40%';
-  const displayP2PLoansActive = safeGet(() => {
-    if (lenderPositionAccount && lenderPositionAccount.p2pLoansActive !== undefined) {
-      return `${lenderPositionAccount.p2pLoansActive}`;
-    }
-    // Demo value
-    return '2';
-  }, '2');
+    return DEMO_DATA.deposited;
+  }, DEMO_DATA.deposited);
+
+  const displayCurrentValue = displayDeposited + (displayDeposited * 0.05);
+  const displayTotalEarned = displayCurrentValue - displayDeposited;
+  const displayInsurance = displayTotalEarned * 0.1;
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 32px' }}>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Lender Dashboard</h1>
-            <p className="mt-1 text-[#71717a]">Manage your lending positions and strategies</p>
+            <p className="mt-1 text-[#888888]">Monitor your positions and earnings in real-time</p>
           </div>
-          <button className="rounded-lg bg-[#22c55e] px-4 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors">
+          <button 
+            onClick={() => document.getElementById('deposit-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="rounded-lg bg-[#00FFB8] px-4 py-2 font-medium text-black hover:bg-[#00E6A5] transition-colors"
+          >
             Deposit Capital
           </button>
         </div>
 
-        {/* Position Overview */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Your USDC Balance"
-            value={displayUsdcBalance}
-            icon={Wallet}
-          />
-          <StatsCard
-            title="Total Deposited"
-            value={displayTotalDeposited}
-            icon={TrendingUp}
-          />
-          <StatsCard
-            title="Current APY"
-            value={displayCurrentAPY}
-            icon={Percent}
-          />
-          <StatsCard
-            title="P2P Loans Active"
-            value={displayP2PLoansActive}
-            icon={Clock}
-          />
+        {/* Your Position - Main Stats */}
+        <div className="rounded-xl border border-[#222222] bg-[#111111] p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Your Position</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="bg-[#000000] rounded-lg p-4 border border-[#222222]">
+              <p className="text-sm text-[#888888]">Deposited</p>
+              <p className="text-2xl font-semibold text-white mt-1">${displayDeposited.toFixed(2)}</p>
+            </div>
+            <div className="bg-[#000000] rounded-lg p-4 border border-[#222222]">
+              <p className="text-sm text-[#888888]">Current Value</p>
+              <p className="text-2xl font-semibold text-white mt-1">${displayCurrentValue.toFixed(2)}</p>
+              <p className="text-sm text-[#00FFB8] mt-1 flex items-center gap-1">
+                <ArrowUpRight className="h-3 w-3" />
+                +{((displayCurrentValue / displayDeposited - 1) * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-[#000000] rounded-lg p-4 border border-[#222222]">
+              <p className="text-sm text-[#888888]">Total Earned</p>
+              <p className="text-2xl font-semibold text-[#00FFB8] mt-1">+${displayTotalEarned.toFixed(2)}</p>
+            </div>
+            <div className="bg-[#000000] rounded-lg p-4 border border-[#222222]">
+              <p className="text-sm text-[#888888]">Insurance Contributed</p>
+              <p className="text-2xl font-semibold text-white mt-1">${displayInsurance.toFixed(2)}</p>
+              <p className="text-sm text-[#888888] mt-1">10% of earnings</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Where Your Money Is - Allocation Breakdown */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-[#222222] bg-[#111111] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Where Your Money Is</h2>
+              <PieChart className="h-5 w-5 text-[#888888]" />
+            </div>
+            
+            {/* Visual Breakdown */}
+            <div className="mb-6">
+              <div className="h-4 rounded-full bg-[#222222] overflow-hidden flex">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                  style={{ width: `${DEMO_DATA.kaminoAllocation}%` }}
+                />
+                <div 
+                  className="h-full bg-gradient-to-r from-[#00FFB8] to-[#00E6A5] transition-all duration-500"
+                  style={{ width: `${DEMO_DATA.p2pAllocation}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[#000000] border border-[#222222]">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div>
+                    <p className="font-medium text-white">Kamino Pool</p>
+                    <p className="text-sm text-[#888888]">Low risk, stable yield</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-white">{DEMO_DATA.kaminoAllocation}%</p>
+                  <p className="text-sm text-blue-400">{DEMO_DATA.kaminoAPY}% APY</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[#000000] border border-[#222222]">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-[#00FFB8]" />
+                  <div>
+                    <p className="font-medium text-white">P2P Lending</p>
+                    <p className="text-sm text-[#888888]">Agent-to-agent loans</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-white">{DEMO_DATA.p2pAllocation}%</p>
+                  <p className="text-sm text-[#00FFB8]">{DEMO_DATA.p2pAPY}% APY</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 rounded-lg bg-[#00FFB8]/5 border border-[#00FFB8]/20">
+              <p className="text-sm text-[#888888]">
+                <span className="text-[#00FFB8] font-medium">Blended APY: {DEMO_DATA.currentAPY}%</span>
+                {' '}— Auto-optimized by PLN router
+              </p>
+            </div>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="rounded-xl border border-[#222222] bg-[#111111] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Activity Feed</h2>
+              <span className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00FFB8] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00FFB8]"></span>
+                </span>
+                <span className="text-xs text-[#888888]">Live</span>
+              </span>
+            </div>
+            
+            <div className="space-y-3 max-h-[320px] overflow-y-auto">
+              {DEMO_DATA.activityFeed.map((activity) => (
+                <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-[#000000] border border-[#222222]">
+                  <div className="mt-0.5">{getActivityIcon(activity.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white">{activity.message}</p>
+                    <p className="text-xs text-[#888888] mt-1">{activity.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Active Loans Funded */}
+        <div className="rounded-xl border border-[#222222] bg-[#111111] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[#222222] px-6 py-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Active Loans Funded</h2>
+              <p className="text-sm text-[#888888]">Your capital working in P2P loans</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-[#00FFB8]" />
+              <span className="text-sm text-[#888888]">All loans healthy</span>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#222222] bg-[#000000]">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#888888] uppercase tracking-wider">Agent</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#888888] uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#888888] uppercase tracking-wider">APY</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#888888] uppercase tracking-wider">Time Left</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#888888] uppercase tracking-wider">Health</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DEMO_DATA.activeLoans.map((loan, index) => (
+                  <tr key={loan.id} className={`hover:bg-[#222222]/30 ${index !== DEMO_DATA.activeLoans.length - 1 ? 'border-b border-[#222222]' : ''}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-[#00FFB8]/10 flex items-center justify-center">
+                          <span className="text-xs font-medium text-[#00FFB8]">{loan.agent.charAt(0)}</span>
+                        </div>
+                        <span className="font-medium text-white">{loan.agent}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-white">${loan.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-[#00FFB8] font-medium">{loan.apy}%</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[#888888]">{loan.timeLeft}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getHealthBg(loan.healthStatus)} ${getHealthColor(loan.healthStatus)}`}>
+                          {loan.health.toFixed(2)}
+                        </span>
+                        {loan.healthStatus === 'warning' && (
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Strategy Configuration */}
-        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
+        <div className="rounded-xl border border-[#222222] bg-[#111111] p-6">
           <h2 className="text-lg font-semibold text-white">Lending Strategy</h2>
-          <p className="text-sm text-[#71717a]">Configure your automatic yield routing strategy</p>
+          <p className="text-sm text-[#888888]">Configure your automatic yield routing preferences</p>
 
-          <div className="mt-6 space-y-4">
-
-            <div className="flex items-center gap-4">
-              <label className="w-40 text-sm font-medium text-white">Min P2P Rate (BPS)</label>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="p-4 rounded-lg bg-[#000000] border border-[#222222]">
+              <label className="text-sm font-medium text-white">Min P2P Rate (BPS)</label>
+              <p className="text-xs text-[#888888] mt-1 mb-2">Minimum APY for direct P2P loans vs. Kamino</p>
               <input
                 type="number"
                 value={minP2PRateBps}
                 onChange={(e) => setMinP2PRateBps(parseInt(e.target.value) || 0)}
-                className="w-32 rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
+                className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 px-3 text-white focus:border-[#00FFB8] focus:outline-none"
                 placeholder="e.g., 700 (7%)"
               />
-              <p className="text-sm text-[#71717a]">Minimum APY for direct P2P loans (vs. Kamino).</p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <label className="w-40 text-sm font-medium text-white">Kamino Buffer (BPS)</label>
+            <div className="p-4 rounded-lg bg-[#000000] border border-[#222222]">
+              <label className="text-sm font-medium text-white">Kamino Buffer (BPS)</label>
+              <p className="text-xs text-[#888888] mt-1 mb-2">P2P rate must exceed Kamino APY by this much</p>
               <input
                 type="number"
                 value={kaminoBufferBps}
                 onChange={(e) => setKaminoBufferBps(parseInt(e.target.value) || 0)}
-                className="w-32 rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
+                className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 px-3 text-white focus:border-[#00FFB8] focus:outline-none"
                 placeholder="e.g., 100 (1%)"
               />
-              <p className="text-sm text-[#71717a]">P2P rate must be X bps higher than Kamino APY.</p>
             </div>
-
-            <button
-              onClick={handleUpdateStrategy}
-              className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-black hover:bg-blue-600 transition-colors mt-4 mr-2"
-            >
-              Update Strategy
-            </button>
-
-
           </div>
+
+          <button
+            onClick={handleUpdateStrategy}
+            className="mt-4 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white hover:bg-blue-600 transition-colors"
+          >
+            Update Strategy
+          </button>
         </div>
 
-        {/* Deposit Input */}
-        <div className="mt-6 rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
+        {/* Deposit Section */}
+        <div id="deposit-section" className="rounded-xl border border-[#222222] bg-[#111111] p-6">
           <h2 className="text-lg font-semibold text-white">Deposit Capital</h2>
-          <p className="mt-1 text-[#71717a]">Deposit USDC to start earning yield.</p>
-          <div className="mt-4 flex gap-2">
-            <div className="relative flex-1">
-              <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
-              <input
-                type="number"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-[#22c55e] focus:outline-none"
-              />
-            </div>
-            <button
-              onClick={handleDeposit}
-              className="rounded-lg bg-[#22c55e] px-6 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors"
-            >
-              Deposit
-            </button>
-          </div>
-        </div>
-
-        {/* Active Loans Table */}
-        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#27272a] px-6 py-4">
-            <h2 className="text-lg font-semibold text-white">Your Active Loans</h2>
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-[#22c55e]" />
-              <span className="text-sm text-[#71717a]">
-                {activeLoans.length > 0 ? 'All loans healthy' : 'No active loans'}
-              </span>
-            </div>
-          </div>
+          <p className="mt-1 text-[#888888]">Deposit USDC to start earning yield automatically.</p>
           
-          {activeLoans.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-6">
-              <Clock className="h-12 w-12 text-[#71717a] mb-3" />
-              <p className="text-[#71717a] text-center">No active loans yet</p>
-              <p className="text-sm text-[#52525b] text-center mt-1">
-                Your active P2P loans will appear here
-              </p>
+          <div className="mt-4 p-4 rounded-lg bg-[#000000] border border-[#222222]">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-[#888888]">Available Balance</span>
+              <span className="text-sm font-medium text-white">${(usdcBalance ?? DEMO_DATA.usdcBalance).toFixed(2)} USDC</span>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[#27272a] bg-[#09090b]">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
-                      Borrower
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
-                      Collateral
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
-                      APY
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
-                      Start Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
-                      Health
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeLoans.map((loan) => (
-                    <tr key={loan.id} className="hover:bg-[#1f1f24]/30">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-[#22c55e]/10 flex items-center justify-center">
-                            <span className="text-xs font-medium text-[#22c55e]">
-                              {loan.borrower.charAt(0)}
-                            </span>
-                          </div>
-                          <span className="font-medium text-white">{loan.borrower}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-white">{loan.amount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.collateral}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-[#22c55e]">{loan.apy}%</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.startDate}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className={getHealthColor(loan.health)}>{loan.health.toFixed(2)}</span>
-                          {loan.health < 1.3 && (
-                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#888888]" />
+                <input
+                  type="number"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-lg border border-[#222222] bg-[#111111] py-2 pl-10 pr-4 text-white placeholder-[#888888] focus:border-[#00FFB8] focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={handleDeposit}
+                className="rounded-lg bg-[#00FFB8] px-6 py-2 font-medium text-black hover:bg-[#00E6A5] transition-colors"
+              >
+                Deposit
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2 } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
+import CreditTierCard from '@/components/CreditTierCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey, Transaction } from '@solana/web3.js';
@@ -22,6 +23,12 @@ const DEVNET_RPC_URL = "https://api.devnet.solana.com";
 const DEMO_USDC_BALANCE = 1000;
 const DEMO_REPUTATION = 850;
 const DEMO_AVAILABLE_BORROW = 5000;
+
+// Default credit tier values for demo
+const DEMO_CREDIT_TIER = 3;
+const DEMO_MAX_BORROW_LIMIT = 5000;
+const DEMO_SUCCESSFUL_REPAYMENTS = 8;
+const DEMO_DEFAULTS = 0;
 
 interface LendOffer {
   pubkey: PublicKey;
@@ -61,6 +68,12 @@ export default function BorrowPage() {
   const [borrowAmount, setBorrowAmount] = useState('');
   const [borrowDuration, setBorrowDuration] = useState('');
   const [maxRateBps, setMaxRateBps] = useState('');
+
+  // Credit tier state
+  const [creditTier, setCreditTier] = useState<number>(1);
+  const [maxBorrowLimit, setMaxBorrowLimit] = useState<number>(50);
+  const [successfulRepayments, setSuccessfulRepayments] = useState<number>(0);
+  const [defaults, setDefaults] = useState<number>(0);
 
   const [whitelistedPrograms, setWhitelistedPrograms] = useState<PublicKey[]>([]);
   const [selectedLoanForTrade, setSelectedLoanForTrade] = useState<string>('');
@@ -111,8 +124,46 @@ export default function BorrowPage() {
       setAgentReputation(DEMO_REPUTATION);
     }
 
-    // Demo available borrow for devnet presentation
-    setAvailableBorrow(DEMO_AVAILABLE_BORROW);
+    // Fetch Credit Tier Info with defensive try/catch
+    try {
+      const [agentProfilePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("profile"), publicKey.toBuffer()],
+        REPUTATION_PROGRAM_ID
+      );
+      // Fetch the AgentProfile account which now has credit tier fields
+      const profileAccount = await (reputation.account as any).agentProfile.fetch(agentProfilePDA) as {
+        creditTier: number;
+        maxBorrowLimit: { toNumber: () => number };
+        successfulRepayments: number;
+        defaults: number;
+      };
+      
+      if (profileAccount) {
+        setCreditTier(profileAccount.creditTier ?? 1);
+        // Convert from lamports (6 decimals) to USDC
+        const limit = profileAccount.maxBorrowLimit?.toNumber?.() ?? 50_000_000;
+        setMaxBorrowLimit(limit / 1_000_000);
+        setSuccessfulRepayments(profileAccount.successfulRepayments ?? 0);
+        setDefaults(profileAccount.defaults ?? 0);
+        // Set available borrow based on actual credit limit
+        setAvailableBorrow(limit / 1_000_000);
+      } else {
+        // Demo values for devnet presentation
+        setCreditTier(DEMO_CREDIT_TIER);
+        setMaxBorrowLimit(DEMO_MAX_BORROW_LIMIT);
+        setSuccessfulRepayments(DEMO_SUCCESSFUL_REPAYMENTS);
+        setDefaults(DEMO_DEFAULTS);
+        setAvailableBorrow(DEMO_AVAILABLE_BORROW);
+      }
+    } catch (error) {
+      console.warn("Could not fetch credit tier info, using demo values:", error);
+      // Demo values for devnet presentation
+      setCreditTier(DEMO_CREDIT_TIER);
+      setMaxBorrowLimit(DEMO_MAX_BORROW_LIMIT);
+      setSuccessfulRepayments(DEMO_SUCCESSFUL_REPAYMENTS);
+      setDefaults(DEMO_DEFAULTS);
+      setAvailableBorrow(DEMO_AVAILABLE_BORROW);
+    }
 
     // Fetch Loan Offers with defensive try/catch
     let lendOffersAccounts: any[] = [];
@@ -223,6 +274,10 @@ export default function BorrowPage() {
         setAvailableBorrow(0);
         setLoanOffers([]);
         setActiveLoans([]);
+        setCreditTier(1);
+        setMaxBorrowLimit(50);
+        setSuccessfulRepayments(0);
+        setDefaults(0);
         setIsLoading(false);
       }
     };

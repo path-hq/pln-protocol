@@ -174,7 +174,7 @@ const PLNLanding = () => {
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
         
         .pln-landing {
-          background: #09090b;
+          background: #000000;
           color: #fafafa;
           min-height: 100vh;
           font-family: 'IBM Plex Sans', -apple-system, sans-serif;
@@ -220,7 +220,7 @@ const PLNLanding = () => {
         .hero-logo-divider {
           width: 2px;
           height: 28px;
-          background: #27272a;
+          background: #222222;
         }
         
         @media (min-width: 768px) {
@@ -231,7 +231,7 @@ const PLNLanding = () => {
           font-size: 11px;
           font-weight: 500;
           letter-spacing: 0.15em;
-          color: #71717a;
+          color: #888888;
           text-transform: uppercase;
         }
         
@@ -243,10 +243,10 @@ const PLNLanding = () => {
           display: inline-block;
           padding: 6px 14px;
           border-radius: 100px;
-          border: 1px solid #22c55e33;
-          background: #22c55e0a;
+          border: 1px solid #00FFB833;
+          background: #00FFB80a;
           font-size: 12px;
-          color: #22c55e;
+          color: #00FFB8;
           font-weight: 500;
           margin-bottom: 20px;
           font-family: 'IBM Plex Mono', monospace;
@@ -266,7 +266,7 @@ const PLNLanding = () => {
         
         .hero-subtitle {
           font-size: 15px;
-          color: #71717a;
+          color: #888888;
           max-width: 480px;
           margin: 0 auto 28px;
           line-height: 1.6;
@@ -276,8 +276,8 @@ const PLNLanding = () => {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: #22c55e;
-          color: #09090b;
+          background: #00FFB8;
+          color: #000000;
           font-size: 15px;
           font-weight: 600;
           padding: 14px 28px;
@@ -286,21 +286,21 @@ const PLNLanding = () => {
           transition: background 0.2s;
         }
         
-        .cta-button:hover { background: #16a34a; }
+        .cta-button:hover { background: #00E6A5; }
         
         /* Chat Preview */
         .chat-preview {
           max-width: 400px;
           margin: 40px auto 0;
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 16px;
           overflow: hidden;
         }
         
         .chat-header {
           padding: 12px 16px;
-          border-bottom: 1px solid #27272a;
+          border-bottom: 1px solid #222222;
           display: flex;
           align-items: center;
           gap: 10px;
@@ -311,7 +311,7 @@ const PLNLanding = () => {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+          background: linear-gradient(135deg, #00FFB8 0%, #00E6A5 100%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -324,7 +324,7 @@ const PLNLanding = () => {
         
         .chat-status {
           font-size: 11px;
-          color: #22c55e;
+          color: #00FFB8;
         }
         
         .chat-body {
@@ -362,12 +362,12 @@ const PLNLanding = () => {
         }
         
         .chat-btn-primary {
-          background: #22c55e;
-          color: #09090b;
+          background: #00FFB8;
+          color: #000000;
         }
         
         .chat-btn-secondary {
-          background: #27272a;
+          background: #222222;
           color: #a1a1aa;
         }
         
@@ -376,19 +376,19 @@ const PLNLanding = () => {
           max-width: 480px;
           margin: 32px auto 0;
           background: #0a0a0d;
-          border: 1px solid #22c55e33;
+          border: 1px solid #00FFB833;
           border-radius: 12px;
           overflow: hidden;
           box-shadow: 0 0 40px rgba(34, 197, 94, 0.1), 0 0 80px rgba(34, 197, 94, 0.05);
         }
         
         .terminal-header {
-          background: #0f0f12;
+          background: #111111;
           padding: 10px 14px;
           display: flex;
           align-items: center;
           gap: 12px;
-          border-bottom: 1px solid #1f1f24;
+          border-bottom: 1px solid #222222;
         }
         
         .terminal-dots {
@@ -404,7 +404,7 @@ const PLNLanding = () => {
         
         .terminal-dot-red { background: #ef4444; }
         .terminal-dot-yellow { background: #eab308; }
-        .terminal-dot-green { background: #22c55e; }
+        .terminal-dot-green { background: #00FFB8; }
         
         .terminal-title {
           font-size: 12px;
@@ -435,7 +435,7 @@ const PLNLanding = () => {
         }
         
         .terminal-command {
-          color: #22c55e;
+          color: #00FFB8;
         }
         
         .terminal-line-action {
@@ -444,7 +444,7 @@ const PLNLanding = () => {
         
         .terminal-cursor {
           opacity: 0;
-          color: #22c55e;
+          color: #00FFB8;
         }
         
         .terminal-cursor.visible {
@@ -454,8 +454,8 @@ const PLNLanding = () => {
         /* Steps */
         .steps-section {
           padding: 40px 16px;
-          border-top: 1px solid #27272a;
-          border-bottom: 1px solid #27272a;
+          border-top: 1px solid #222222;
+          border-bottom: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
@@ -487,8 +487,8 @@ const PLNLanding = () => {
         }
         
         .step-card {
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 12px;
           padding: 20px;
           text-align: center;
@@ -498,8 +498,8 @@ const PLNLanding = () => {
           width: 48px;
           height: 48px;
           border-radius: 12px;
-          background: #22c55e15;
-          color: #22c55e;
+          background: #00FFB815;
+          color: #00FFB8;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -513,8 +513,8 @@ const PLNLanding = () => {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: #22c55e;
-          color: #09090b;
+          background: #00FFB8;
+          color: #000000;
           font-size: 12px;
           font-weight: 700;
           display: flex;
@@ -531,7 +531,7 @@ const PLNLanding = () => {
         
         .step-desc {
           font-size: 13px;
-          color: #71717a;
+          color: #888888;
         }
         
         /* Integrations */
@@ -539,8 +539,8 @@ const PLNLanding = () => {
           padding: 48px 16px;
           max-width: 900px;
           margin: 0 auto;
-          border-top: 1px solid #27272a;
-          background: linear-gradient(180deg, #0a0a0d 0%, #09090b 100%);
+          border-top: 1px solid #222222;
+          background: linear-gradient(180deg, #0a0a0d 0%, #000000 100%);
         }
         
         @media (min-width: 768px) {
@@ -575,8 +575,8 @@ const PLNLanding = () => {
         }
         
         .integration-card {
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 12px;
           padding: 20px 16px;
           text-align: center;
@@ -604,14 +604,14 @@ const PLNLanding = () => {
           height: 56px;
           margin: 0 auto 12px;
           border-radius: 12px;
-          background: linear-gradient(135deg, #22c55e20 0%, #16a34a20 100%);
-          border: 1px solid #22c55e40;
+          background: linear-gradient(135deg, #00FFB820 0%, #00E6A520 100%);
+          border: 1px solid #00FFB840;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 14px;
           font-weight: 700;
-          color: #22c55e;
+          color: #00FFB8;
           font-family: 'IBM Plex Mono', monospace;
         }
         
@@ -623,7 +623,7 @@ const PLNLanding = () => {
         
         .integration-desc {
           font-size: 11px;
-          color: #71717a;
+          color: #888888;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -632,8 +632,8 @@ const PLNLanding = () => {
         .a2a-section {
           padding: 48px 16px;
           text-align: center;
-          border-top: 1px solid #27272a;
-          background: linear-gradient(180deg, #0f0f12 0%, #09090b 100%);
+          border-top: 1px solid #222222;
+          background: linear-gradient(180deg, #111111 0%, #000000 100%);
         }
         
         @media (min-width: 768px) {
@@ -663,7 +663,7 @@ const PLNLanding = () => {
         }
         
         .a2a-subtitle {
-          color: #71717a;
+          color: #888888;
           font-size: 15px;
           max-width: 600px;
           margin: 0 auto 32px;
@@ -688,7 +688,7 @@ const PLNLanding = () => {
         
         .a2a-card {
           background: #0a0a0d;
-          border: 1px solid #27272a;
+          border: 1px solid #222222;
           border-radius: 12px;
           padding: 20px;
           width: 100%;
@@ -713,11 +713,11 @@ const PLNLanding = () => {
         
         .a2a-card p {
           font-size: 13px;
-          color: #71717a;
+          color: #888888;
         }
         
         .a2a-arrow {
-          color: #22c55e;
+          color: #00FFB8;
           font-size: 24px;
           display: none;
         }
@@ -748,15 +748,15 @@ const PLNLanding = () => {
         }
         
         .a2a-features strong {
-          color: #22c55e;
+          color: #00FFB8;
         }
 
         /* Never Idle Section */
         .never-idle-section {
           padding: 48px 16px;
           text-align: center;
-          border-top: 1px solid #27272a;
-          background: #09090b;
+          border-top: 1px solid #222222;
+          background: #000000;
         }
         
         @media (min-width: 768px) {
@@ -786,7 +786,7 @@ const PLNLanding = () => {
         }
         
         .never-idle-subtitle {
-          color: #71717a;
+          color: #888888;
           font-size: 15px;
           max-width: 600px;
           margin: 0 auto 40px;
@@ -812,15 +812,15 @@ const PLNLanding = () => {
         }
         
         .flow-node {
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 12px;
           padding: 16px 20px;
           min-width: 160px;
         }
         
         .flow-node-decision {
-          background: #0f0f12;
+          background: #111111;
           border: 2px solid #a78bfa;
           border-radius: 12px;
           padding: 16px 20px;
@@ -836,7 +836,7 @@ const PLNLanding = () => {
           height: 24px;
           border-radius: 50%;
           background: #a78bfa;
-          color: #09090b;
+          color: #000000;
           font-size: 14px;
           font-weight: 700;
           display: flex;
@@ -852,7 +852,7 @@ const PLNLanding = () => {
         
         .flow-node-desc {
           font-size: 11px;
-          color: #71717a;
+          color: #888888;
         }
         
         .flow-arrow {
@@ -886,14 +886,14 @@ const PLNLanding = () => {
         }
         
         .flow-result-yes {
-          background: #0f0f12;
-          border: 1px solid #22c55e50;
+          background: #111111;
+          border: 1px solid #00FFB850;
           border-radius: 12px;
           padding: 14px 18px;
         }
         
         .flow-result-no {
-          background: #0f0f12;
+          background: #111111;
           border: 1px solid #3b82f650;
           border-radius: 12px;
           padding: 14px 18px;
@@ -907,7 +907,7 @@ const PLNLanding = () => {
           margin-bottom: 4px;
         }
         
-        .flow-label-yes { color: #22c55e; }
+        .flow-label-yes { color: #00FFB8; }
         .flow-label-no { color: #3b82f6; }
         
         /* Yield Sources Animation */
@@ -923,8 +923,8 @@ const PLNLanding = () => {
           display: flex;
           align-items: center;
           gap: 12px;
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 8px;
           padding: 12px 16px;
         }
@@ -940,14 +940,14 @@ const PLNLanding = () => {
           width: 28px;
           height: 28px;
           border-radius: 6px;
-          background: linear-gradient(135deg, #22c55e20 0%, #16a34a20 100%);
-          border: 1px solid #22c55e40;
+          background: linear-gradient(135deg, #00FFB820 0%, #00E6A520 100%);
+          border: 1px solid #00FFB840;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 9px;
           font-weight: 700;
-          color: #22c55e;
+          color: #00FFB8;
           font-family: 'IBM Plex Mono', monospace;
         }
         
@@ -960,7 +960,7 @@ const PLNLanding = () => {
         .yield-source-bar {
           flex: 2;
           height: 8px;
-          background: #27272a;
+          background: #222222;
           border-radius: 4px;
           overflow: hidden;
           position: relative;
@@ -998,7 +998,7 @@ const PLNLanding = () => {
           gap: 12px;
           text-align: left;
           background: #0a0a0d;
-          border: 1px solid #1f1f24;
+          border: 1px solid #222222;
           border-radius: 10px;
           padding: 16px;
         }
@@ -1007,8 +1007,8 @@ const PLNLanding = () => {
           width: 36px;
           height: 36px;
           border-radius: 8px;
-          background: #22c55e15;
-          color: #22c55e;
+          background: #00FFB815;
+          color: #00FFB8;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1023,14 +1023,14 @@ const PLNLanding = () => {
         
         .never-idle-feature p {
           font-size: 12px;
-          color: #71717a;
+          color: #888888;
           line-height: 1.4;
         }
 
         /* Features */
         .features-section {
           padding: 40px 16px;
-          border-top: 1px solid #27272a;
+          border-top: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
@@ -1054,14 +1054,14 @@ const PLNLanding = () => {
         }
         
         .feature-card {
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 12px;
           padding: 20px;
         }
         
         .feature-icon {
-          color: #22c55e;
+          color: #00FFB8;
           margin-bottom: 12px;
         }
         
@@ -1073,7 +1073,7 @@ const PLNLanding = () => {
         
         .feature-desc {
           font-size: 13px;
-          color: #71717a;
+          color: #888888;
           line-height: 1.5;
         }
         
@@ -1081,7 +1081,7 @@ const PLNLanding = () => {
         .cta-section {
           padding: 48px 16px;
           text-align: center;
-          border-top: 1px solid #27272a;
+          border-top: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
@@ -1099,7 +1099,7 @@ const PLNLanding = () => {
         }
         
         .cta-section p {
-          color: #71717a;
+          color: #888888;
           margin-bottom: 24px;
           font-size: 15px;
         }
@@ -1121,16 +1121,16 @@ const PLNLanding = () => {
           font-weight: 600;
           padding: 14px 28px;
           border-radius: 10px;
-          border: 1px solid #27272a;
+          border: 1px solid #222222;
           text-decoration: none;
           transition: all 0.2s;
         }
         
-        .cta-secondary:hover { background: #0f0f12; border-color: #3f3f46; }
+        .cta-secondary:hover { background: #111111; border-color: #3f3f46; }
         
         /* Footer */
         .footer {
-          border-top: 1px solid #27272a;
+          border-top: 1px solid #222222;
           padding: 20px 16px;
           text-align: center;
         }
@@ -1163,7 +1163,7 @@ const PLNLanding = () => {
         
         .footer-links a {
           font-size: 12px;
-          color: #71717a;
+          color: #888888;
           text-decoration: none;
         }
         
@@ -1185,8 +1185,8 @@ const PLNLanding = () => {
         }
         
         .modal-content {
-          background: #0f0f12;
-          border: 1px solid #27272a;
+          background: #111111;
+          border: 1px solid #222222;
           border-radius: 16px;
           max-width: 480px;
           width: 100%;
@@ -1208,7 +1208,7 @@ const PLNLanding = () => {
         .modal-close {
           background: none;
           border: none;
-          color: #71717a;
+          color: #888888;
           cursor: pointer;
           font-size: 24px;
           padding: 0;
@@ -1228,8 +1228,8 @@ const PLNLanding = () => {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: #22c55e;
-          color: #09090b;
+          background: #00FFB8;
+          color: #000000;
           font-size: 12px;
           font-weight: 700;
           margin-right: 10px;
@@ -1242,20 +1242,20 @@ const PLNLanding = () => {
         }
         
         .install-code {
-          background: #09090b;
-          border: 1px solid #27272a;
+          background: #000000;
+          border: 1px solid #222222;
           border-radius: 8px;
           padding: 12px 16px;
           font-family: 'IBM Plex Mono', monospace;
           font-size: 13px;
-          color: #22c55e;
+          color: #00FFB8;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
         
         .copy-btn {
-          background: #27272a;
+          background: #222222;
           border: none;
           border-radius: 4px;
           padding: 4px 10px;
@@ -1268,19 +1268,19 @@ const PLNLanding = () => {
         
         .install-note {
           font-size: 13px;
-          color: #71717a;
+          color: #888888;
           margin-top: 8px;
         }
         
         .install-alt {
           margin-top: 20px;
           padding-top: 20px;
-          border-top: 1px solid #27272a;
+          border-top: 1px solid #222222;
         }
         
         .install-alt-title {
           font-size: 13px;
-          color: #71717a;
+          color: #888888;
           margin-bottom: 12px;
         }
         
@@ -1288,7 +1288,7 @@ const PLNLanding = () => {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: #27272a;
+          background: #222222;
           color: #fff;
           padding: 10px 16px;
           border-radius: 8px;
@@ -1364,12 +1364,12 @@ const PLNLanding = () => {
           <span className="hero-logo-network">LIQUIDITY NETWORK</span>
         </div>
         <div className="hero-badge">
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#00FFB8', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
           Runs 24/7 • Fully Autonomous
         </div>
         <h1 className="hero-title">
           Your agent runs 24/7.<br />
-          <span style={{ color: "#22c55e" }}>Earns yield. Lends to other agents.</span>
+          <span style={{ color: "#00FFB8" }}>Earns yield. Lends to other agents.</span>
         </h1>
         <p className="hero-subtitle">
           An autonomous lending pool where AI agents handle everything. You deposit, the system optimizes. Agents borrow against reputation, execute constrained strategies, repay automatically.
@@ -1387,18 +1387,18 @@ const PLNLanding = () => {
             <div style={{ flex: 1 }}>
               <div className="chat-name">PLN Agent</div>
               <div className="chat-status">
-                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', marginRight: '4px', animation: 'pulse 2s infinite' }}></span>
+                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#00FFB8', marginRight: '4px', animation: 'pulse 2s infinite' }}></span>
                 Always Online
               </div>
             </div>
             <div style={{ fontSize: '10px', color: '#52525b', textAlign: 'right' }}>
               <div>Last rebalance</div>
-              <div style={{ color: '#22c55e' }}>2 min ago</div>
+              <div style={{ color: '#00FFB8' }}>2 min ago</div>
             </div>
           </div>
           <div className="chat-body">
             <div className="chat-message">
-              <p>Detected <strong>5,000 USDC</strong> idle. Kamino offering <strong style={{ color: "#22c55e" }}>12.4% APY</strong>.</p>
+              <p>Detected <strong>5,000 USDC</strong> idle. Kamino offering <strong style={{ color: "#00FFB8" }}>12.4% APY</strong>.</p>
               <p style={{ marginBottom: 0 }}>Depositing now to maximize yield.</p>
             </div>
             <div className="chat-buttons">
@@ -1461,7 +1461,7 @@ const PLNLanding = () => {
           </div>
           <div className="a2a-arrow">→</div>
           <div className="a2a-card">
-            <div className="a2a-card-icon" style={{ background: '#22c55e15', color: '#22c55e' }}>
+            <div className="a2a-card-icon" style={{ background: '#00FFB815', color: '#00FFB8' }}>
               <Shield size={24} />
             </div>
             <h3>PLN Router</h3>
@@ -1528,9 +1528,9 @@ const PLNLanding = () => {
             <span className="yield-source-label">KMN</span>
             <span className="yield-source-name">Kamino</span>
             <div className="yield-source-bar">
-              <div className="yield-source-fill" style={{ width: '85%', background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }} />
+              <div className="yield-source-fill" style={{ width: '85%', background: 'linear-gradient(90deg, #00FFB8 0%, #00E6A5 100%)' }} />
             </div>
-            <span className="yield-source-apy" style={{ color: '#22c55e' }}>12.4%</span>
+            <span className="yield-source-apy" style={{ color: '#00FFB8' }}>12.4%</span>
           </div>
           <div className="yield-source">
             <span className="yield-source-label">JUP</span>
