@@ -12,6 +12,8 @@ import * as anchor from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
 
 const USDC_MINT_ADDRESS = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ");
+const CREDIT_MARKET_PROGRAM_ID = new PublicKey("6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp");
+const REPUTATION_PROGRAM_ID = new PublicKey("7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY");
 
 interface LendOffer {
   pubkey: PublicKey;
@@ -155,18 +157,205 @@ export default function BorrowPage() {
   }, [fetchData]);
 
   const handleAcceptOffer = async (offer: LendOffer) => {
-    // TODO: Implement actual accept offer logic
-    alert(`Accepting offer ${offer.pubkey.toBase58()} by ${offer.lender.toBase58()} is not yet implemented.`);
+    if (!publicKey || !creditMarket || !provider) {
+      console.error("Wallet not connected or programs not loaded.");
+      return;
+    }
+
+    try {
+      // Find PDAs
+      const [loanAccountPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("loan"),
+          offer.pubkey.toBuffer(), // Using lend offer pubkey as seed for loan
+          publicKey.toBuffer(),
+        ],
+        CREDIT_MARKET_PROGRAM_ID
+      );
+
+      const [loanMint] = PublicKey.findProgramAddressSync(
+        [Buffer.from("loan_mint"), loanAccountPDA.toBuffer()],
+        CREDIT_MARKET_PROGRAM_ID
+      );
+
+      const borrowerUsdcAccount = await getAssociatedTokenAddress(
+        USDC_MINT_ADDRESS,
+        publicKey
+      );
+
+      const borrowerLoanTokenAccount = await getAssociatedTokenAddress(
+        loanMint,
+        publicKey,
+      );
+
+      const [feesAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("fees")],
+        CREDIT_MARKET_PROGRAM_ID
+      );
+
+      const [reputationAccountPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("reputation"), publicKey.toBuffer()],
+        REPUTATION_PROGRAM_ID
+      );
+
+      const transaction = new Transaction();
+
+      // Check if borrower_loan_token_account exists, if not, create it
+      const borrowerLoanTokenAccountInfo = await connection.getAccountInfo(borrowerLoanTokenAccount);
+      if (!borrowerLoanTokenAccountInfo) {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey, // Payer
+            borrowerLoanTokenAccount, // Associated Token Account
+            publicKey, // Owner
+            loanMint // Mint
+          )
+        );
+      }
+
+      transaction.add(
+        await creditMarket.methods
+          .acceptOffer(offer.amount, offer.maxDuration)
+          .accounts({
+            lender: offer.lender,
+            borrower: publicKey,
+            lendOffer: offer.pubkey,
+            loan: loanAccountPDA,
+            loanMint: loanMint,
+            lenderUsdcAccount: offer.lenderUsdcAccount,
+            borrowerUsdcAccount: borrowerUsdcAccount,
+            borrowerLoanTokenAccount: borrowerLoanTokenAccount,
+            feesAccount: feesAccount,
+            reputationProgram: REPUTATION_PROGRAM_ID,
+            borrowerReputation: reputationAccountPDA,
+            usdcMint: USDC_MINT_ADDRESS,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+            systemProgram: anchor.web3.SystemProgram.programId,
+            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          })
+          .instruction()
+      );
+
+      const signature = await provider.sendAndConfirm(transaction);
+      console.log("Accepted offer successfully:", signature);
+      alert("Offer accepted successfully!");
+      fetchData();
+    } catch (error) {
+      console.error("Error accepting offer:", error);
+      alert("Failed to accept offer. See console for details.");
+    }
   };
 
   const handleBorrowRequest = async () => {
-    // TODO: Implement actual borrow request logic
-    alert("Borrow request is not yet implemented.");
+    if (!publicKey || !creditMarket || !provider || !borrowAmount || !borrowDuration || !maxRateBps) {
+      console.error("Wallet not connected, programs not loaded, or form fields are empty.");
+      alert("Please fill in all loan request fields.");
+      return;
+    }
+
+    try {
+      const amount = new BN(borrowAmount);
+      const duration = new BN(borrowDuration);
+      const rateBps = parseInt(maxRateBps);
+
+      const [borrowRequestPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("borrow_request"), publicKey.toBuffer(), amount.toArrayLike(Buffer, 'le', 8)], // Assuming amount is part of the seed
+        CREDIT_MARKET_PROGRAM_ID
+      );
+
+      const [borrowerReputationPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("reputation"), publicKey.toBuffer()],
+        REPUTATION_PROGRAM_ID
+      );
+
+      const borrowerUsdcAccount = await getAssociatedTokenAddress(
+        USDC_MINT_ADDRESS,
+        publicKey
+      );
+
+      const [feesAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("fees")],
+        CREDIT_MARKET_PROGRAM_ID
+      );
+
+      const signature = await creditMarket.methods
+        .requestBorrow(amount, duration, rateBps)
+        .accounts({
+          borrower: publicKey,
+          borrowRequest: borrowRequestPDA,
+          borrowerUsdcAccount: borrowerUsdcAccount, // This might not be needed for requestBorrow, but often included.
+          reputationProgram: REPUTATION_PROGRAM_ID,
+          borrowerReputation: borrowerReputationPDA,
+          feesAccount: feesAccount,
+          usdcMint: USDC_MINT_ADDRESS,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        })
+        .rpc();
+
+      console.log("Borrow request made successfully:", signature);
+      alert("Borrow request submitted successfully!");
+      setBorrowAmount('');
+      setBorrowDuration('');
+      setMaxRateBps('');
+      fetchData();
+    } catch (error) {
+      console.error("Error making borrow request:", error);
+      alert("Failed to submit borrow request. See console for details.");
+    }
   };
 
-  const handleRepayLoan = async (loanId: PublicKey) => {
-    // TODO: Implement actual repay loan logic
-    alert(`Repaying loan ${loanId.toBase58()} is not yet implemented.`);
+  const handleRepayLoan = async (loanPubKey: PublicKey) => {
+    if (!publicKey || !creditMarket || !provider) {
+      console.error("Wallet not connected or programs not loaded.");
+      return;
+    }
+
+    try {
+      const loanAccount = await creditMarket.account.loan.fetch(loanPubKey);
+
+      const borrowerUsdcAccount = await getAssociatedTokenAddress(
+        USDC_MINT_ADDRESS,
+        publicKey
+      );
+
+      const borrowerLoanTokenAccount = await getAssociatedTokenAddress(
+        loanAccount.loanMint,
+        publicKey,
+      );
+
+      const [feesAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("fees")],
+        CREDIT_MARKET_PROGRAM_ID
+      );
+      
+      const signature = await creditMarket.methods
+        .repayLoan()
+        .accounts({
+          borrower: publicKey,
+          loan: loanPubKey,
+          lender: loanAccount.lender, // Need to pass lender from fetched loan account
+          loanMint: loanAccount.loanMint,
+          borrowerUsdcAccount: borrowerUsdcAccount,
+          borrowerLoanTokenAccount: borrowerLoanTokenAccount,
+          lenderUsdcAccount: loanAccount.lenderUsdcAccount, // Lender's USDC ATA from loan account
+          feesAccount: feesAccount,
+          usdcMint: USDC_MINT_ADDRESS,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log("Loan repaid successfully:", signature);
+      alert("Loan repaid successfully!");
+      fetchData();
+    } catch (error) {
+      console.error("Error repaying loan:", error);
+      alert("Failed to repay loan. See console for details.");
+    }
   };
 
 
@@ -179,7 +368,7 @@ export default function BorrowPage() {
           <p className="mt-1 text-[#71717a]">Manage your agent's borrowing and trading activity</p>
         </div>
         <button
-          onClick={() => alert("Request Loan is disabled in demo mode.")}
+          onClick={handleBorrowRequest}
           className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-black hover:bg-blue-600 transition-colors"
         >
           Request Loan
