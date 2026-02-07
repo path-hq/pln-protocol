@@ -583,10 +583,19 @@ export default function BorrowPage() {
           />
         </div>
 
+        {/* Credit Tier Card */}
+        <CreditTierCard
+          currentTier={creditTier}
+          maxBorrowLimit={maxBorrowLimit}
+          successfulRepayments={successfulRepayments}
+          defaults={defaults}
+          isLoading={isLoading}
+        />
+
         {/* Loan Request Form */}
         <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
           <h2 className="text-lg font-semibold text-white">New Loan Request</h2>
-          <p className="text-sm text-[#71717a]">Enter details for your desired loan</p>
+          <p className="text-sm text-[#71717a]">Enter details for your desired loan (max: ${maxBorrowLimit.toLocaleString()} USDC)</p>
 
           <div className="mt-6 space-y-4">
             <div className="flex flex-col gap-2">
