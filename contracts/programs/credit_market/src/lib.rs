@@ -6,22 +6,43 @@ declare_id!("CRDTmk5GYLqSh8fPGvdMgdmAHxYhAuP5YzJfDL8W9Xyz");
 /// PLN Protocol Credit Market
 /// Enables undercollateralized lending with reputation-based risk assessment
 /// and automated liquidation for past-due or unhealthy loans.
+/// 
+/// Interest fee split:
+/// - 89% → Lender
+/// - 10% → Insurance Pool
+/// - 1%  → Protocol Treasury
+
+// Fee constants in basis points (100 bps = 1%)
+pub const INSURANCE_FEE_BPS: u64 = 1000;  // 10% of interest
+pub const PROTOCOL_FEE_BPS: u64 = 100;    // 1% of interest
+pub const LENDER_SHARE_BPS: u64 = 8900;   // 89% of interest
 
 #[program]
 pub mod credit_market {
     use super::*;
 
     /// Initialize the global state for the credit market
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        insurance_pool: Pubkey,
+        treasury: Pubkey,
+    ) -> Result<()> {
         let global_state = &mut ctx.accounts.global_state;
         global_state.admin = ctx.accounts.admin.key();
         global_state.next_loan_id = 1;
-        global_state.fee_bps = 50; // 0.5% protocol fee
+        global_state.fee_bps = PROTOCOL_FEE_BPS as u16; // 1% protocol fee
+        global_state.insurance_fee_bps = INSURANCE_FEE_BPS as u16; // 10% insurance fee
+        global_state.insurance_pool = insurance_pool;
+        global_state.treasury = treasury;
+        global_state.total_insurance_collected = 0;
+        global_state.total_insurance_claimed = 0;
         global_state.whitelisted_programs = vec![];
         global_state.bump = ctx.bumps.global_state;
 
         emit!(MarketInitialized {
             admin: global_state.admin,
+            insurance_pool,
+            treasury,
             timestamp: Clock::get()?.unix_timestamp,
         });
 
@@ -184,6 +205,7 @@ pub mod credit_market {
         loan.status = LoanStatus::Active;
         loan.vault = ctx.accounts.loan_vault.key();
         loan.liquidation_threshold_bps = offer.liquidation_threshold_bps;
+        loan.insurance_claimed = false;
         loan.bump = ctx.bumps.loan;
 
         // Transfer funds from escrow to loan vault (borrower can use via execute_trade)
@@ -218,6 +240,7 @@ pub mod credit_market {
     }
 
     /// Repay a loan in full
+    /// Interest is split: 89% to lender, 10% to insurance pool, 1% to protocol treasury
     pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
         let loan = &mut ctx.accounts.loan;
         require!(loan.status == LoanStatus::Active, CreditMarketError::LoanNotActive);
@@ -227,17 +250,37 @@ pub mod credit_market {
         );
 
         let clock = Clock::get()?;
+        let global_state = &mut ctx.accounts.global_state;
         
         // Calculate total repayment with interest
         let duration_secs = clock.unix_timestamp
             .checked_sub(loan.start_time)
             .ok_or(CreditMarketError::MathOverflow)? as u64;
         let interest = calculate_interest(loan.principal, loan.rate_bps, duration_secs)?;
-        let total_repayment = loan.principal
-            .checked_add(interest)
+        
+        // Split interest: 89% lender, 10% insurance, 1% protocol
+        let insurance_fee = interest
+            .checked_mul(INSURANCE_FEE_BPS)
+            .ok_or(CreditMarketError::MathOverflow)?
+            .checked_div(10000)
+            .ok_or(CreditMarketError::MathOverflow)?;
+        let protocol_fee = interest
+            .checked_mul(PROTOCOL_FEE_BPS)
+            .ok_or(CreditMarketError::MathOverflow)?
+            .checked_div(10000)
+            .ok_or(CreditMarketError::MathOverflow)?;
+        let lender_interest = interest
+            .checked_sub(insurance_fee)
+            .ok_or(CreditMarketError::MathOverflow)?
+            .checked_sub(protocol_fee)
+            .ok_or(CreditMarketError::MathOverflow)?;
+        
+        // Amount to lender: principal + lender's share of interest
+        let lender_amount = loan.principal
+            .checked_add(lender_interest)
             .ok_or(CreditMarketError::MathOverflow)?;
 
-        // Transfer repayment from borrower to lender
+        // Transfer principal + lender interest to lender
         let cpi_accounts = Transfer {
             from: ctx.accounts.borrower_usdc.to_account_info(),
             to: ctx.accounts.lender_usdc.to_account_info(),
@@ -245,7 +288,34 @@ pub mod credit_market {
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-        token::transfer(cpi_ctx, total_repayment)?;
+        token::transfer(cpi_ctx, lender_amount)?;
+
+        // Transfer insurance fee to insurance pool
+        if insurance_fee > 0 {
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.borrower_usdc.to_account_info(),
+                to: ctx.accounts.insurance_pool.to_account_info(),
+                authority: ctx.accounts.borrower.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
+            token::transfer(cpi_ctx, insurance_fee)?;
+            
+            // Track total insurance collected
+            global_state.total_insurance_collected = global_state.total_insurance_collected
+                .checked_add(insurance_fee)
+                .ok_or(CreditMarketError::MathOverflow)?;
+        }
+
+        // Transfer protocol fee to treasury
+        if protocol_fee > 0 {
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.borrower_usdc.to_account_info(),
+                to: ctx.accounts.treasury.to_account_info(),
+                authority: ctx.accounts.borrower.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
+            token::transfer(cpi_ctx, protocol_fee)?;
+        }
 
         loan.status = LoanStatus::Repaid;
 
@@ -264,7 +334,10 @@ pub mod credit_market {
             lender: loan.lender,
             principal: loan.principal,
             interest,
-            total_repaid: total_repayment,
+            lender_interest,
+            insurance_fee,
+            protocol_fee,
+            total_repaid: loan.principal.checked_add(interest).ok_or(CreditMarketError::MathOverflow)?,
             timestamp: clock.unix_timestamp,
         });
 
@@ -344,15 +417,19 @@ pub mod credit_market {
             CreditMarketError::LoanNotLiquidatable
         );
 
-        // Transfer remaining vault funds to lender
-        let loan_seeds = &[
-            b"loan",
-            loan.id.to_le_bytes().as_ref(),
-            &[loan.bump],
-        ];
-        let signer_seeds = &[&loan_seeds[..]];
+        // Store values we need for seeds before borrowing
+        let loan_id_bytes = loan.id.to_le_bytes();
+        let loan_bump = loan.bump;
 
+        // Transfer remaining vault funds to lender
         if vault_balance > 0 {
+            let loan_seeds = &[
+                b"loan",
+                loan_id_bytes.as_ref(),
+                &[loan_bump],
+            ];
+            let signer_seeds = &[&loan_seeds[..]];
+
             let cpi_accounts = Transfer {
                 from: ctx.accounts.loan_vault.to_account_info(),
                 to: ctx.accounts.lender_usdc.to_account_info(),
@@ -363,6 +440,8 @@ pub mod credit_market {
             token::transfer(cpi_ctx, vault_balance)?;
         }
 
+        // Now update loan status after the transfer
+        let loan = &mut ctx.accounts.loan;
         loan.status = LoanStatus::Liquidated;
 
         // Penalize borrower reputation (-200 points, +1 default)
@@ -450,6 +529,104 @@ pub mod credit_market {
         );
 
         global_state.whitelisted_programs.retain(|&p| p != program_id);
+
+        Ok(())
+    }
+
+    /// Claim insurance payout for a defaulted loan
+    /// Lenders can claim partial recovery from the insurance pool for defaulted loans
+    pub fn claim_insurance(ctx: Context<ClaimInsurance>) -> Result<()> {
+        let loan = &mut ctx.accounts.loan;
+        require!(
+            loan.status == LoanStatus::Defaulted || loan.status == LoanStatus::Liquidated,
+            CreditMarketError::LoanNotDefaulted
+        );
+        require!(
+            loan.lender == ctx.accounts.lender.key(),
+            CreditMarketError::Unauthorized
+        );
+        require!(
+            !loan.insurance_claimed,
+            CreditMarketError::InsuranceAlreadyClaimed
+        );
+
+        let global_state = &mut ctx.accounts.global_state;
+        let clock = Clock::get()?;
+
+        // Calculate insurance payout: up to 50% of principal loss from insurance pool
+        // This provides partial protection for lenders while maintaining pool sustainability
+        let max_payout_rate_bps: u64 = 5000; // 50% coverage
+        let payout = loan.principal
+            .checked_mul(max_payout_rate_bps)
+            .ok_or(CreditMarketError::MathOverflow)?
+            .checked_div(10000)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        // Check available insurance pool balance
+        let pool_balance = ctx.accounts.insurance_pool.amount;
+        let actual_payout = std::cmp::min(payout, pool_balance);
+        
+        require!(actual_payout > 0, CreditMarketError::InsufficientInsurancePool);
+
+        // Transfer from insurance pool to lender
+        let seeds = &[
+            b"insurance_pool",
+            &[ctx.bumps.insurance_pool],
+        ];
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.insurance_pool.to_account_info(),
+            to: ctx.accounts.lender_usdc.to_account_info(),
+            authority: ctx.accounts.insurance_pool.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+        token::transfer(cpi_ctx, actual_payout)?;
+
+        // Mark insurance as claimed
+        loan.insurance_claimed = true;
+
+        // Track total insurance claimed
+        global_state.total_insurance_claimed = global_state.total_insurance_claimed
+            .checked_add(actual_payout)
+            .ok_or(CreditMarketError::MathOverflow)?;
+
+        emit!(InsuranceClaimed {
+            loan_id: loan.id,
+            lender: loan.lender,
+            borrower: loan.borrower,
+            principal: loan.principal,
+            payout: actual_payout,
+            timestamp: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    /// Update insurance and protocol fee rates (admin only)
+    pub fn update_fee_rates(
+        ctx: Context<AdminAction>,
+        new_insurance_fee_bps: Option<u16>,
+        new_protocol_fee_bps: Option<u16>,
+    ) -> Result<()> {
+        let global_state = &mut ctx.accounts.global_state;
+        
+        if let Some(insurance_bps) = new_insurance_fee_bps {
+            require!(insurance_bps <= 2000, CreditMarketError::InvalidFeeRate); // Max 20%
+            global_state.insurance_fee_bps = insurance_bps;
+        }
+        
+        if let Some(protocol_bps) = new_protocol_fee_bps {
+            require!(protocol_bps <= 500, CreditMarketError::InvalidFeeRate); // Max 5%
+            global_state.fee_bps = protocol_bps;
+        }
+
+        emit!(FeeRatesUpdated {
+            insurance_fee_bps: global_state.insurance_fee_bps,
+            protocol_fee_bps: global_state.fee_bps,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
 
         Ok(())
     }
@@ -619,6 +796,24 @@ pub struct RepayLoan<'info> {
         constraint = lender_usdc.owner == loan.lender,
     )]
     pub lender_usdc: Account<'info, TokenAccount>,
+    /// Insurance pool receives 10% of interest
+    #[account(
+        mut,
+        constraint = insurance_pool.key() == global_state.insurance_pool @ CreditMarketError::InvalidInsurancePool,
+    )]
+    pub insurance_pool: Account<'info, TokenAccount>,
+    /// Treasury receives 1% of interest (protocol fee)
+    #[account(
+        mut,
+        constraint = treasury.key() == global_state.treasury @ CreditMarketError::InvalidTreasury,
+    )]
+    pub treasury: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        seeds = [b"global_state"],
+        bump = global_state.bump,
+    )]
+    pub global_state: Account<'info, GlobalState>,
     #[account(mut)]
     pub borrower_profile: Account<'info, BorrowerProfile>,
     pub token_program: Program<'info, Token>,
@@ -694,6 +889,34 @@ pub struct AdminAction<'info> {
     pub global_state: Account<'info, GlobalState>,
 }
 
+#[derive(Accounts)]
+pub struct ClaimInsurance<'info> {
+    #[account(mut)]
+    pub lender: Signer<'info>,
+    #[account(
+        mut,
+        constraint = loan.lender == lender.key() @ CreditMarketError::Unauthorized,
+        constraint = (loan.status == LoanStatus::Defaulted || loan.status == LoanStatus::Liquidated) @ CreditMarketError::LoanNotDefaulted,
+        constraint = !loan.insurance_claimed @ CreditMarketError::InsuranceAlreadyClaimed,
+    )]
+    pub loan: Account<'info, Loan>,
+    #[account(
+        mut,
+        seeds = [b"insurance_pool"],
+        bump,
+    )]
+    pub insurance_pool: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub lender_usdc: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        seeds = [b"global_state"],
+        bump = global_state.bump,
+    )]
+    pub global_state: Account<'info, GlobalState>,
+    pub token_program: Program<'info, Token>,
+}
+
 // ============================================================================
 // Account Structures
 // ============================================================================
@@ -703,7 +926,12 @@ pub struct AdminAction<'info> {
 pub struct GlobalState {
     pub admin: Pubkey,
     pub next_loan_id: u64,
-    pub fee_bps: u16,
+    pub fee_bps: u16,                      // Protocol fee: 1% (100 bps)
+    pub insurance_fee_bps: u16,            // Insurance fee: 10% (1000 bps)
+    pub insurance_pool: Pubkey,            // Insurance pool token account
+    pub treasury: Pubkey,                  // Protocol treasury token account
+    pub total_insurance_collected: u64,    // Total insurance fees collected
+    pub total_insurance_claimed: u64,      // Total insurance payouts claimed
     #[max_len(20)]
     pub whitelisted_programs: Vec<Pubkey>,
     pub bump: u8,
@@ -748,6 +976,7 @@ pub struct Loan {
     pub status: LoanStatus,
     pub vault: Pubkey,
     pub liquidation_threshold_bps: u16,  // Copied from offer at loan creation
+    pub insurance_claimed: bool,         // Whether lender has claimed insurance for default
     pub bump: u8,
 }
 
@@ -789,6 +1018,8 @@ impl Default for LoanStatus {
 #[event]
 pub struct MarketInitialized {
     pub admin: Pubkey,
+    pub insurance_pool: Pubkey,
+    pub treasury: Pubkey,
     pub timestamp: i64,
 }
 
@@ -836,6 +1067,9 @@ pub struct LoanRepaid {
     pub lender: Pubkey,
     pub principal: u64,
     pub interest: u64,
+    pub lender_interest: u64,    // 89% of interest
+    pub insurance_fee: u64,      // 10% of interest → insurance pool
+    pub protocol_fee: u64,       // 1% of interest → treasury
     pub total_repaid: u64,
     pub timestamp: i64,
 }
@@ -870,6 +1104,23 @@ pub struct LoanDefaulted {
     pub timestamp: i64,
 }
 
+#[event]
+pub struct InsuranceClaimed {
+    pub loan_id: u64,
+    pub lender: Pubkey,
+    pub borrower: Pubkey,
+    pub principal: u64,
+    pub payout: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct FeeRatesUpdated {
+    pub insurance_fee_bps: u16,
+    pub protocol_fee_bps: u16,
+    pub timestamp: i64,
+}
+
 // ============================================================================
 // Errors
 // ============================================================================
@@ -900,4 +1151,16 @@ pub enum CreditMarketError {
     InvalidDuration,
     #[msg("Invalid liquidation threshold - must be between 5000 and 10000 bps")]
     InvalidLiquidationThreshold,
+    #[msg("Loan not defaulted - insurance can only be claimed for defaulted or liquidated loans")]
+    LoanNotDefaulted,
+    #[msg("Insurance already claimed for this loan")]
+    InsuranceAlreadyClaimed,
+    #[msg("Insufficient insurance pool balance")]
+    InsufficientInsurancePool,
+    #[msg("Invalid insurance pool address")]
+    InvalidInsurancePool,
+    #[msg("Invalid treasury address")]
+    InvalidTreasury,
+    #[msg("Invalid fee rate - exceeds maximum allowed")]
+    InvalidFeeRate,
 }

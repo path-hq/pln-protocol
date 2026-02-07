@@ -1372,11 +1372,11 @@ const PLNLanding = () => {
           <span style={{ color: "#00FFB8" }}>Earns yield. Lends to other agents.</span>
         </h1>
         <p className="hero-subtitle">
-          An autonomous lending pool where AI agents handle everything. You deposit, the system optimizes. Agents borrow against reputation, execute constrained strategies, repay automatically.
+          Built on Kamino's institutional infrastructure. Your idle USDC earns base Kamino yield, plus a premium through agent-to-agent P2P lending. Fully autonomous, 24/7.
         </p>
-        <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
+        <a href="/activate" className="cta-button" style={{ textDecoration: 'none' }}>
           Get Started →
-        </button>
+        </a>
 
         {/* Chat Preview */}
         <div className="chat-preview">
@@ -1431,7 +1431,7 @@ const PLNLanding = () => {
 
       {/* Integrations */}
       <section className="integrations-section">
-        <h3 className="integrations-title">Built With Leading Solana Infrastructure</h3>
+        <h3 className="integrations-title">Built on Kamino's Institutional Infrastructure</h3>
         <div className="integrations-grid">
           {integrations.map((item, i) => (
             <div key={i} className="integration-card">
@@ -1501,8 +1501,18 @@ const PLNLanding = () => {
           
           <div className="flow-arrow">→</div>
           
+          <div className="flow-node" style={{ borderColor: '#3b82f6' }}>
+            <div className="flow-node-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <img src="/logos/kamino.jpg" alt="Kamino" style={{ width: '16px', height: '16px', borderRadius: '4px' }} />
+              Kamino Base
+            </div>
+            <div className="flow-node-desc">~8% APY (always earning)</div>
+          </div>
+          
+          <div className="flow-arrow">+</div>
+          
           <div className="flow-node-decision">
-            <div className="flow-node-title">Borrower Available?</div>
+            <div className="flow-node-title">P2P Demand?</div>
             <div className="flow-node-desc">Agent checks demand</div>
           </div>
           
@@ -1510,14 +1520,14 @@ const PLNLanding = () => {
           
           <div className="flow-result">
             <div className="flow-result-yes">
-              <div className="flow-label flow-label-yes">✓ Yes</div>
+              <div className="flow-label flow-label-yes">✓ Premium</div>
               <div className="flow-node-title">A2A Lending</div>
-              <div className="flow-node-desc">Premium rates (15%+)</div>
+              <div className="flow-node-desc">+6% P2P premium</div>
             </div>
             <div className="flow-result-no">
-              <div className="flow-label flow-label-no">✗ No</div>
-              <div className="flow-node-title">Pool Rebalancing</div>
-              <div className="flow-node-desc">Best DeFi yield</div>
+              <div className="flow-label flow-label-no">○ Base</div>
+              <div className="flow-node-title">Kamino Only</div>
+              <div className="flow-node-desc">Still earning 8%</div>
             </div>
           </div>
         </div>
@@ -1525,20 +1535,24 @@ const PLNLanding = () => {
         {/* Yield Sources */}
         <div className="yield-sources">
           <div className="yield-source">
-            <span className="yield-source-label">KMN</span>
-            <span className="yield-source-name">Kamino</span>
+            <img src="/logos/kamino.jpg" alt="Kamino" className="yield-source-logo" />
+            <span className="yield-source-name">Kamino Base</span>
             <div className="yield-source-bar">
-              <div className="yield-source-fill" style={{ width: '85%', background: 'linear-gradient(90deg, #00FFB8 0%, #00E6A5 100%)' }} />
+              <div className="yield-source-fill" style={{ width: '55%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }} />
             </div>
-            <span className="yield-source-apy" style={{ color: '#00FFB8' }}>12.4%</span>
+            <span className="yield-source-apy" style={{ color: '#3b82f6' }}>8.1%</span>
           </div>
           <div className="yield-source">
-            <span className="yield-source-label">JUP</span>
-            <span className="yield-source-name">Jupiter</span>
+            <span className="yield-source-label">P2P</span>
+            <span className="yield-source-name">+P2P Premium</span>
             <div className="yield-source-bar">
-              <div className="yield-source-fill" style={{ width: '72%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }} />
+              <div className="yield-source-fill" style={{ width: '40%', background: 'linear-gradient(90deg, #00FFB8 0%, #00E6A5 100%)' }} />
             </div>
-            <span className="yield-source-apy" style={{ color: '#3b82f6' }}>10.8%</span>
+            <span className="yield-source-apy" style={{ color: '#00FFB8' }}>+6.1%</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #222222' }}>
+            <span style={{ fontSize: '14px', color: '#71717a' }}>Blended APY:</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#00FFB8', marginLeft: '8px' }}>~14.2%</span>
           </div>
         </div>
         
@@ -1606,11 +1620,11 @@ const PLNLanding = () => {
       {/* Bottom CTA */}
       <section className="cta-section">
         <h2>Ready to put your USDC to work?</h2>
-        <p>Install the skill and start earning in minutes.</p>
+        <p>Activate your agent and start earning in minutes.</p>
         <div className="cta-buttons">
-          <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
+          <a href="/activate" className="cta-button" style={{ textDecoration: 'none' }}>
             Get Started →
-          </button>
+          </a>
           <a href="https://github.com/path-hq/pln-protocol" className="cta-secondary">
             View on GitHub
           </a>
