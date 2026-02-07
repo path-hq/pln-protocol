@@ -3,28 +3,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronDown, ChevronUp, DollarSign, Percent, Clock } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
-// import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Commented out for mock data
+import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Re-enabled
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey } from '@solana/web3.js';
-// import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'; // Commented out for mock data
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'; // Re-enabled
 import { SystemProgram } from '@solana/web3.js';
-// import { BN } from 'bn.js'; // Commented out for mock data
-// import { Buffer } from 'buffer'; // Commented out for mock data
+import BN from 'bn.js'; // Re-enabled
+import { Buffer } from 'buffer'; // Re-enabled
 
-// const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint (replace with actual)
+const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
 
 interface LoanAccount {
   publicKey: PublicKey; // The PDA of the loan account
-  id: number; // On-chain loan ID
+  id: BN; // On-chain loan ID
   lender: PublicKey;
   borrower: PublicKey;
-  principal: number; // Amount lent
+  principal: BN; // Amount lent
   rateBps: number; // APY in basis points
-  startTime: number;
-  endTime: number;
+  startTime: BN;
+  endTime: BN;
   status: { active?: {} }; // Using an enum directly is harder, so checking active field
   vault: PublicKey;
-  // collateral: number; // Collateral is not directly part of the Loan struct. Placeholder for UI.
+  // collateral: BN; // Collateral is not directly part of the Loan struct. Placeholder for UI.
   healthFactor: number; // Placeholder, derived or fetched from elsewhere
 }
 
@@ -41,17 +41,18 @@ interface DisplayLoan {
 
 interface LenderPositionAccount {
   owner: PublicKey;
-  depositedAmount: number;
-  kaminoAmount: number;
-  p2pAmount: number;
+  depositedAmount: BN;
+  kaminoAmount: BN;
+  p2pAmount: BN;
   p2pLoansActive: number;
   minP2PRateBps: number;
   kaminoBufferBps: number;
 }
 
 export default function LendPage() {
+
   const { publicKey } = useWallet();
-  // const { liquidityRouter, provider, reputation } = usePLNPrograms(); // Added reputation
+  const { liquidityRouter, provider, reputation } = usePLNPrograms(); // Re-enabled
   const [activeLoans, setActiveLoans] = useState<DisplayLoan[]>([]);
 
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
@@ -64,63 +65,104 @@ export default function LendPage() {
 
   // Fetch user's USDC balance
   const fetchUsdcBalance = useCallback(async () => {
-    // Mock data for demo
-    setUsdcBalance(15000.00);
-  }, []);
+    if (!publicKey || !provider) {
+      setUsdcBalance(null);
+      return;
+    }
+    try {
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
+      const accountInfo = await provider.connection.getTokenAccountBalance(ata);
+      setUsdcBalance(accountInfo.value.uiAmount || 0);
+    } catch (error) {
+      console.error("Error fetching USDC balance:", error);
+      setUsdcBalance(null);
+    }
+  }, [publicKey, provider]);
 
   // Fetch lender position from Liquidity Router
-
   const fetchLenderPosition = useCallback(async () => {
-    // Mock data for demo
-    setLenderPositionAccount({
-      owner: publicKey || new PublicKey('11111111111111111111111111111111'),
-      depositedAmount: 25000,
-      kaminoAmount: 15000,
-      p2pAmount: 10000,
-      p2pLoansActive: 3,
-      minP2PRateBps: 800, // 8%
-      kaminoBufferBps: 150, // 1.5%
-    });
-    setCurrentAPY(14.2);
-    setMinP2PRateBps(800);
-    setKaminoBufferBps(150);
-  }, [publicKey]);
+    if (!publicKey || !liquidityRouter) {
+      setLenderPositionAccount(null);
+      setMinP2PRateBps(0);
+      setKaminoBufferBps(0);
+      return;
+    }
+    try {
+      const [configPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_config")],
+        liquidityRouter.programId
+      );
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [positionPDA] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), configPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
+
+      const account = await liquidityRouter.account.lenderPosition.fetch(positionPDA);
+      setLenderPositionAccount(account as LenderPositionAccount);
+      setMinP2PRateBps(account.minP2PRateBps);
+      setKaminoBufferBps(account.kaminoBufferBps);
+
+      // TODO: Fetch Kamino current APY from a real source (oracle/Kamino API)
+      setCurrentAPY(12.4); // Mock for now
+
+    } catch (error) {
+      console.error("Error fetching lender position:", error);
+      setLenderPositionAccount(null);
+      setMinP2PRateBps(0);
+      setKaminoBufferBps(0);
+      setCurrentAPY(null);
+    }
+  }, [publicKey, liquidityRouter]);
 
   // Fetch active loans from Credit Market
-
   const fetchActiveLoans = useCallback(async () => {
-    // Mock data for demo
-    const mockLoans: DisplayLoan[] = [
-      {
-        id: "1",
-        borrower: "AI-Agent-001",
-        amount: "5,000.00 USDC",
-        collateral: "7,500.00 USDC",
-        apy: 8.5,
-        startDate: "2026-01-15",
-        health: 1.5,
-      },
-      {
-        id: "2",
-        borrower: "AI-Agent-007",
-        amount: "8,000.00 USDC",
-        collateral: "12,000.00 USDC",
-        apy: 9.2,
-        startDate: "2026-01-20",
-        health: 1.3,
-      },
-      {
-        id: "3",
-        borrower: "AI-Agent-003",
-        amount: "3,500.00 USDC",
-        collateral: "5,000.00 USDC",
-        apy: 8.0,
-        startDate: "2026-01-25",
-        health: 1.0,
-      },
-    ];
-    setActiveLoans(mockLoans);
-  }, []);
+    if (!publicKey || !reputation?.program || !liquidityRouter) { // Access program from reputation
+      setActiveLoans([]);
+      return;
+    }
+    try {
+      // Fetch all loan accounts
+      const allLoans = await reputation.program.account.loan.all(); // Use reputation.program
+      const USDC_DECIMALS = 6;
+
+      const filteredLoans: DisplayLoan[] = allLoans
+        .filter(loan =>
+          loan.account.lender.equals(publicKey) &&
+          (loan.account.status as any).active !== undefined // Check if status is Active
+        )
+        .map(loan => {
+          const loanAccount = loan.account;
+          const principal = loanAccount.principal.toNumber() / (10 ** USDC_DECIMALS);
+          const rateApy = loanAccount.rateBps / 100; // Convert BPS to percentage
+
+          // For health factor and collateral, we don't have direct on-chain data in the Loan account
+          // Placeholder values for now, this would likely come from an oracle or collateral program
+          const healthFactor = 1.0; // Most loans start healthy, needs to be calculated dynamically
+          const collateralAmount = principal * 1.5; // Placeholder: assuming 150% collateralized, needs to be dynamic
+
+
+          // Convert Solana timestamp (seconds) to milliseconds for JavaScript Date
+          const startDate = new Date(loanAccount.startTime.toNumber() * 1000).toLocaleDateString();
+
+          return {
+            id: loanAccount.id.toString(),
+            borrower: loanAccount.borrower.toBase58().substring(0, 8) + '...',
+            amount: `${principal.toFixed(2)} USDC`,
+            collateral: `${collateralAmount.toFixed(2)} USDC`, // Placeholder
+            apy: rateApy,
+            startDate: startDate,
+            health: healthFactor,
+          };
+        });
+      setActiveLoans(filteredLoans);
+
+    } catch (error) {
+      console.error("Error fetching active loans:", error);
+      setActiveLoans([]);
+    }
+  }, [publicKey, reputation, liquidityRouter]); // Added reputation to dependencies
 
   useEffect(() => {
     fetchUsdcBalance();
@@ -132,101 +174,101 @@ export default function LendPage() {
       fetchActiveLoans(); // Poll active loans
     }, 15000); // Poll every 15 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchUsdcBalance, fetchLenderPosition]);
 
-  // const handleUpdateStrategy = async () => {
-  //   if (!publicKey || !liquidityRouter || !provider) {
-  //     alert("Wallet not connected or program not loaded.");
-  //     return;
-  //   }
-  //   try {
-  //     const [configPDA] = PublicKey.findProgramAddressSync(
-  //       [Buffer.from("router_config")],
-  //       liquidityRouter.programId
-  //     );
-  //     const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-  //     const [positionPDA] = PublicKey.findProgramAddressSync(
-  //       [publicKey.toBuffer(), configPDA.toBuffer(), usdcMint.toBuffer()],
-  //       liquidityRouter.programId
-  //     );
+  const handleUpdateStrategy = async () => {
+    if (!publicKey || !liquidityRouter || !provider) {
+      alert("Wallet not connected or program not loaded.");
+      return;
+    }
+    try {
+      const [configPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_config")],
+        liquidityRouter.programId
+      );
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [positionPDA] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), configPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
 
-  //     const tx = await liquidityRouter.methods
-  //       .updateStrategy(minP2PRateBps, kaminoBufferBps, null) // Assuming null for autoRoute for simplicity for now
-  //       .accounts({
-  //         lender: publicKey,
-  //         position: positionPDA,
-  //         config: configPDA,
-  //       })
-  //       .transaction();
+      const tx = await liquidityRouter.methods
+        .updateStrategy(minP2PRateBps, kaminoBufferBps, null) // Assuming null for autoRoute for simplicity for now
+        .accounts({
+          lender: publicKey,
+          position: positionPDA,
+          config: configPDA,
+        })
+        .transaction();
 
-  //     const signature = await provider.sendAndConfirm(tx);
-  //     alert(`Strategy updated! Transaction: ${signature}`);
-  //     console.log("Strategy updated, transaction:", signature);
+      const signature = await provider.sendAndConfirm(tx);
+      alert(`Strategy updated! Transaction: ${signature}`);
+      console.log("Strategy updated, transaction:", signature);
 
-  //     fetchLenderPosition(); // Refresh position after successful update
-  //   } catch (error: any) {
-  //     console.error("Strategy update failed:", error);
-  //     alert(`Strategy update failed: ${error.message}`);
-  //   }
-  // };
+      fetchLenderPosition(); // Refresh position after successful update
+    } catch (error: any) {
+      console.error("Strategy update failed:", error);
+      alert(`Strategy update failed: ${error.message}`);
+    }
+  };
 
-  // const handleDeposit = async () => {
-  //   if (!publicKey || !liquidityRouter || !provider) {
-  //     alert("Wallet not connected or program not loaded.");
-  //     return;
-  //   }
+  const handleDeposit = async () => {
+    if (!publicKey || !liquidityRouter || !provider) {
+      alert("Wallet not connected or program not loaded.");
+      return;
+    }
 
-  //   const amount = parseFloat(depositAmount);
-  //   if (isNaN(amount) || amount <= 0) {
-  //     alert("Please enter a valid deposit amount (greater than 0).");
-  //     return;
-  //   }
+    const amount = parseFloat(depositAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid deposit amount (greater than 0).");
+      return;
+    }
 
-  //   try {
-  //     const USDC_DECIMALS = 6;
-  //     const amountInSmallestUnits = new BN(amount * (10 ** USDC_DECIMALS));
+    try {
+      const USDC_DECIMALS = 6;
+      const amountInSmallestUnits = new BN(amount * (10 ** USDC_DECIMALS));
 
-  //     const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
-  //     const [routerConfigPDA] = PublicKey.findProgramAddressSync(
-  //       [Buffer.from("router_config")],
-  //       liquidityRouter.programId
-  //     );
-  //     const [positionPDA] = PublicKey.findProgramAddressSync(
-  //       [publicKey.toBuffer(), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
-  //       liquidityRouter.programId
-  //     );
-  //     const [routerVaultPDA] = PublicKey.findProgramAddressSync(
-  //       [Buffer.from("router_vault"), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
-  //       liquidityRouter.programId
-  //     );
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [routerConfigPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_config")],
+        liquidityRouter.programId
+      );
+      const [positionPDA] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
+      const [routerVaultPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_vault"), routerConfigPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
 
-  //     const lenderUsdcAta = await getAssociatedTokenAddress(usdcMint, publicKey);
+      const lenderUsdcAta = await getAssociatedTokenAddress(usdcMint, publicKey);
 
-  //     const transaction = await liquidityRouter.methods
-  //       .deposit(amountInSmallestUnits)
-  //       .accounts({
-  //         lender: publicKey,
-  //         position: positionPDA,
-  //         lenderUsdc: lenderUsdcAta,
-  //         routerVault: routerVaultPDA,
-  //         usdcMint: usdcMint,
-  //         config: routerConfigPDA,
-  //         tokenProgram: TOKEN_PROGRAM_ID,
-  //         systemProgram: SystemProgram.programId,
-  //       })
-  //       .transaction();
+      const transaction = await liquidityRouter.methods
+        .deposit(amountInSmallestUnits)
+        .accounts({
+          lender: publicKey,
+          position: positionPDA,
+          lenderUsdc: lenderUsdcAta,
+          routerVault: routerVaultPDA,
+          usdcMint: usdcMint,
+          config: routerConfigPDA,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .transaction();
 
-  //     const signature = await provider.sendAndConfirm(transaction);
-  //     alert(`Deposit successful! Transaction: ${signature}`);
-  //     console.log("Deposit successful, transaction:", signature);
+      const signature = await provider.sendAndConfirm(transaction);
+      alert(`Deposit successful! Transaction: ${signature}`);
+      console.log("Deposit successful, transaction:", signature);
 
-  //     fetchUsdcBalance();
-  //     fetchLenderPosition();
-  //   } catch (error: any) {
-  //     console.error("Deposit failed:", error);
-  //     alert(`Deposit failed: ${error.message}`);
-  //   }
-  // };
+      fetchUsdcBalance();
+      fetchLenderPosition();
+    } catch (error: any) {
+      console.error("Deposit failed:", error);
+      alert(`Deposit failed: ${error.message}`);
+    }
+  };
 
   const [depositAmount, setDepositAmount] = useState('');
 
@@ -259,7 +301,7 @@ export default function LendPage() {
         />
         <StatsCard
           title="Total Deposited"
-          value={lenderPositionAccount ? `$${(lenderPositionAccount.depositedAmount / (10 ** 6)).toFixed(2)}` : 'Loading...'}
+          value={lenderPositionAccount ? `$${(lenderPositionAccount.depositedAmount.toNumber() / (10 ** 6)).toFixed(2)}` : 'Loading...'}
           icon={TrendingUp}
         />
         <StatsCard
@@ -306,7 +348,7 @@ export default function LendPage() {
           </div>
 
           <button
-            onClick={() => alert("Strategy update is disabled in demo mode.")}
+            onClick={handleUpdateStrategy}
             className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-black hover:bg-blue-600 transition-colors mt-4 mr-2"
           >
             Update Strategy
@@ -319,7 +361,7 @@ export default function LendPage() {
       {/* Deposit Input */}
       <div className="mt-6 rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6">
         <h2 className="text-lg font-semibold text-white">Deposit Capital</h2>
-        <p className="text-sm text-[#71717a]">Deposit USDC to start earning yield.</p>
+        <p className="mt-1 text-[#71717a]">Deposit USDC to start earning yield.</p>
         <div className="mt-4 flex gap-2">
           <div className="relative flex-1">
             <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
@@ -332,16 +374,15 @@ export default function LendPage() {
             />
           </div>
           <button
-            onClick={() => alert("Deposit is disabled in demo mode.")}
+            onClick={handleDeposit}
             className="rounded-lg bg-[#22c55e] px-6 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors"
           >
             Deposit
           </button>
         </div>
-        <p className="mt-2 text-xs text-[#71717a]">
-              You will receive strategy tokens representing your position
-            </p>
-          </div>
+      </div>
+
+      {/* Active Loans Table */}
       <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
         <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Your Active Loans</h2>
@@ -377,23 +418,23 @@ export default function LendPage() {
             </thead>
             <tbody>
               {activeLoans.map((loan) => (
-                <tr key={loan.id} className="hover:bg-[#1f1f24]/30">
+                <tr key={loan.id.toString()} className="hover:bg-[#1f1f24]/30">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-[#22c55e]/10 flex items-center justify-center">
                         <span className="text-xs font-medium text-[#22c55e]">
-                          {loan.borrower.charAt(0)}
+                          {loan.borrower.toBase58().charAt(0)}
                         </span>
                       </div>
-                      <span className="font-medium text-white">{loan.borrower}</span>
+                      <span className="font-medium text-white">{loan.borrower.toBase58()}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-white">{loan.amount}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.collateral}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-white">{`${loan.principal.toNumber() / (10 ** 6)} USDC`}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{`${(loan.principal.toNumber() * 1.5) / (10 ** 6)} USDC`}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-[#22c55e]">{loan.apy}%</span>
+                    <span className="text-[#22c55e]">{loan.rateBps / 100}%</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.startDate}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{new Date(loan.startTime.toNumber() * 1000).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span className={getHealthColor(loan.health)}>{loan.health.toFixed(2)}</span>
