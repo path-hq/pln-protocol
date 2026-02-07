@@ -1,0 +1,189 @@
+{
+  "version": "0.1.0",
+  "name": "reputation",
+  "instructions": [
+    {
+      "name": "registerAgent",
+      "accounts": [
+        {
+          "name": "wallet",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "profile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "recordRepayment",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "recordDefault",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "recordLending",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "recordLoanTaken",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "getScore",
+      "accounts": [
+        {
+          "name": "profile",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "returns": "u16"
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AgentProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "publicKey"
+          },
+          {
+            "name": "loansTaken",
+            "type": "u32"
+          },
+          {
+            "name": "loansRepaid",
+            "type": "u32"
+          },
+          {
+            "name": "loansDefaulted",
+            "type": "u32"
+          },
+          {
+            "name": "totalBorrowed",
+            "type": "u64"
+          },
+          {
+            "name": "totalRepaid",
+            "type": "u64"
+          },
+          {
+            "name": "totalLent",
+            "type": "u64"
+          },
+          {
+            "name": "score",
+            "type": "u16"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ProfileNotFound",
+      "msg": "Profile not found"
+    },
+    {
+      "code": 6001,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    }
+  ]
+}

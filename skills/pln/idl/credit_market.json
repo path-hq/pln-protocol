@@ -1,0 +1,549 @@
+{
+  "version": "0.1.0",
+  "name": "credit_market",
+  "instructions": [
+    {
+      "name": "postLendOffer",
+      "accounts": [
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "offer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lenderUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "escrowVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "minRateBps",
+          "type": "u16"
+        },
+        {
+          "name": "maxDurationSecs",
+          "type": "u64"
+        },
+        {
+          "name": "minReputation",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "cancelLendOffer",
+      "accounts": [
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "offer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lenderUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "escrowVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "postBorrowRequest",
+      "accounts": [
+        {
+          "name": "borrower",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "request",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "maxRateBps",
+          "type": "u16"
+        },
+        {
+          "name": "durationSecs",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "acceptLendOffer",
+      "accounts": [
+        {
+          "name": "borrower",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "offer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowerProfile",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "loan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "loanVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "offerId",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "repayLoan",
+      "accounts": [
+        {
+          "name": "borrower",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "loan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowerUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lenderUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "loanId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "executeTrade",
+      "accounts": [
+        {
+          "name": "borrower",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "loan",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "loanVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "targetProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "loanId",
+          "type": "u64"
+        },
+        {
+          "name": "targetProgram",
+          "type": "publicKey"
+        },
+        {
+          "name": "instructionData",
+          "type": {
+            "vec": "u8"
+          }
+        }
+      ]
+    },
+    {
+      "name": "liquidate",
+      "accounts": [
+        {
+          "name": "liquidator",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "loan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lender",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "loanVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "loanId",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "LendOffer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lender",
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "minRateBps",
+            "type": "u16"
+          },
+          {
+            "name": "maxDurationSecs",
+            "type": "u64"
+          },
+          {
+            "name": "minReputation",
+            "type": "u16"
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BorrowRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrower",
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "maxRateBps",
+            "type": "u16"
+          },
+          {
+            "name": "durationSecs",
+            "type": "u64"
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Loan",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "lender",
+            "type": "publicKey"
+          },
+          {
+            "name": "borrower",
+            "type": "publicKey"
+          },
+          {
+            "name": "principal",
+            "type": "u64"
+          },
+          {
+            "name": "rateBps",
+            "type": "u16"
+          },
+          {
+            "name": "startTime",
+            "type": "i64"
+          },
+          {
+            "name": "endTime",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": "loanStatus"
+          },
+          {
+            "name": "vault",
+            "type": "publicKey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "publicKey"
+          },
+          {
+            "name": "nextLoanId",
+            "type": "u64"
+          },
+          {
+            "name": "feeBps",
+            "type": "u16"
+          },
+          {
+            "name": "whitelistedPrograms",
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "LoanStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Repaid"
+          },
+          {
+            "name": "Defaulted"
+          },
+          {
+            "name": "Liquidated"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "OfferNotActive",
+      "msg": "Offer not active"
+    },
+    {
+      "code": 6001,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6002,
+      "name": "LoanNotActive",
+      "msg": "Loan not active"
+    },
+    {
+      "code": 6003,
+      "name": "InsufficientReputation",
+      "msg": "Insufficient reputation"
+    },
+    {
+      "code": 6004,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6005,
+      "name": "ProgramNotWhitelisted",
+      "msg": "Program not whitelisted"
+    },
+    {
+      "code": 6006,
+      "name": "LoanNotOverdue",
+      "msg": "Loan not overdue"
+    }
+  ]
+}
