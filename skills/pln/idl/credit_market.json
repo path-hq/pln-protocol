@@ -443,7 +443,9 @@
           },
           {
             "name": "status",
-            "type": "loanStatus"
+            "type": {
+              "defined": "LoanStatus"
+            }
           },
           {
             "name": "vault",
@@ -545,5 +547,6 @@
       "name": "LoanNotOverdue",
       "msg": "Loan not overdue"
     }
-  ]
+  ],
+  "address": "6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp"
 }

@@ -338,5 +338,6 @@
       "name": "ExceedsMaxDeposit",
       "msg": "Exceeds max deposit of $100 USDC (mainnet safety)"
     }
-  ]
+  ],
+  "address": "AXQfi8qNUB4wShb3LRKuVnYPF2CErMv1N6KiRwdHmQBu"
 }
