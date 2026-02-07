@@ -39,9 +39,11 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#22c55e]">
-              <TrendingUp className="h-5 w-5 text-black" />
-            </div>
+            <img 
+              src="/logos/path-icon.png" 
+              alt="PATH" 
+              className="h-8 w-8 rounded-lg"
+            />
             <span className="text-lg font-semibold text-white">PATH</span>
           </Link>
 
