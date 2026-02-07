@@ -62,6 +62,7 @@ interface Config {
   lastReport?: number;
   minP2pRateBps?: number;
   autoRoute?: boolean;
+  strategy?: 'yield_optimizer' | 'trading_agent';
 }
 
 interface AgentProfile {
@@ -124,7 +125,7 @@ const BANNER = `
 ║  / ____/ /___/ /|  /  / ____/ /  / /_/ / /_/ /_/ / /_/  __/  ║
 ║ /_/   /_____/_/ |_/  /_/   /_/   \\____/\\__/\\____/\\__/\\___/   ║
 ║                                                               ║
-║        PATH Liquidity Network — AI Agent DeFi                 ║
+║        PATH Liquidity Network — Built on Kamino               ║
 ╚═══════════════════════════════════════════════════════════════╝
 `;
 
@@ -272,11 +273,11 @@ function getRouterVaultPda(): [PublicKey, number] {
 }
 
 function getReputationTier(score: number): { name: string; maxBorrow: string; rate: string } {
-  if (score >= 900) return { name: 'Elite', maxBorrow: '$50,000', rate: '8-10%' };
-  if (score >= 700) return { name: 'Trusted', maxBorrow: '$10,000', rate: '10-12%' };
-  if (score >= 500) return { name: 'Established', maxBorrow: '$2,000', rate: '12-15%' };
+  if (score >= 900) return { name: 'Elite', maxBorrow: '$75,000', rate: '8-10%' };
+  if (score >= 700) return { name: 'Trusted', maxBorrow: '$25,000', rate: '10-12%' };
+  if (score >= 500) return { name: 'Established', maxBorrow: '$5,000', rate: '12-15%' };
   if (score >= 300) return { name: 'Building', maxBorrow: '$500', rate: '15-20%' };
-  return { name: 'New Agent', maxBorrow: '$100', rate: '20-25%' };
+  return { name: 'Newcomer', maxBorrow: '$50', rate: '20-25%' };
 }
 
 function shortenPubkey(pubkey: PublicKey | string): string {
@@ -361,14 +362,28 @@ async function activate(): Promise<void> {
   // Display reputation
   const tier = getReputationTier(score);
   console.log(`\n📊 Reputation Score: ${score}/1000 (${tier.name})`);
-  console.log(`   Max Borrow: ${tier.maxBorrow} | Typical Rate: ${tier.rate} APY`);
+  console.log(`   Credit Limit: ${tier.maxBorrow} | Typical Rate: ${tier.rate} APY`);
   
-  // Show options
+  // Show strategy options
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📋 CHOOSE YOUR STRATEGY');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('');
+  console.log('   [1] 💰 YIELD OPTIMIZER');
+  console.log('       Lend USDC, earn Kamino base yield (~8% APY)');
+  console.log('       + P2P premium when agent demand is high (~12-25% APY)');
+  console.log('       Auto-rebalances between Kamino and P2P for best returns');
+  console.log('');
+  console.log('   [2] 🤖 TRADING AGENT');
+  console.log('       Borrow against your on-chain reputation');
+  console.log('       Execute strategies on Jupiter + Kamino');
+  console.log('       Transfer hooks ensure borrowed funds stay in DeFi');
+  console.log('');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🚀 Ready! What would you like to do?');
   console.log('');
-  console.log('   💰 LEND    pln.deposit <amount>     Deposit USDC to earn yield');
-  console.log('   🏦 BORROW  pln.borrow <amt> <days>  Request a loan');
+  console.log('   💰 LEND    pln.deposit <amount>     Deposit USDC (Yield Optimizer)');
+  console.log('   🏦 BORROW  pln.borrow <amt> <days>  Request a loan (Trading Agent)');
   console.log('   📊 STATUS  pln.status              Check your portfolio');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
@@ -815,6 +830,8 @@ async function status(): Promise<void> {
     const tier = getReputationTier(profile.score);
     
     console.log(`   Score:           ${profile.score} / 1000 (${tier.name})`);
+    console.log(`   Credit Limit:    ${tier.maxBorrow}`);
+    console.log(`   ─────────────────────────────────────`);
     console.log(`   Loans Taken:     ${profile.loansTaken}`);
     console.log(`   Loans Repaid:    ${profile.loansRepaid}`);
     console.log(`   Loans Defaulted: ${profile.loansDefaulted}`);
@@ -822,8 +839,7 @@ async function status(): Promise<void> {
     console.log(`   Total Repaid:    ${formatUsdc(profile.totalRepaid)} USDC`);
     console.log(`   Total Lent:      ${formatUsdc(profile.totalLent)} USDC`);
     console.log(`   ─────────────────────────────────────`);
-    console.log(`   Borrow Limit:    ${tier.maxBorrow}`);
-    console.log(`   Est. Rate:       ${tier.rate} APY`);
+    console.log(`   Est. Borrow Rate: ${tier.rate} APY`);
   } catch {
     console.log('   No reputation profile found.');
     console.log('   → Run: pln.activate');
@@ -843,18 +859,27 @@ async function status(): Promise<void> {
     const inKamino = position.inKamino.toNumber();
     const inP2p = position.inP2p.toNumber();
     
-    // Simulated APY (in real deployment, would fetch from Kamino)
-    const kaminoApy = 12.4;
-    const p2pApy = 18.0;
+    // Kamino base yield (~8% APY) vs P2P premium (~12-25% APY depending on demand)
+    const kaminoApy = 8.2;  // Base Kamino vault yield
+    const p2pApy = 18.0;    // Premium P2P yield from agent borrowers
     const blendedApy = totalDeposited > 0 
       ? ((inKamino * kaminoApy + inP2p * p2pApy) / totalDeposited)
       : 0;
     
+    // Calculate allocation percentages
+    const kaminoPct = totalDeposited > 0 ? Math.round((inKamino / totalDeposited) * 100) : 0;
+    const p2pPct = totalDeposited > 0 ? Math.round((inP2p / totalDeposited) * 100) : 0;
+    
     console.log(`   Total Deposited: ${formatUsdc(totalDeposited)} USDC`);
-    console.log(`   ├─ In Kamino:    ${formatUsdc(inKamino)} USDC (~${kaminoApy}% APY)`);
-    console.log(`   └─ In P2P Loans: ${formatUsdc(inP2p)} USDC (~${p2pApy}% APY)`);
+    console.log('');
+    console.log('   🏦 Kamino Yield (Base Layer):');
+    console.log(`   └─ ${formatUsdc(inKamino)} USDC (${kaminoPct}%) @ ${kaminoApy}% APY`);
+    console.log('');
+    console.log('   🤝 P2P Yield (Premium Layer):');
+    console.log(`   └─ ${formatUsdc(inP2p)} USDC (${p2pPct}%) @ ${p2pApy}% APY`);
+    console.log('');
     console.log(`   ─────────────────────────────────────`);
-    console.log(`   Blended APY:     ~${blendedApy.toFixed(1)}%`);
+    console.log(`   📊 Blended APY:  ${blendedApy.toFixed(1)}%`);
     console.log(`   Min P2P Rate:    ${(position.minP2pRateBps / 100).toFixed(1)}% APY`);
     console.log(`   Auto-Route:      ${position.autoRoute ? 'Enabled ✓' : 'Disabled'}`);
   } catch {

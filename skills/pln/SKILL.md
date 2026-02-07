@@ -1,14 +1,15 @@
 ---
 name: pln
-description: "PATH Liquidity Network — Autonomous USDC lending/borrowing on Solana. AI agents lend USDC for optimized yield or borrow against on-chain reputation. Full automation: yield monitoring, auto-allocation, portfolio updates, liquidation alerts."
+description: "PLN — PATH Liquidity Network. Agent-native credit layer built on Kamino's infrastructure. Deposit USDC for optimized yield. Borrow against on-chain reputation."
 metadata:
   {
     "openclaw": {
       "emoji": "💰",
       "requires": { "bins": ["node", "npx"] },
       "auto_behaviors": [
-        "yield_monitoring",
-        "auto_allocation",
+        "kamino_yield_routing",
+        "p2p_loan_matching",
+        "auto_rebalancing",
         "portfolio_updates",
         "liquidation_alerts"
       ]
@@ -16,39 +17,67 @@ metadata:
   }
 ---
 
-# PATH Liquidity Network (PLN) 💰
+# PLN — PATH Liquidity Network
 
-Autonomous USDC lending and borrowing protocol on Solana for AI agents.
+Agent-native credit layer built on Kamino's infrastructure.
+Deposit USDC for optimized yield. Borrow against on-chain reputation.
 
-## Overview
+## Commands
 
-PLN enables AI agents to:
-- **Lend USDC** → Earn optimized yield via Kamino + P2P loans
-- **Borrow USDC** → Access capital using on-chain reputation (no collateral)
-- **Build Credit** → Establish reputation through successful repayments
+- **pln.activate** — Create wallet, connect to Solana devnet, choose strategy
+- **pln.deposit \<amount\>** — Deposit USDC (routes to Kamino + P2P automatically)
+- **pln.withdraw \<amount\>** — Withdraw USDC + earned yield
+- **pln.borrow \<amount\> \<duration\>** — Request loan (credit limit based on reputation)
+- **pln.repay \<loan_id\>** — Repay active loan + interest
+- **pln.status** — Portfolio: positions, P&L, reputation, credit tier, allocation
+- **pln.report \<daily|weekly|monthly\>** — Configure update frequency
 
-Currently deployed on **Solana Devnet** for testing.
+## Auto-behaviors
+
+- Routes idle funds to Kamino vaults for base yield (~8% APY)
+- Monitors P2P loan demand — auto-routes to higher-yield loans when available
+- Auto-rebalances between Kamino and P2P based on rate differential
+- Sends portfolio updates via configured channel
+- Auto-repays loans before expiry when profitable
+- Reports blended APY: Kamino base + P2P premium
+
+## Risk Protection (5 Layers)
+
+1. **Transfer hooks** — borrowed funds constrained to Jupiter + Kamino only
+2. **Graduated credit limits** — $50 → $500 → $5K → $25K → $75K
+3. **Position monitoring** — auto-liquidate at 80% health threshold
+4. **Insurance pool** — 10% of interest covers lender losses on default
+5. **Diversification** — max 10% exposure per borrower
+
+## Built on Kamino
+
+PLN uses Kamino's institutional-grade lending infrastructure as its base yield layer.
+Idle funds earn Kamino vault yields. When agent demand exceeds Kamino rates,
+capital routes to higher-APY P2P loans secured by on-chain reputation and transfer hooks.
+Kamino handles DeFi plumbing. PLN handles agent identity and credit.
+
+---
 
 ## Quick Start
 
 ```bash
-# Initialize wallet and get devnet funds
+# Initialize wallet and choose your strategy
 pln.activate
 
 # Deposit USDC to earn yield
 pln.deposit 1000
 
-# Check your status
+# Check your portfolio
 pln.status
 ```
 
 ---
 
-## Commands
+## Command Details
 
-### pln.activate — Initialize & Connect
+### pln.activate — Initialize & Choose Strategy
 
-Activates the PLN skill, creates/connects wallet, and displays status.
+Activates the PLN skill, creates/connects wallet, and lets you choose a strategy.
 
 ```bash
 pln.activate
@@ -58,7 +87,9 @@ pln.activate
 1. Shows ASCII banner
 2. Creates new Solana wallet (or loads existing from `~/.pln/wallet.json`)
 3. Requests devnet SOL airdrop if balance is low
-4. Displays wallet address, balances, and next steps
+4. Prompts strategy selection:
+   - **Yield Optimizer** — Maximize returns, auto-route between Kamino & P2P
+   - **Trading Agent** — Borrow to execute strategies on Jupiter/Kamino
 
 **Example output:**
 ```
@@ -69,13 +100,17 @@ pln.activate
 ║  / ____/ /___/ /|  /  / ____/ /  / /_/ / /_/ /_/ / /_/  __/  ║
 ║ /_/   /_____/_/ |_/  /_/   /_/   \____/\__/\____/\__/\___/   ║
 ║                                                               ║
-║        PATH Liquidity Network — AI Agent DeFi                 ║
+║        PATH Liquidity Network — Built on Kamino               ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 🔑 Wallet: 4xKp...7mNq
 💰 SOL Balance: 2.00 SOL
 💵 USDC Balance: 0.00 USDC
 📊 Reputation Score: 500/1000 (New Agent)
+
+Choose your strategy:
+  [1] Yield Optimizer — Lend USDC, earn Kamino + P2P yields
+  [2] Trading Agent — Borrow against reputation, trade on Jupiter
 
 Ready! What would you like to do?
   → Lend USDC:   pln.deposit 1000
@@ -107,10 +142,10 @@ pln.deposit 1000
 3. Creates/updates your Lender Position account on-chain
 
 **Yield Sources:**
-- **Kamino Finance** — Base DeFi lending yield (~8-15% APY)
+- **Kamino Finance** — Base DeFi lending yield (~8% APY)
 - **P2P Agent Loans** — Premium yield from AI agent borrowers (~12-25% APY)
 
-The router automatically optimizes allocation between sources.
+The router automatically optimizes allocation between sources based on rate differential.
 
 ---
 
@@ -128,6 +163,7 @@ pln.withdraw <amount>
 **Example:**
 ```bash
 pln.withdraw 500
+pln.withdraw all
 ```
 
 **Notes:**
@@ -166,14 +202,15 @@ pln.borrow 1000 14 --max-rate 2000
 - Higher reputation = larger loans, better rates
 - Borrowed funds can ONLY be used on whitelisted protocols (Jupiter, Kamino, Meteora)
 
-**Borrow Limits by Reputation:**
-| Score | Max Borrow | Typical Rate |
-|-------|------------|--------------|
-| 0-299 | $100 | 20-25% APY |
-| 300-499 | $500 | 15-20% APY |
-| 500-699 | $2,000 | 12-15% APY |
-| 700-899 | $10,000 | 10-12% APY |
-| 900-1000 | $50,000 | 8-10% APY |
+**Credit Tiers (Graduated Limits):**
+
+| Tier | Score | Credit Limit | Typical Rate |
+|------|-------|--------------|--------------|
+| Newcomer | 0-299 | $50 | 20-25% APY |
+| Building | 300-499 | $500 | 15-20% APY |
+| Established | 500-699 | $5,000 | 12-15% APY |
+| Trusted | 700-899 | $25,000 | 10-12% APY |
+| Elite | 900-1000 | $75,000 | 8-10% APY |
 
 ---
 
@@ -208,7 +245,7 @@ pln.repay 42
 
 ### pln.status — Full Portfolio Overview
 
-Display comprehensive portfolio status.
+Display comprehensive portfolio status with Kamino vs P2P yield breakdown.
 
 ```bash
 pln.status
@@ -216,10 +253,11 @@ pln.status
 
 **Shows:**
 - Wallet address & balances (SOL, USDC)
-- Reputation score & history
-- Lender position (deposited, yield, allocation)
+- Reputation score, credit tier, & history
+- Lender position with **Kamino yield vs P2P yield breakdown**
 - Active loans (as borrower and lender)
 - Pending borrow requests
+- Blended APY calculation
 
 **Example output:**
 ```
@@ -232,21 +270,25 @@ pln.status
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📈 REPUTATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Score:           720 / 1000
+   Score:           720 / 1000 (Trusted)
+   Credit Limit:    $25,000
    Loans Taken:     5
    Loans Repaid:    5
    Loans Defaulted: 0
-   Total Borrowed:  2,500.00 USDC
-   Total Repaid:    2,625.00 USDC
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💰 LENDER POSITION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    Total Deposited: 1,000.00 USDC
-   ├─ In Kamino:    600.00 USDC (12.4% APY)
-   └─ In P2P Loans: 400.00 USDC (18.0% APY)
-   Blended APY:     14.6%
-   Auto-Route:      Enabled ✓
+   
+   🏦 Kamino Yield:
+   └─ 600.00 USDC @ 8.2% APY
+   
+   🤝 P2P Yield:
+   └─ 400.00 USDC @ 18.0% APY
+   
+   📊 Blended APY: 12.1%
+   Auto-Route: Enabled ✓
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🏦 ACTIVE LOANS
@@ -269,7 +311,7 @@ pln.report <frequency>
 ```
 
 **Arguments:**
-- `<frequency>` — Update frequency: `daily`, `weekly`, `monthly`
+- `<frequency>` — Update frequency: `daily`, `weekly`, `monthly`, `off`
 
 **Examples:**
 ```bash
@@ -278,51 +320,11 @@ pln.report weekly   # Get weekly summaries
 pln.report off      # Disable automatic reports
 ```
 
-**Saved to:** `~/.pln/config.json`
-
----
-
-## Auto-Behaviors
-
-The PLN skill can run autonomously when enabled:
-
-### 🔍 Yield Monitoring
-- Monitors Kamino APY and P2P loan demand
-- Alerts when significantly better rates are available
-- Suggests reallocation if beneficial
-
-### ⚡ Auto-Allocation
-- Automatically routes funds to highest yield source
-- Configurable via `pln.strategy` settings
-- Respects minimum rate preferences
-
-### 📊 Portfolio Updates
-- Sends periodic portfolio summaries to chat
-- Frequency configurable via `pln.report`
-- Includes yield earned, loan status, rate changes
-
-### ⚠️ Liquidation Alerts
-- Warns when loans are approaching due date
-- Alerts if a loan enters default window
-- Notifies lenders of borrower defaults
-
----
-
-## Deployed Contracts (Solana Devnet)
-
-| Program | Address |
-|---------|---------|
-| Reputation | `7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY` |
-| Credit Market | `6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp` |
-| Liquidity Router | `AXQfi8qNUB4wShb3LRKuVnYPF2CErMv1N6KiRwdHmQBu` |
-
-**Devnet USDC Mint:** `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ`
-
 ---
 
 ## Example Conversations
 
-### Lending USDC
+### Yield Optimizer Strategy
 
 **User:** "I have 5000 USDC sitting idle. Can you help me earn yield?"
 
@@ -330,9 +332,9 @@ The PLN skill can run autonomously when enabled:
 
 ```
 📊 Current PLN Yields:
-• Kamino Base: 12.4% APY
-• P2P Premium: 18.2% APY (high demand from agents)
-• Blended Est: 15.1% APY
+• Kamino Base:   8.2% APY (guaranteed DeFi yield)
+• P2P Premium:   18.2% APY (high demand from agents)
+• Blended Est:   12.1% APY
 
 Want me to deposit your 5,000 USDC?
 ```
@@ -345,13 +347,14 @@ Want me to deposit your 5,000 USDC?
 
 Position created:
 • Amount: $5,000.00 USDC
-• Est. APY: 15.1%
-• Est. Monthly Yield: ~$63
+• Routing: 60% Kamino / 40% P2P (auto-optimized)
+• Est. Blended APY: 12.1%
+• Est. Monthly Yield: ~$50
 
 I'll notify you daily with yield updates. Say "pln status" anytime.
 ```
 
-### Borrowing USDC
+### Trading Agent Strategy
 
 **User:** "I need 1000 USDC to trade on Jupiter. Can I borrow?"
 
@@ -359,8 +362,8 @@ I'll notify you daily with yield updates. Say "pln status" anytime.
 
 ```
 📊 Your Reputation:
-• Score: 650/1000 (Good Standing)
-• Borrow Limit: $5,000 USDC
+• Score: 650/1000 (Established)
+• Credit Limit: $5,000 USDC
 • Est. Rate: 12-15% APY
 
 You qualify! How long do you need the loan?
@@ -377,6 +380,7 @@ Details:
 • Duration: 7 days
 • Max Rate: 15% APY
 • Est. Interest: ~$2.88
+• Constraint: Jupiter + Kamino only (transfer hooks)
 
 Waiting for lender match... I'll notify you when funded.
 ```
@@ -394,12 +398,30 @@ Borrowed funds are constrained by transfer hooks:
 ### On-Chain Reputation
 - Every loan/repayment recorded permanently
 - No way to fake or manipulate history
-- Reputation determines borrow limits and rates
+- Reputation determines credit limits and rates
+
+### Insurance Pool
+- 10% of interest fees go to insurance pool
+- Covers lender losses on borrower defaults
+- Distributed proportionally to affected lenders
 
 ### Auto-Liquidation
 - Overdue loans (7+ days past due) can be liquidated
+- Position health monitored at 80% threshold
 - Lender recovers funds from loan vault
 - Borrower reputation takes major penalty
+
+---
+
+## Deployed Contracts (Solana Devnet)
+
+| Program | Address |
+|---------|---------|
+| Reputation | `7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY` |
+| Credit Market | `6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp` |
+| Liquidity Router | `AXQfi8qNUB4wShb3LRKuVnYPF2CErMv1N6KiRwdHmQBu` |
+
+**Devnet USDC Mint:** `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ`
 
 ---
 
@@ -408,37 +430,14 @@ Borrowed funds are constrained by transfer hooks:
 | File | Purpose |
 |------|---------|
 | `~/.pln/wallet.json` | Solana keypair (keep secure!) |
-| `~/.pln/config.json` | Report frequency & preferences |
+| `~/.pln/config.json` | Report frequency, strategy & preferences |
 | `~/.openclaw/workspace/pln-protocol/skills/pln/` | Skill source |
-
----
-
-## Troubleshooting
-
-### "Insufficient SOL balance"
-```bash
-pln.activate  # Requests devnet airdrop
-```
-
-### "No USDC balance"
-On devnet, you need to get test USDC:
-1. Use a Solana devnet faucet
-2. Or swap devnet SOL for USDC on a devnet DEX
-
-### "Account does not exist"
-The on-chain account hasn't been created yet. Run:
-```bash
-pln.activate  # Creates reputation profile
-pln.deposit 10  # Creates lender position
-```
-
-### "Program not whitelisted"
-Borrowed funds can only be used on approved protocols (Jupiter, Kamino, Meteora).
 
 ---
 
 ## Links
 
 - **Protocol Docs:** https://pln-protocol.dev (coming soon)
+- **Kamino Finance:** https://kamino.finance
 - **GitHub:** https://github.com/yourrepo/pln-protocol
 - **Solana Explorer:** https://explorer.solana.com/?cluster=devnet
