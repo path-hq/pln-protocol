@@ -3,6 +3,27 @@
   "name": "credit_market",
   "instructions": [
     {
+      "name": "initialize",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "postLendOffer",
       "accounts": [
         {
@@ -61,6 +82,10 @@
         },
         {
           "name": "minReputation",
+          "type": "u16"
+        },
+        {
+          "name": "liquidationThresholdBps",
           "type": "u16"
         }
       ]
@@ -159,6 +184,11 @@
           "isSigner": false
         },
         {
+          "name": "escrowVault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "usdcMint",
           "isMut": false,
           "isSigner": false
@@ -179,12 +209,7 @@
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "offerId",
-          "type": "publicKey"
-        }
-      ]
+      "args": []
     },
     {
       "name": "repayLoan",
@@ -210,17 +235,17 @@
           "isSigner": false
         },
         {
+          "name": "borrowerProfile",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "loanId",
-          "type": "u64"
-        }
-      ]
+      "args": []
     },
     {
       "name": "executeTrade",
@@ -258,10 +283,6 @@
       ],
       "args": [
         {
-          "name": "loanId",
-          "type": "u64"
-        },
-        {
           "name": "targetProgram",
           "type": "publicKey"
         },
@@ -274,7 +295,7 @@
       ]
     },
     {
-      "name": "liquidate",
+      "name": "liquidateLoan",
       "accounts": [
         {
           "name": "liquidator",
@@ -287,12 +308,17 @@
           "isSigner": false
         },
         {
-          "name": "lender",
+          "name": "loanVault",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "loanVault",
+          "name": "lenderUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowerProfile",
           "isMut": true,
           "isSigner": false
         },
@@ -302,36 +328,103 @@
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "loanId",
-          "type": "u64"
-        }
-      ]
+      "args": []
     },
     {
-      "name": "initialize",
+      "name": "markDefault",
+      "accounts": [
+        {
+          "name": "caller",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "loan",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "borrowerProfile",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "addWhitelistedProgram",
       "accounts": [
         {
           "name": "admin",
-          "isMut": true,
+          "isMut": false,
           "isSigner": true
         },
         {
           "name": "globalState",
           "isMut": true,
           "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "programId",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "removeWhitelistedProgram",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": false,
+          "isSigner": true
         },
         {
-          "name": "systemProgram",
-          "isMut": false,
+          "name": "globalState",
+          "isMut": true,
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "programId",
+          "type": "publicKey"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "GlobalState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "publicKey"
+          },
+          {
+            "name": "nextLoanId",
+            "type": "u64"
+          },
+          {
+            "name": "feeBps",
+            "type": "u16"
+          },
+          {
+            "name": "whitelistedPrograms",
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "LendOffer",
       "type": {
@@ -355,6 +448,10 @@
           },
           {
             "name": "minReputation",
+            "type": "u16"
+          },
+          {
+            "name": "liquidationThresholdBps",
             "type": "u16"
           },
           {
@@ -443,11 +540,17 @@
           },
           {
             "name": "status",
-            "type": "loanStatus"
+            "type": {
+              "defined": "LoanStatus"
+            }
           },
           {
             "name": "vault",
             "type": "publicKey"
+          },
+          {
+            "name": "liquidationThresholdBps",
+            "type": "u16"
           },
           {
             "name": "bump",
@@ -457,27 +560,33 @@
       }
     },
     {
-      "name": "GlobalState",
+      "name": "BorrowerProfile",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "admin",
+            "name": "owner",
             "type": "publicKey"
           },
           {
-            "name": "nextLoanId",
-            "type": "u64"
-          },
-          {
-            "name": "feeBps",
+            "name": "reputationScore",
             "type": "u16"
           },
           {
-            "name": "whitelistedPrograms",
-            "type": {
-              "vec": "publicKey"
-            }
+            "name": "loansRepaid",
+            "type": "u32"
+          },
+          {
+            "name": "defaults",
+            "type": "u32"
+          },
+          {
+            "name": "totalBorrowed",
+            "type": "u64"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
           },
           {
             "name": "bump",
@@ -494,6 +603,9 @@
         "kind": "enum",
         "variants": [
           {
+            "name": "Open"
+          },
+          {
             "name": "Active"
           },
           {
@@ -507,6 +619,293 @@
           }
         ]
       }
+    }
+  ],
+  "events": [
+    {
+      "name": "MarketInitialized",
+      "fields": [
+        {
+          "name": "admin",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "LendOfferPosted",
+      "fields": [
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "minRateBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "maxDurationSecs",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "liquidationThresholdBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "LendOfferCancelled",
+      "fields": [
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "BorrowRequestPosted",
+      "fields": [
+        {
+          "name": "borrower",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "maxRateBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "durationSecs",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "LoanCreated",
+      "fields": [
+        {
+          "name": "loanId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "principal",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "rateBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "endTime",
+          "type": "i64",
+          "index": false
+        },
+        {
+          "name": "liquidationThresholdBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "LoanRepaid",
+      "fields": [
+        {
+          "name": "loanId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "principal",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "interest",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "totalRepaid",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "TradeExecuted",
+      "fields": [
+        {
+          "name": "loanId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "targetProgram",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "LoanLiquidated",
+      "fields": [
+        {
+          "name": "loanId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "liquidator",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "vaultBalanceRecovered",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "principal",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "healthFactorBps",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "isPastDue",
+          "type": "bool",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "LoanDefaulted",
+      "fields": [
+        {
+          "name": "loanId",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "borrower",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "lender",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "principal",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [
@@ -544,6 +943,31 @@
       "code": 6006,
       "name": "LoanNotOverdue",
       "msg": "Loan not overdue"
+    },
+    {
+      "code": 6007,
+      "name": "LoanNotLiquidatable",
+      "msg": "Loan not liquidatable - neither past due nor below health threshold"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidAmount",
+      "msg": "Invalid amount"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidRate",
+      "msg": "Invalid rate"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidDuration",
+      "msg": "Invalid duration"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidLiquidationThreshold",
+      "msg": "Invalid liquidation threshold - must be between 5000 and 10000 bps"
     }
   ]
 }

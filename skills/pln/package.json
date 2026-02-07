@@ -1,20 +1,43 @@
 {
   "name": "pln-skill",
   "version": "1.0.0",
-  "description": "PATH Liquidity Network OpenClaw Skill",
+  "description": "PATH Liquidity Network OpenClaw Skill - Autonomous USDC lending/borrowing on Solana",
+  "main": "scripts/pln-cli.ts",
   "scripts": {
+    "pln": "npx ts-node scripts/pln-cli.ts",
     "activate": "npx ts-node scripts/pln-cli.ts activate",
     "deposit": "npx ts-node scripts/pln-cli.ts deposit",
+    "withdraw": "npx ts-node scripts/pln-cli.ts withdraw",
     "borrow": "npx ts-node scripts/pln-cli.ts borrow",
-    "status": "npx ts-node scripts/pln-cli.ts status",
     "repay": "npx ts-node scripts/pln-cli.ts repay",
+    "status": "npx ts-node scripts/pln-cli.ts status",
     "report": "npx ts-node scripts/pln-cli.ts report"
   },
+  "bin": {
+    "pln-cli": "./scripts/pln-cli.ts"
+  },
+  "keywords": [
+    "solana",
+    "defi",
+    "lending",
+    "borrowing",
+    "usdc",
+    "openclaw",
+    "ai-agent"
+  ],
+  "author": "PLN Protocol",
+  "license": "MIT",
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.95.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
