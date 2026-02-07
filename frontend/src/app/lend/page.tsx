@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronDown, ChevronUp, DollarSign, Percent, Clock } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
@@ -9,73 +9,209 @@ import { SystemProgram } from '@solana/web3.js';
 import { BN } from 'bn.js';
 import { Buffer } from 'buffer';
 
-const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
+const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint (replace with actual)
 
-interface Strategy {
-  id: string;
-  name: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  apy: number;
-  // minDeposit: string; // Will be dynamic
-  // tvl: string; // Will be dynamic
-  description: string;
+interface LoanAccount {
+  publicKey: PublicKey; // The PDA of the loan account
+  id: BN; // On-chain loan ID
+  lender: PublicKey;
+  borrower: PublicKey;
+  principal: BN; // Amount lent
+  rateBps: number; // APY in basis points
+  startTime: BN;
+  endTime: BN;
+  status: { active?: {} }; // Using an enum directly is harder, so checking active field
+  vault: PublicKey;
+  // collateral: BN; // Collateral is not directly part of the Loan struct. Placeholder for UI.
+  healthFactor: number; // Placeholder, derived or fetched from elsewhere
 }
 
-// Placeholder. Will get from chain
-const strategies: Strategy[] = [];
+interface DisplayLoan {
+  id: string; // String version of on-chain ID
+  borrower: string;
+  amount: string;
+  collateral: string; // Placeholder for now
+  apy: number;
+  startDate: string;
+  health: number;
+}
 
-// Placeholder. Will get from chain
-const activeLoans: ActiveLoan[] = [];
+
+interface LenderPositionAccount {
+  owner: PublicKey;
+  depositedAmount: BN;
+  kaminoAmount: BN;
+  p2pAmount: BN;
+  p2pLoansActive: number;
+  minP2PRateBps: number;
+  kaminoBufferBps: number;
+}
 
 export default function LendPage() {
   const { publicKey } = useWallet();
-  const { liquidityRouter, provider } = usePLNPrograms();
-  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
-  const [totalDeposits, setTotalDeposits] = useState<number | null>(null);
-  const [currentAPY, setCurrentAPY] = useState<number | null>(null);
+  const { liquidityRouter, provider, reputation } = usePLNPrograms(); // Added reputation
+  const [activeLoans, setActiveLoans] = useState<DisplayLoan[]>([]);
 
-  const fetchBalances = async () => {
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [lenderPositionAccount, setLenderPositionAccount] = useState<LenderPositionAccount | null>(null);
+  const [currentAPY, setCurrentAPY] = useState<number | null>(null); // This will need to be fetched from Kamino or oracle
+
+  // Strategy States
+  const [minP2PRateBps, setMinP2PRateBps] = useState<number>(0);
+  const [kaminoBufferBps, setKaminoBufferBps] = useState<number>(0);
+
+  // Fetch user's USDC balance
+  const fetchUsdcBalance = useCallback(async () => {
     if (!publicKey || !provider) {
       setUsdcBalance(null);
-      setTotalDeposits(null);
-      setCurrentAPY(null);
       return;
     }
-
     try {
-      // Fetch USDC balance
       const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
       const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
       const accountInfo = await provider.connection.getTokenAccountBalance(ata);
       setUsdcBalance(accountInfo.value.uiAmount || 0);
+    } catch (error) {
+      console.error("Error fetching USDC balance:", error);
+      setUsdcBalance(null);
+    }
+  }, [publicKey, provider]);
 
-      // Fetch lender position data (placeholder logic for now)
-      // This part needs real on-chain calls which will be implemented later
-      setTotalDeposits(125000); // Mock
-      setCurrentAPY(12.4); // Mock
+  // Fetch lender position from Liquidity Router
+  const fetchLenderPosition = useCallback(async () => {
+    if (!publicKey || !liquidityRouter) {
+      setLenderPositionAccount(null);
+      setMinP2PRateBps(0);
+      setKaminoBufferBps(0);
+      return;
+    }
+    try {
+      const [configPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_config")],
+        liquidityRouter.programId
+      );
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [positionPDA] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), configPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
+
+      const account = await liquidityRouter.account.lenderPosition.fetch(positionPDA);
+      setLenderPositionAccount(account as LenderPositionAccount);
+      setMinP2PRateBps(account.minP2PRateBps);
+      setKaminoBufferBps(account.kaminoBufferBps);
+
+      // TODO: Fetch Kamino current APY from a real source (oracle/Kamino API)
+      setCurrentAPY(12.4); // Mock for now
 
     } catch (error) {
-      console.error("Error fetching balances:", error);
-      setUsdcBalance(null);
-      setTotalDeposits(null);
+      console.error("Error fetching lender position:", error);
+      setLenderPositionAccount(null);
+      setMinP2PRateBps(0);
+      setKaminoBufferBps(0);
       setCurrentAPY(null);
     }
-  };
+  }, [publicKey, liquidityRouter]);
+
+  // Fetch active loans from Credit Market
+  const fetchActiveLoans = useCallback(async () => {
+    if (!publicKey || !reputation?.program || !liquidityRouter) { // Access program from reputation
+      setActiveLoans([]);
+      return;
+    }
+    try {
+      // Fetch all loan accounts
+      const allLoans = await reputation.program.account.loan.all(); // Use reputation.program
+      const USDC_DECIMALS = 6;
+
+      const filteredLoans: DisplayLoan[] = allLoans
+        .filter(loan =>
+          loan.account.lender.equals(publicKey) &&
+          (loan.account.status as any).active !== undefined // Check if status is Active
+        )
+        .map(loan => {
+          const loanAccount = loan.account;
+          const principal = loanAccount.principal.toNumber() / (10 ** USDC_DECIMALS);
+          const rateApy = loanAccount.rateBps / 100; // Convert BPS to percentage
+
+          // For health factor and collateral, we don't have direct on-chain data in the Loan account
+          // Placeholder values for now, this would likely come from an oracle or collateral program
+          const healthFactor = 1.0; // Most loans start healthy, needs to be calculated dynamically
+          const collateralAmount = principal * 1.5; // Placeholder: assuming 150% collateralized, needs to be dynamic
+
+
+          // Convert Solana timestamp (seconds) to milliseconds for JavaScript Date
+          const startDate = new Date(loanAccount.startTime.toNumber() * 1000).toLocaleDateString();
+
+          return {
+            id: loanAccount.id.toString(),
+            borrower: loanAccount.borrower.toBase58().substring(0, 8) + '...',
+            amount: `${principal.toFixed(2)} USDC`,
+            collateral: `${collateralAmount.toFixed(2)} USDC`, // Placeholder
+            apy: rateApy,
+            startDate: startDate,
+            health: healthFactor,
+          };
+        });
+      setActiveLoans(filteredLoans);
+
+    } catch (error) {
+      console.error("Error fetching active loans:", error);
+      setActiveLoans([]);
+    }
+  }, [publicKey, reputation, liquidityRouter]); // Added reputation to dependencies
 
   useEffect(() => {
-    fetchBalances();
-    const interval = setInterval(fetchBalances, 15000); // Refresh every 15 seconds
+    fetchUsdcBalance();
+    fetchLenderPosition();
+    fetchActiveLoans(); // Fetch active loans
+    const interval = setInterval(() => {
+      fetchUsdcBalance();
+      fetchLenderPosition();
+      fetchActiveLoans(); // Poll active loans
+    }, 15000); // Poll every 15 seconds
     return () => clearInterval(interval);
-  }, [publicKey, provider, fetchBalances]);
+  }, [fetchUsdcBalance, fetchLenderPosition]);
 
-  const handleDeposit = async () => {
+  const handleUpdateStrategy = async () => {
     if (!publicKey || !liquidityRouter || !provider) {
       alert("Wallet not connected or program not loaded.");
       return;
     }
+    try {
+      const [configPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("router_config")],
+        liquidityRouter.programId
+      );
+      const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
+      const [positionPDA] = PublicKey.findProgramAddressSync(
+        [publicKey.toBuffer(), configPDA.toBuffer(), usdcMint.toBuffer()],
+        liquidityRouter.programId
+      );
 
-    if (!selectedStrategy) {
-      alert("Please select a lending strategy.");
+      const tx = await liquidityRouter.methods
+        .updateStrategy(minP2PRateBps, kaminoBufferBps, null) // Assuming null for autoRoute for simplicity for now
+        .accounts({
+          lender: publicKey,
+          position: positionPDA,
+          config: configPDA,
+        })
+        .transaction();
+
+      const signature = await provider.sendAndConfirm(tx);
+      alert(`Strategy updated! Transaction: ${signature}`);
+      console.log("Strategy updated, transaction:", signature);
+
+      fetchLenderPosition(); // Refresh position after successful update
+    } catch (error: any) {
+      console.error("Strategy update failed:", error);
+      alert(`Strategy update failed: ${error.message}`);
+    }
+  };
+
+  const handleDeposit = async () => {
+    if (!publicKey || !liquidityRouter || !provider) {
+      alert("Wallet not connected or program not loaded.");
       return;
     }
 
@@ -86,12 +222,9 @@ export default function LendPage() {
     }
 
     try {
-      // 1. Convert amount to u64 (lamports)
-      // Assuming USDC has 6 decimals for Devnet. This should ideally be fetched from mint info.
       const USDC_DECIMALS = 6;
       const amountInSmallestUnits = new BN(amount * (10 ** USDC_DECIMALS));
 
-      // 2. Get necessary public keys and PDAs
       const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
       const [routerConfigPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("router_config")],
@@ -108,8 +241,7 @@ export default function LendPage() {
 
       const lenderUsdcAta = await getAssociatedTokenAddress(usdcMint, publicKey);
 
-      // 3. Build and send transaction
-      const tx = await liquidityRouter.methods
+      const transaction = await liquidityRouter.methods
         .deposit(amountInSmallestUnits)
         .accounts({
           lender: publicKey,
@@ -118,90 +250,25 @@ export default function LendPage() {
           routerVault: routerVaultPDA,
           usdcMint: usdcMint,
           config: routerConfigPDA,
-          tokenProgram: TOKEN_PROGRAM_ID, // Use the imported TOKEN_PROGRAM_ID
+          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
         .transaction();
 
-      const signature = await provider.sendAndConfirm(tx);
+      const signature = await provider.sendAndConfirm(transaction);
       alert(`Deposit successful! Transaction: ${signature}`);
       console.log("Deposit successful, transaction:", signature);
 
-      fetchBalances(); // Refresh balances after successful deposit
+      fetchUsdcBalance();
+      fetchLenderPosition();
     } catch (error: any) {
       console.error("Deposit failed:", error);
       alert(`Deposit failed: ${error.message}`);
     }
   };
 
-  const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
-  const [showStrategyDetails, setShowStrategyDetails] = useState<string | null>(null);
 
-  const mockStrategies: Strategy[] = [
-    {
-      id: 'conservative',
-      name: 'Conservative',
-      riskLevel: 'low',
-      apy: 8.5,
-      description: 'Lend to agents with proven track records and high collateral ratios',
-    },
-    {
-      id: 'balanced',
-      name: 'Balanced',
-      riskLevel: 'medium',
-      apy: 14.2,
-      description: 'Diversified lending across medium-risk agents with solid performance',
-    },
-    {
-      id: 'aggressive',
-      name: 'Aggressive',
-      riskLevel: 'high',
-      apy: 22.5,
-      description: 'Higher returns from emerging agents with growth potential',
-    },
-  ];
-
-  const mockActiveLoans: ActiveLoan[] = [
-    {
-      id: 'loan-1',
-      borrower: 'Agent Alpha',
-      amount: '50,000 USDC',
-      collateral: '75,000 USDC',
-      apy: 12.5,
-      startDate: '2024-01-15',
-      health: 1.45,
-    },
-    {
-      id: 'loan-2',
-      borrower: 'Agent Beta',
-      amount: '25,000 USDC',
-      collateral: '32,000 USDC',
-      apy: 15.2,
-      startDate: '2024-01-18',
-      health: 1.28,
-    },
-    {
-      id: 'loan-3',
-      borrower: 'Agent Gamma',
-      amount: '75,000 USDC',
-      collateral: '100,000 USDC',
-      apy: 10.8,
-      startDate: '2024-01-10',
-      health: 1.33,
-    },
-  ];
-
-  const getRiskColor = (risk: Strategy['riskLevel']) => {
-    switch (risk) {
-      case 'low':
-        return 'text-[#22c55e] bg-[#22c55e]/10';
-      case 'medium':
-        return 'text-yellow-500 bg-yellow-500/10';
-      case 'high':
-        return 'text-red-500 bg-red-500/10';
-    }
-  };
 
   const getHealthColor = (health: number) => {
     if (health >= 1.5) return 'text-[#22c55e]';
@@ -230,8 +297,8 @@ export default function LendPage() {
           icon={Wallet}
         />
         <StatsCard
-          title="Your Deposits"
-          value={totalDeposits !== null ? `$${totalDeposits.toFixed(2)}` : 'Loading...'}
+          title="Total Deposited"
+          value={lenderPositionAccount ? `$${(lenderPositionAccount.depositedAmount.toNumber() / (10 ** 6)).toFixed(2)}` : 'Loading...'}
           icon={TrendingUp}
         />
         <StatsCard
@@ -240,92 +307,83 @@ export default function LendPage() {
           icon={Percent}
         />
         <StatsCard
-          title="Active Loans"
-          value={mockActiveLoans.length.toString()}
+          title="P2P Loans Active"
+          value={lenderPositionAccount ? `${lenderPositionAccount.p2pLoansActive}` : 'Loading...'}
           icon={Clock}
         />
       </div>
 
       {/* Strategy Configuration */}
       <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6">
-        <h2 className="text-lg font-semibold text-white">Select Strategy</h2>
-        <p className="text-sm text-[#71717a]">Choose a lending strategy based on your risk tolerance</p>
+        <h2 className="text-lg font-semibold text-white">Lending Strategy</h2>
+        <p className="text-sm text-[#71717a]">Configure your automatic yield routing strategy</p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {mockStrategies.map((strategy) => (
-            <div
-              key={strategy.id}
-              onClick={() => setSelectedStrategy(strategy.id)}
-              className={`cursor-pointer rounded-xl border p-4 transition-all ${
-                selectedStrategy === strategy.id
-                  ? 'border-[#22c55e] bg-[#22c55e]/5'
-                  : 'border-[#1f1f24] hover:border-[#71717a]'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <h3 className="font-medium text-white">{strategy.name}</h3>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getRiskColor(strategy.riskLevel)}`}>
-                  {strategy.riskLevel}
-                </span>
-              </div>
-              <div className="mt-3">
-                <span className="text-2xl font-bold text-[#22c55e]">{strategy.apy}%</span>
-                <span className="ml-1 text-sm text-[#71717a]">APY</span>
-              </div>
-              <div className="mt-3 space-y-1 text-sm text-[#71717a]">
-                {/* <p>Min: {strategy.minDeposit}</p> */}
-                {/* <p>TVL: {strategy.tvl}</p> */}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowStrategyDetails(showStrategyDetails === strategy.id ? null : strategy.id);
-                }}
-                className="mt-3 flex items-center gap-1 text-xs text-[#22c55e] hover:underline"
-              >
-                Details
-                {showStrategyDetails === strategy.id ? (
-                  <ChevronUp className="h-3 w-3" />
-                ) : (
-                  <ChevronDown className="h-3 w-3" />
-                )}
-              </button>
-              {showStrategyDetails === strategy.id && (
-                <p className="mt-2 text-xs text-[#71717a]">{strategy.description}</p>
-              )}
-            </div>
-          ))}
+        <div className="mt-6 space-y-4">
+
+          <div className="flex items-center gap-4">
+            <label className="w-40 text-sm font-medium text-white">Min P2P Rate (BPS)</label>
+            <input
+              type="number"
+              value={minP2PRateBps}
+              onChange={(e) => setMinP2PRateBps(parseInt(e.target.value))}
+              className="w-32 rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
+              placeholder="e.g., 700 (7%)"
+            />
+            <p className="text-sm text-[#71717a]">Minimum APY for direct P2P loans (vs. Kamino).</p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="w-40 text-sm font-medium text-white">Kamino Buffer (BPS)</label>
+            <input
+              type="number"
+              value={kaminoBufferBps}
+              onChange={(e) => setKaminoBufferBps(parseInt(e.target.value))}
+              className="w-32 rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
+              placeholder="e.g., 100 (1%)"
+            />
+            <p className="text-sm text-[#71717a]">P2P rate must be X bps higher than Kamino APY.</p>
+          </div>
+
+          <button
+            onClick={handleUpdateStrategy}
+            className="rounded-lg bg-blue-500 px-4 py-2 font-medium text-black hover:bg-blue-600 transition-colors mt-4 mr-2"
+          >
+            Update Strategy
+          </button>
+
+
         </div>
+      </div>
 
-        {/* Deposit Input */}
-        {selectedStrategy && (
-          <div className="mt-6 rounded-lg bg-[#09090b] p-4">
-            <label className="text-sm font-medium text-white">Deposit Amount</label>
-            <div className="mt-2 flex gap-2">
-              <div className="relative flex-1">
-                <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
-                <input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-[#22c55e] focus:outline-none"
-                />
-              </div>
-              <button
-                onClick={handleDeposit}
-                className="rounded-lg bg-[#22c55e] px-6 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors">
-                Deposit
-              </button>
-            </div>
-            <p className="mt-2 text-xs text-[#71717a]">
+      {/* Deposit Input */}
+      <div className="mt-6 rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6">
+        <h2 className="text-lg font-semibold text-white">Deposit Capital</h2>
+        <p className="text-sm text-[#71717a]">Deposit USDC to start earning yield.</p>
+        <div className="mt-4 flex gap-2">
+          <div className="relative flex-1">
+            <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
+            <input
+              type="number"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-[#22c55e] focus:outline-none"
+            />
+          </div>
+          <button
+            onClick={handleDeposit}
+            className="rounded-lg bg-[#22c55e] px-6 py-2 font-medium text-black hover:bg-[#16a34a] transition-colors"
+          >
+            Deposit
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-[#71717a]">
               You will receive strategy tokens representing your position
             </p>
           </div>
-        )}
-      </div>
 
-      {/* Active Loans Table */}
+
+       (* Active Loans Table -> this is the only remaining mock active loans table that needs to be implemented. I will create a new function called fetchActiveLoans. Afterwards I will add additional logic to display the new on-chain active loans in the Active Loans Table. *)
       <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
         <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Your Active Loans</h2>
@@ -359,8 +417,8 @@ export default function LendPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1f1f24]">
-              {mockActiveLoans.map((loan) => (
+            <tbody>
+              {activeLoans.map((loan) => (
                 <tr key={loan.id} className="hover:bg-[#1f1f24]/30">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -388,7 +446,6 @@ export default function LendPage() {
                   </td>
                 </tr>
               ))}
-            </tbody>
           </table>
         </div>
       </div>

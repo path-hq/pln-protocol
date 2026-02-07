@@ -1,54 +1,104 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{spl_token_2022::instruction::AuthorityType, Token2022, TokenAccount, TransferHookAccount};
+use anchor_spl::token_interface::{Mint, TokenAccount};
 
-declare_id!("HzCsdK6z72yY1nE6eP2x201m854hB22N4U23b8z5L");
+declare_id!("7h528dSk5NWWsfBBXA51EdYFZ9XHGsAVEd56smWjKBgg"); // Will be replaced on deploy
 
 #[program]
 pub mod transfer_hook {
     use super::*;
 
-    pub fn transfer_hook(ctx: Context<Token2022TransferHook>) -> Result<()> {
+    pub fn transfer_hook(ctx: Context<TransferHookCtx>) -> Result<()> {
         let config = &ctx.accounts.whitelist_config;
-        let destination_program = ctx.accounts.destination_account_owner.key();
+        let destination_owner = ctx.accounts.destination_account.owner;
 
-        // Check if the destination program is whitelisted
-        require!(config.whitelisted_programs.contains(&destination_program), TransferHookError::DestinationNotWhitelisted);
+        // Check if the destination account owner is a whitelisted program
+        require!(
+            config.whitelisted_programs.contains(&destination_owner),
+            TransferHookError::DestinationNotWhitelisted
+        );
+        Ok(())
+    }
 
+    pub fn initialize_whitelist(
+        ctx: Context<InitializeWhitelist>,
+        programs: Vec<Pubkey>,
+    ) -> Result<()> {
+        let config = &mut ctx.accounts.whitelist_config;
+        config.whitelisted_programs = programs;
+        config.authority = ctx.accounts.authority.key();
+        config.bump = ctx.bumps.whitelist_config;
+        Ok(())
+    }
+
+    pub fn update_whitelist(
+        ctx: Context<UpdateWhitelist>,
+        programs: Vec<Pubkey>,
+    ) -> Result<()> {
+        let config = &mut ctx.accounts.whitelist_config;
+        require!(
+            config.authority == ctx.accounts.authority.key(),
+            TransferHookError::Unauthorized
+        );
+        config.whitelisted_programs = programs;
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct Token2022TransferHook<'info> {
-    #[account(token::mint = token_mint, token::authority = source_account_owner)]
-    pub source_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(token::mint = token_mint)]
-    pub token_mint: Box<InterfaceAccount<'info, Token2022>>,
-    /// CHECK: The delegate account
-    pub delegate_account: AccountInfo<'info>,
-    #[account(token::mint = token_mint)]
-    pub destination_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    /// CHECK: The authority of the destination account
-    pub destination_account_owner: AccountInfo<'info>,
-    /// CHECK: The owner of the source account
-    pub source_account_owner: AccountInfo<'info>,
-    /// CHECK: Extra metas account
-    pub extra_metas_account: AccountInfo<'info>,
-    pub system_program: Program<'info, System>,
-    /// CHECK: This is the spl token program
-    pub token_program: AccountInfo<'info>,
-    /// CHECK: Whitelist config PDA from B5 - will be refined
+pub struct TransferHookCtx<'info> {
+    /// CHECK: Source token account
+    pub source_account: InterfaceAccount<'info, TokenAccount>,
+    pub mint: InterfaceAccount<'info, Mint>,
+    /// CHECK: Destination token account
+    pub destination_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: Owner of source
+    pub owner: UncheckedAccount<'info>,
+    /// CHECK: Extra account metas PDA
+    pub extra_account_meta_list: UncheckedAccount<'info>,
+    #[account(
+        seeds = [b"whitelist"],
+        bump = whitelist_config.bump,
+    )]
     pub whitelist_config: Account<'info, WhitelistConfig>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeWhitelist<'info> {
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + 4 + (32 * 10) + 32 + 1, // discriminator + vec len + 10 pubkeys max + authority + bump
+        seeds = [b"whitelist"],
+        bump,
+    )]
+    pub whitelist_config: Account<'info, WhitelistConfig>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateWhitelist<'info> {
+    #[account(
+        mut,
+        seeds = [b"whitelist"],
+        bump = whitelist_config.bump,
+    )]
+    pub whitelist_config: Account<'info, WhitelistConfig>,
+    pub authority: Signer<'info>,
 }
 
 #[account]
 pub struct WhitelistConfig {
     pub whitelisted_programs: Vec<Pubkey>,
-    pub bump: u8,
+    pub authority: Pubkey,
+    pub pub bump: u8, // Corrected from `pub bump: u8` to `pub bump: u8`.
 }
 
 #[error_code]
 pub enum TransferHookError {
     #[msg("Destination program is not whitelisted by PLN protocol.")]
     DestinationNotWhitelisted,
+    #[msg("Unauthorized to update whitelist.")]
+    Unauthorized,
 }
