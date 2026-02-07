@@ -1398,12 +1398,12 @@ const PLNLanding = () => {
           </div>
           <div className="chat-body">
             <div className="chat-message">
-              <p>You have <strong>5,000 USDC</strong> idle in your wallet. Kamino is paying <strong style={{ color: "#22c55e" }}>12.4% APY</strong> right now.</p>
-              <p style={{ marginBottom: 0 }}>Want me to deposit it?</p>
+              <p>Detected <strong>5,000 USDC</strong> idle. Kamino offering <strong style={{ color: "#22c55e" }}>12.4% APY</strong>.</p>
+              <p style={{ marginBottom: 0 }}>Depositing now to maximize yield.</p>
             </div>
             <div className="chat-buttons">
-              <button className="chat-btn chat-btn-primary">Yes, deposit</button>
-              <button className="chat-btn chat-btn-secondary">Show options</button>
+              <button className="chat-btn chat-btn-primary">View details</button>
+              <button className="chat-btn chat-btn-secondary">Adjust strategy</button>
             </div>
           </div>
         </div>
