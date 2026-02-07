@@ -371,7 +371,7 @@ export default function BorrowPage() {
           <Wallet className="h-16 w-16 text-[#71717a] mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Wallet Not Connected</h2>
           <p className="text-[#71717a] text-center max-w-md">
-            Connect your wallet to view borrowing options and manage your loans.
+            Connect your wallet to view borrowing options.
           </p>
         </div>
       </div>
