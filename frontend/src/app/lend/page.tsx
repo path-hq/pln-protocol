@@ -48,9 +48,9 @@ interface LenderPositionAccount {
   kaminoBufferBps: number;
 }
 
-// Safe helper to check if object has property
-function hasProperty<T extends object>(obj: T | null | undefined, key: string): boolean {
-  return obj !== null && obj !== undefined && typeof obj === 'object' && key in obj;
+// Safe helper to check if object has property (guards against primitives and null)
+function hasProperty(obj: unknown, key: string): boolean {
+  return obj !== null && obj !== undefined && typeof obj === 'object' && !Array.isArray(obj) && key in (obj as object);
 }
 
 // Safe helper to get nested value
@@ -87,12 +87,23 @@ export default function LendPage() {
     try {
       const usdcMint = new PublicKey(USDC_MINT_ADDRESS);
       const ata = await getAssociatedTokenAddress(usdcMint, publicKey);
-      const accountInfo = await provider.connection.getTokenAccountBalance(ata);
+      
+      // Token account may not exist if user has never held USDC
+      let accountInfo: any = null;
+      try {
+        accountInfo = await provider.connection.getTokenAccountBalance(ata);
+      } catch (fetchError) {
+        // Token account doesn't exist - user has 0 USDC
+        console.log("USDC token account not found (user may not have USDC):", fetchError);
+        setUsdcBalance(0);
+        return;
+      }
+      
       const balance = safeGet(() => accountInfo?.value?.uiAmount, 0);
-      setUsdcBalance(balance);
+      setUsdcBalance(balance ?? 0);
     } catch (error) {
       console.error("Error fetching USDC balance:", error);
-      setUsdcBalance(null);
+      setUsdcBalance(0); // Default to 0 instead of null for display
     }
   }, [publicKey, provider]);
 
@@ -115,12 +126,20 @@ export default function LendPage() {
         liquidityRouter.programId
       );
 
-      const account = await liquidityRouter.account.lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
+      // Wrap fetch in inner try/catch - account may not exist for new wallets
+      let account: LenderPositionAccount | null = null;
+      try {
+        account = await liquidityRouter.account.lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
+      } catch (fetchError) {
+        // Account doesn't exist yet - this is normal for wallets that haven't deposited
+        console.log("Lender position not found (wallet may not have deposited yet):", fetchError);
+        account = null;
+      }
       
       if (account && typeof account === 'object') {
         setLenderPositionAccount(account);
-        setMinP2PRateBps(safeGet(() => account.minP2PRateBps, 0));
-        setKaminoBufferBps(safeGet(() => account.kaminoBufferBps, 0));
+        setMinP2PRateBps(safeGet(() => account!.minP2PRateBps, 0));
+        setKaminoBufferBps(safeGet(() => account!.kaminoBufferBps, 0));
       } else {
         setLenderPositionAccount(null);
         setMinP2PRateBps(0);
@@ -131,7 +150,8 @@ export default function LendPage() {
       setCurrentAPY(12.4); // Mock for now
 
     } catch (error) {
-      console.error("Error fetching lender position:", error);
+      // Outer catch for any other unexpected errors (PDA derivation, etc.)
+      console.error("Error in fetchLenderPosition:", error);
       setLenderPositionAccount(null);
       setMinP2PRateBps(0);
       setKaminoBufferBps(0);
@@ -146,8 +166,20 @@ export default function LendPage() {
       return;
     }
     try {
-      // Fetch all loan accounts
-      const allLoans = await reputation.account.loan.all();
+      // Fetch all loan accounts - wrap in try/catch in case account type doesn't exist
+      let allLoans: any[] = [];
+      try {
+        allLoans = await reputation.account.loan.all();
+      } catch (fetchError) {
+        console.log("No loan accounts found or account type doesn't exist:", fetchError);
+        setActiveLoans([]);
+        return;
+      }
+      
+      if (!Array.isArray(allLoans)) {
+        setActiveLoans([]);
+        return;
+      }
       const USDC_DECIMALS = 6;
 
       const filteredLoans: DisplayLoan[] = [];
@@ -165,9 +197,9 @@ export default function LendPage() {
           if (!loanAccount.lender.equals(publicKey)) continue;
           
           // Safe status check - the critical fix!
+          // Guard against string/null/undefined/primitive before using 'in' operator
           const status = loanAccount.status;
-          if (!status || typeof status !== 'object') continue;
-          if (!('active' in status)) continue;
+          if (!hasProperty(status, 'active')) continue;
 
           // Extract loan data with safe accessors
           const principal = safeGet(() => {

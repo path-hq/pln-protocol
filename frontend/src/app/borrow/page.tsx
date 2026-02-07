@@ -60,100 +60,136 @@ export default function BorrowPage() {
   const fetchData = useCallback(async () => {
     if (!publicKey || !provider || !reputation || !creditMarket) {
       setIsLoading(false);
+      // Set defaults when wallet is connected but programs not ready
+      setUsdcBalance(0);
+      setAgentReputation(0);
+      setAvailableBorrow(0);
+      setLoanOffers([]);
+      setActiveLoans([]);
       return;
     }
 
     setIsLoading(true);
+    
+    // Fetch USDC Balance
     try {
-      // Fetch USDC Balance
       const associatedTokenAccount = await getAssociatedTokenAddress(
         USDC_MINT_ADDRESS,
         publicKey
       );
+      const accountInfo = await connection.getTokenAccountBalance(associatedTokenAccount);
+      setUsdcBalance(accountInfo.value.uiAmount || 0);
+    } catch (error) {
+      console.warn("USDC Associated Token Account not found or empty, setting balance to 0:", error);
+      setUsdcBalance(0);
+    }
 
-      try {
-        const accountInfo = await connection.getTokenAccountBalance(associatedTokenAccount);
-        setUsdcBalance(accountInfo.value.uiAmount || 0);
-      } catch (error) {
-        console.warn("USDC Associated Token Account not found or empty, setting balance to 0:", error);
-        setUsdcBalance(0);
-      }
-
-      // Fetch Agent Reputation
+    // Fetch Agent Reputation
+    let agentReputationValue = 0;
+    try {
       const [agentReputationPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("reputation"), publicKey.toBuffer()],
         reputation.programId
       );
+      const agentReputationAccount = await reputation.account.agent.fetch(agentReputationPDA) as { totalReputation: { toNumber: () => number } };
+      agentReputationValue = agentReputationAccount.totalReputation.toNumber();
+      setAgentReputation(agentReputationValue);
+    } catch (error) {
+      console.warn("Agent Reputation Account not found, setting reputation to 0:", error);
+      setAgentReputation(0);
+    }
 
-      try {
-        const agentReputationAccount = await reputation.account.agent.fetch(agentReputationPDA) as { totalReputation: { toNumber: () => number } };
-        setAgentReputation(agentReputationAccount.totalReputation.toNumber());
-      } catch (error) {
-        console.warn("Agent Reputation Account not found, setting reputation to 0:", error);
-        setAgentReputation(0);
-      }
+    // Fetch available borrow (leaving as 0 for now as per instructions)
+    setAvailableBorrow(0);
 
-      // Fetch available borrow (leaving as 0 for now as per instructions)
-      setAvailableBorrow(0);
-
-      const agentReputationValue = agentReputation !== null ? agentReputation : 0; // Use 0 if reputation not yet loaded
-
-      // Fetch Loan Offers
+    // Fetch Loan Offers
+    try {
       const lendOffersAccounts = await creditMarket.account.lendOffer.all();
       const mappedLoanOffers = lendOffersAccounts
-        .filter((offer: any) => offer.account.isActive && offer.account.minReputation.toNumber() <= agentReputationValue)
-        .map((offer: any) => ({
-          pubkey: offer.publicKey,
-          lender: offer.account.lender,
-          amount: offer.account.amount,
-          minRateBps: offer.account.minRateBps,
-          maxDuration: offer.account.maxDuration,
-          minReputation: offer.account.minReputation.toNumber(),
-          lenderUsdcAccount: offer.account.lenderUsdcAccount,
-        } as LendOffer));
+        .filter((offer: any) => {
+          try {
+            return offer.account.isActive && offer.account.minReputation.toNumber() <= agentReputationValue;
+          } catch {
+            return false;
+          }
+        })
+        .map((offer: any) => {
+          try {
+            return {
+              pubkey: offer.publicKey,
+              lender: offer.account.lender,
+              amount: offer.account.amount,
+              minRateBps: offer.account.minRateBps,
+              maxDuration: offer.account.maxDuration,
+              minReputation: offer.account.minReputation.toNumber(),
+              lenderUsdcAccount: offer.account.lenderUsdcAccount,
+            } as LendOffer;
+          } catch {
+            return null;
+          }
+        })
+        .filter((offer): offer is LendOffer => offer !== null);
       setLoanOffers(mappedLoanOffers);
+    } catch (error) {
+      console.warn("Error fetching loan offers, showing empty list:", error);
+      setLoanOffers([]);
+    }
 
-      // Fetch Active Loans
+    // Fetch Active Loans
+    try {
       const loanAccounts = await creditMarket.account.loan.all();
       const mappedActiveLoans = loanAccounts
-        .filter((loan: any) => publicKey && loan.account.borrower.equals(publicKey))
-        .map((loan: any) => {
-          let status: 'active' | 'repaid' | 'liquidated';
-          if (loan.account.status.active) {
-            status = 'active';
-          } else if (loan.account.status.repaid) {
-            status = 'repaid';
-          } else if (loan.account.status.liquidated) {
-            status = 'liquidated';
-          } else {
-            status = 'active'; // Default or handle other cases if needed
+        .filter((loan: any) => {
+          try {
+            return publicKey && loan.account.borrower.equals(publicKey);
+          } catch {
+            return false;
           }
+        })
+        .map((loan: any) => {
+          try {
+            let status: 'active' | 'repaid' | 'liquidated';
+            const loanStatus = loan.account.status;
+            
+            // Safely check status properties
+            if (loanStatus && typeof loanStatus === 'object') {
+              if ('active' in loanStatus && loanStatus.active) {
+                status = 'active';
+              } else if ('repaid' in loanStatus && loanStatus.repaid) {
+                status = 'repaid';
+              } else if ('liquidated' in loanStatus && loanStatus.liquidated) {
+                status = 'liquidated';
+              } else {
+                status = 'active'; // Default
+              }
+            } else {
+              status = 'active'; // Default if status is not an object
+            }
 
-          return {
-            pubkey: loan.publicKey,
-            lender: loan.account.lender,
-            borrower: loan.account.borrower,
-            loanMint: loan.account.loanMint,
-            principalAmount: loan.account.principalAmount,
-            repaymentAmount: loan.account.repaymentAmount,
-            apy: loan.account.apy.toNumber(),
-            dueDate: loan.account.dueDate,
-            status: status,
-          } as ActiveLoan;
-        });
+            return {
+              pubkey: loan.publicKey,
+              lender: loan.account.lender,
+              borrower: loan.account.borrower,
+              loanMint: loan.account.loanMint,
+              principalAmount: loan.account.principalAmount,
+              repaymentAmount: loan.account.repaymentAmount,
+              apy: loan.account.apy?.toNumber?.() ?? 0,
+              dueDate: loan.account.dueDate,
+              status: status,
+            } as ActiveLoan;
+          } catch {
+            return null;
+          }
+        })
+        .filter((loan): loan is ActiveLoan => loan !== null);
       setActiveLoans(mappedActiveLoans);
-
     } catch (error) {
-      console.error("Error fetching data:", error);
-      setUsdcBalance(null);
-      setAgentReputation(null);
-      setAvailableBorrow(null);
-      setLoanOffers([]);
+      console.warn("Error fetching active loans, showing empty list:", error);
       setActiveLoans([]);
-    } finally {
-      setIsLoading(false);
     }
-  }, [publicKey, provider, reputation, creditMarket, connection, agentReputation]);
+
+    setIsLoading(false);
+  }, [publicKey, provider, reputation, creditMarket, connection]);
 
   useEffect(() => {
     fetchData();
@@ -319,7 +355,15 @@ export default function BorrowPage() {
     }
 
     try {
-      const loanAccount = await creditMarket.account.loan.fetch(loanPubKey) as any;
+      let loanAccount: any;
+      try {
+        loanAccount = await creditMarket.account.loan.fetch(loanPubKey);
+      } catch (fetchError) {
+        console.error("Loan account not found:", fetchError);
+        alert("Loan account not found. It may have already been repaid.");
+        fetchData();
+        return;
+      }
 
       const borrowerUsdcAccount = await getAssociatedTokenAddress(
         USDC_MINT_ADDRESS,
