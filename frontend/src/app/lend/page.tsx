@@ -129,7 +129,7 @@ export default function LendPage() {
       // Wrap fetch in inner try/catch - account may not exist for new wallets
       let account: LenderPositionAccount | null = null;
       try {
-        account = await liquidityRouter.account.lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
+        account = await (liquidityRouter.account as any).lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
       } catch (fetchError) {
         // Account doesn't exist yet - this is normal for wallets that haven't deposited
         console.log("Lender position not found (wallet may not have deposited yet):", fetchError);
@@ -160,46 +160,70 @@ export default function LendPage() {
   }, [publicKey, liquidityRouter]);
 
   // Fetch active loans from Credit Market
-  // DISABLED: IDL mismatch causes crash during deserialization
-  // The loanStatus field in credit_market.json IDL doesn't match on-chain data structure
-  // Error: "Cannot use 'in' operator to search for 'fee' in loanStatus"
   const fetchActiveLoans = useCallback(async () => {
-    // Nuclear fix: Skip all loan fetching until IDL is fixed
-    console.log("Loan fetching disabled due to IDL mismatch - showing empty state");
-    setActiveLoans([]);
-    return;
-    
-    // Original code commented out below for reference:
-    /*
     if (!publicKey || !reputation || !liquidityRouter) {
       setActiveLoans([]);
       return;
     }
+    
+    // Defensive try/catch for all on-chain fetches
+    let allLoans: any[] = [];
     try {
-      let allLoans: any[] = [];
-      try {
-        allLoans = await reputation.account.loan.all();
-      } catch (fetchError) {
-        console.log("No loan accounts found or account type doesn't exist:", fetchError);
-        setActiveLoans([]);
-        return;
-      }
-      
-      if (!Array.isArray(allLoans)) {
-        setActiveLoans([]);
-        return;
-      }
-      const USDC_DECIMALS = 6;
-      const filteredLoans: DisplayLoan[] = [];
-      for (const loan of allLoans) {
-        // ... loan processing ...
-      }
-      setActiveLoans(filteredLoans);
-    } catch (error) {
-      console.error("Error fetching active loans:", error);
-      setActiveLoans([]);
+      allLoans = await (reputation.account as any).loan.all();
+    } catch (e) {
+      console.error("IDL deserialization failed for reputation.account.loan.all():", e);
+      allLoans = [];
     }
-    */
+    
+    if (!Array.isArray(allLoans) || allLoans.length === 0) {
+      setActiveLoans([]);
+      return;
+    }
+    
+    const USDC_DECIMALS = 6;
+    const filteredLoans: DisplayLoan[] = [];
+    
+    for (const loan of allLoans) {
+      try {
+        // Skip if account data is malformed
+        if (!loan || !loan.account) continue;
+        
+        const account = loan.account;
+        
+        // Safely check if this loan belongs to our user as lender
+        const lender = safeGet(() => account.lender, null);
+        if (!lender || !publicKey.equals(lender)) continue;
+        
+        // Safely check if loan is active
+        const status = safeGet(() => account.status, null);
+        const isActive = status && typeof status === 'object' && hasProperty(status, 'active');
+        if (!isActive) continue;
+        
+        // Safely extract loan data
+        const id = safeGet(() => loan.publicKey.toBase58().slice(0, 8), 'unknown');
+        const borrower = safeGet(() => account.borrower?.toBase58().slice(0, 8) + '...', 'Unknown');
+        const principal = safeGet(() => account.principal?.toNumber() / (10 ** USDC_DECIMALS), 0);
+        const rateBps = safeGet(() => account.rateBps, 0);
+        const startTime = safeGet(() => account.startTime?.toNumber(), 0);
+        const healthFactor = safeGet(() => account.healthFactor, 1.5);
+        
+        filteredLoans.push({
+          id,
+          borrower,
+          amount: `$${principal.toFixed(2)}`,
+          collateral: 'Reputation-backed',
+          apy: rateBps / 100,
+          startDate: startTime > 0 ? new Date(startTime * 1000).toLocaleDateString() : 'N/A',
+          health: healthFactor,
+        });
+      } catch (loanError) {
+        // Skip malformed loan entries
+        console.warn("Skipping malformed loan entry:", loanError);
+        continue;
+      }
+    }
+    
+    setActiveLoans(filteredLoans);
   }, [publicKey, reputation, liquidityRouter]);
 
   useEffect(() => {
@@ -212,7 +236,14 @@ export default function LendPage() {
           fetchActiveLoans(),
         ]);
       } catch (error) {
-        console.error("Error loading data:", error);
+        // MASTER CATCH: If anything fails, set all state to defaults
+        console.error("Failed to load on-chain data:", error);
+        setUsdcBalance(0);
+        setLenderPositionAccount(null);
+        setCurrentAPY(null);
+        setMinP2PRateBps(0);
+        setKaminoBufferBps(0);
+        setActiveLoans([]);
       } finally {
         setIsLoading(false);
       }
@@ -221,13 +252,17 @@ export default function LendPage() {
     loadData();
 
     const interval = setInterval(() => {
-      try {
-        fetchUsdcBalance();
-        fetchLenderPosition();
-        fetchActiveLoans();
-      } catch (error) {
-        console.error("Error in refresh interval:", error);
-      }
+      // Wrap interval refresh in try/catch too
+      (async () => {
+        try {
+          await fetchUsdcBalance();
+          await fetchLenderPosition();
+          await fetchActiveLoans();
+        } catch (error) {
+          console.error("Error in refresh interval:", error);
+          // Don't reset state on interval errors, just log
+        }
+      })();
     }, 15000);
     return () => clearInterval(interval);
   }, [fetchUsdcBalance, fetchLenderPosition, fetchActiveLoans]);

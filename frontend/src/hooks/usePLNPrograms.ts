@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Program, Idl, AnchorProvider, Wallet } from '@coral-xyz/anchor'; // Corrected import
+import { Program, Idl, AnchorProvider, Wallet } from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { useAnchorWallet } from '@solana/wallet-adapter-react';
 
@@ -31,20 +31,21 @@ export const usePLNPrograms = (): Programs => {
 
   const reputationProgram = useMemo(() => {
     if (!provider) return null;
-    const programId = new PublicKey(REPUTATION_PROGRAM_ID);
-    return new Program(reputationIDL as Idl, programId, provider);
+    // Anchor 0.30+ uses (idl, provider) signature with address in IDL
+    const idlWithAddress = { ...reputationIDL, address: REPUTATION_PROGRAM_ID };
+    return new Program(idlWithAddress as unknown as Idl, provider);
   }, [provider]);
 
   const creditMarketProgram = useMemo(() => {
     if (!provider) return null;
-    const programId = new PublicKey(CREDIT_MARKET_PROGRAM_ID);
-    return new Program(creditMarketIDL as Idl, programId, provider);
+    const idlWithAddress = { ...creditMarketIDL, address: CREDIT_MARKET_PROGRAM_ID };
+    return new Program(idlWithAddress as unknown as Idl, provider);
   }, [provider]);
 
   const liquidityRouterProgram = useMemo(() => {
     if (!provider) return null;
-    const programId = new PublicKey(LIQUIDITY_ROUTER_PROGRAM_ID);
-    return new Program(liquidityRouterIDL as Idl, programId, provider);
+    const idlWithAddress = { ...liquidityRouterIDL, address: LIQUIDITY_ROUTER_PROGRAM_ID };
+    return new Program(idlWithAddress as unknown as Idl, provider);
   }, [provider]);
 
   return {

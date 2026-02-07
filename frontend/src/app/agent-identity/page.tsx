@@ -66,7 +66,23 @@ export default function AgentIdentityPage() {
         new PublicKey('7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY') // Reputation Program ID
       );
 
-      const profile = await reputationProgram.account.agentProfile.fetch(profilePDA);
+      // Defensive try/catch for on-chain fetch - cast to any to avoid IDL type issues
+      let profile: any = null;
+      try {
+        profile = await (reputationProgram.account as any).agentProfile.fetch(profilePDA);
+      } catch (fetchError) {
+        console.error("IDL deserialization failed for reputation.account.agentProfile.fetch():", fetchError);
+        setError("Failed to fetch profile: Account not found or IDL mismatch");
+        setLoading(false);
+        return;
+      }
+      
+      if (!profile) {
+        setError("Profile not found for this agent.");
+        setLoading(false);
+        return;
+      }
+      
       setAgentProfile(profile as unknown as AgentProfile);
 
     } catch (err: any) {

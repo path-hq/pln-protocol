@@ -84,127 +84,148 @@ export default function BorrowPage() {
       setUsdcBalance(0);
     }
 
-    // Fetch Agent Reputation
+    // Fetch Agent Reputation with defensive try/catch
     let agentReputationValue = 0;
     try {
       const [agentReputationPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("reputation"), publicKey.toBuffer()],
         reputation.programId
       );
-      const agentReputationAccount = await reputation.account.agent.fetch(agentReputationPDA) as { totalReputation: { toNumber: () => number } };
-      agentReputationValue = agentReputationAccount.totalReputation.toNumber();
+      // Cast to any to avoid IDL type issues
+      const agentReputationAccount = await (reputation.account as any).agent.fetch(agentReputationPDA) as { totalReputation: { toNumber: () => number } };
+      agentReputationValue = agentReputationAccount?.totalReputation?.toNumber?.() ?? 0;
       setAgentReputation(agentReputationValue);
     } catch (error) {
-      console.warn("Agent Reputation Account not found, setting reputation to 0:", error);
+      console.error("IDL deserialization failed for reputation.account.agent.fetch():", error);
       setAgentReputation(0);
     }
 
     // Fetch available borrow (leaving as 0 for now as per instructions)
     setAvailableBorrow(0);
 
-    // DISABLED: IDL mismatch causes crash during deserialization
-    // The loanStatus field in credit_market.json IDL doesn't match on-chain data structure
-    // Error: "Cannot use 'in' operator to search for 'fee' in loanStatus"
-    // Nuclear fix: Skip all loan/offer fetching until IDL is fixed
-    console.log("Loan/offer fetching disabled due to IDL mismatch - showing empty state");
-    setLoanOffers([]);
-    setActiveLoans([]);
-
-    // Original code commented out below for reference:
-    /*
-    // Fetch Loan Offers
+    // Fetch Loan Offers with defensive try/catch
+    let lendOffersAccounts: any[] = [];
     try {
-      const lendOffersAccounts = await creditMarket.account.lendOffer.all();
-      const mappedLoanOffers = lendOffersAccounts
-        .filter((offer: any) => {
-          try {
-            return offer.account.isActive && offer.account.minReputation.toNumber() <= agentReputationValue;
-          } catch {
-            return false;
-          }
-        })
-        .map((offer: any) => {
-          try {
-            return {
-              pubkey: offer.publicKey,
-              lender: offer.account.lender,
-              amount: offer.account.amount,
-              minRateBps: offer.account.minRateBps,
-              maxDuration: offer.account.maxDuration,
-              minReputation: offer.account.minReputation.toNumber(),
-              lenderUsdcAccount: offer.account.lenderUsdcAccount,
-            } as LendOffer;
-          } catch {
-            return null;
-          }
-        })
-        .filter((offer): offer is LendOffer => offer !== null);
-      setLoanOffers(mappedLoanOffers);
-    } catch (error) {
-      console.warn("Error fetching loan offers, showing empty list:", error);
-      setLoanOffers([]);
+      lendOffersAccounts = await (creditMarket.account as any).lendOffer.all();
+    } catch (e) {
+      console.error("IDL deserialization failed for creditMarket.account.lendOffer.all():", e);
+      lendOffersAccounts = [];
     }
+    
+    const mappedLoanOffers = (lendOffersAccounts || [])
+      .filter((offer: any) => {
+        try {
+          return offer?.account?.isActive && 
+                 offer.account.minReputation?.toNumber?.() <= agentReputationValue;
+        } catch {
+          return false;
+        }
+      })
+      .map((offer: any) => {
+        try {
+          if (!offer?.account) return null;
+          return {
+            pubkey: offer.publicKey,
+            lender: offer.account.lender,
+            amount: offer.account.amount,
+            minRateBps: offer.account.minRateBps ?? 0,
+            maxDuration: offer.account.maxDuration,
+            minReputation: offer.account.minReputation?.toNumber?.() ?? 0,
+            lenderUsdcAccount: offer.account.lenderUsdcAccount,
+          } as LendOffer;
+        } catch {
+          return null;
+        }
+      })
+      .filter((offer): offer is LendOffer => offer !== null);
+    setLoanOffers(mappedLoanOffers);
 
-    // Fetch Active Loans
+    // Fetch Active Loans with defensive try/catch
+    let loanAccounts: any[] = [];
     try {
-      const loanAccounts = await creditMarket.account.loan.all();
-      const mappedActiveLoans = loanAccounts
-        .filter((loan: any) => {
-          try {
-            return publicKey && loan.account.borrower.equals(publicKey);
-          } catch {
-            return false;
-          }
-        })
-        .map((loan: any) => {
-          try {
-            let status: 'active' | 'repaid' | 'liquidated';
-            const loanStatus = loan.account.status;
-            
-            // Safely check status properties
-            if (loanStatus && typeof loanStatus === 'object') {
-              if ('active' in loanStatus && loanStatus.active) {
-                status = 'active';
-              } else if ('repaid' in loanStatus && loanStatus.repaid) {
-                status = 'repaid';
-              } else if ('liquidated' in loanStatus && loanStatus.liquidated) {
-                status = 'liquidated';
-              } else {
-                status = 'active'; // Default
-              }
+      loanAccounts = await (creditMarket.account as any).loan.all();
+    } catch (e) {
+      console.error("IDL deserialization failed for creditMarket.account.loan.all():", e);
+      loanAccounts = [];
+    }
+    
+    const mappedActiveLoans = (loanAccounts || [])
+      .filter((loan: any) => {
+        try {
+          return publicKey && loan?.account?.borrower?.equals?.(publicKey);
+        } catch {
+          return false;
+        }
+      })
+      .map((loan: any) => {
+        try {
+          if (!loan?.account) return null;
+          
+          let status: 'active' | 'repaid' | 'liquidated';
+          const loanStatus = loan.account.status;
+          
+          // Safely check status properties
+          if (loanStatus && typeof loanStatus === 'object' && !Array.isArray(loanStatus)) {
+            if ('active' in loanStatus && loanStatus.active) {
+              status = 'active';
+            } else if ('repaid' in loanStatus && loanStatus.repaid) {
+              status = 'repaid';
+            } else if ('liquidated' in loanStatus && loanStatus.liquidated) {
+              status = 'liquidated';
             } else {
-              status = 'active'; // Default if status is not an object
+              status = 'active'; // Default
             }
-
-            return {
-              pubkey: loan.publicKey,
-              lender: loan.account.lender,
-              borrower: loan.account.borrower,
-              loanMint: loan.account.loanMint,
-              principalAmount: loan.account.principalAmount,
-              repaymentAmount: loan.account.repaymentAmount,
-              apy: loan.account.apy?.toNumber?.() ?? 0,
-              dueDate: loan.account.dueDate,
-              status: status,
-            } as ActiveLoan;
-          } catch {
-            return null;
+          } else {
+            status = 'active'; // Default if status is not an object
           }
-        })
-        .filter((loan): loan is ActiveLoan => loan !== null);
-      setActiveLoans(mappedActiveLoans);
-    } catch (error) {
-      console.warn("Error fetching active loans, showing empty list:", error);
-      setActiveLoans([]);
-    }
-    */
+
+          return {
+            pubkey: loan.publicKey,
+            lender: loan.account.lender,
+            borrower: loan.account.borrower,
+            loanMint: loan.account.loanMint,
+            principalAmount: loan.account.principalAmount,
+            repaymentAmount: loan.account.repaymentAmount,
+            apy: loan.account.apy?.toNumber?.() ?? 0,
+            dueDate: loan.account.dueDate,
+            status: status,
+          } as ActiveLoan;
+        } catch {
+          return null;
+        }
+      })
+      .filter((loan): loan is ActiveLoan => loan !== null);
+    setActiveLoans(mappedActiveLoans);
 
     setIsLoading(false);
   }, [publicKey, provider, reputation, creditMarket, connection]);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+    const loadData = async () => {
+      try {
+        await fetchData();
+      } catch (error) {
+        // MASTER CATCH: If anything fails, set all state to defaults
+        console.error("Failed to load on-chain data:", error);
+        setUsdcBalance(0);
+        setAgentReputation(0);
+        setAvailableBorrow(0);
+        setLoanOffers([]);
+        setActiveLoans([]);
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+    
+    const interval = setInterval(async () => {
+      try {
+        await fetchData();
+      } catch (error) {
+        console.error("Error in refresh interval:", error);
+        // Don't reset state on interval errors, just log
+      }
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -366,11 +387,18 @@ export default function BorrowPage() {
     }
 
     try {
-      let loanAccount: any;
+      // Defensive try/catch for on-chain fetch
+      let loanAccount: any = null;
       try {
-        loanAccount = await creditMarket.account.loan.fetch(loanPubKey);
+        loanAccount = await (creditMarket.account as any).loan.fetch(loanPubKey);
       } catch (fetchError) {
-        console.error("Loan account not found:", fetchError);
+        console.error("IDL deserialization failed for creditMarket.account.loan.fetch():", fetchError);
+        alert("Loan account not found or could not be read. It may have already been repaid.");
+        fetchData();
+        return;
+      }
+      
+      if (!loanAccount) {
         alert("Loan account not found. It may have already been repaid.");
         fetchData();
         return;
