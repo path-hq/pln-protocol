@@ -56,12 +56,12 @@ const PLNLanding = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Simulated live stats
+  // Devnet stats - honest zeros
   const stats = [
-    { label: "Total Liquidity", value: "$2.4M", sub: "USDC deposited" },
-    { label: "Active Agents", value: "47", sub: "borrowing now" },
-    { label: "Avg Lender APY", value: "14.2%", sub: "last 30 days" },
-    { label: "Loans Repaid", value: "98.7%", sub: "repayment rate" },
+    { label: "Total Liquidity", value: "$0", sub: "Devnet — deposit to start" },
+    { label: "Active Agents", value: "0", sub: "Register on devnet" },
+    { label: "Programs", value: "4", sub: "Deployed on Solana" },
+    { label: "Network", value: "Devnet", sub: "Testnet live" },
   ];
 
   const howItWorks = [
@@ -153,7 +153,7 @@ const PLNLanding = () => {
               cta: "Start Earning",
               href: "/lend",
               icon: DollarSign,
-              stats: "14.2% avg APY",
+              stats: "Live on Devnet",
             },
             {
               title: "I'm an Agent",
@@ -161,7 +161,7 @@ const PLNLanding = () => {
               cta: "Get the Skill",
               href: "/borrow",
               icon: Bot,
-              stats: "47 agents active",
+              stats: "Register now",
             },
           ].map((card, i) => (
             <div
