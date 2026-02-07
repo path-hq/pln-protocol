@@ -7,7 +7,7 @@ import reputationIDL from '../idl/reputation.json';
 import creditMarketIDL from '../idl/credit_market.json';
 import liquidityRouterIDL from '../idl/liquidity_router.json';
 
-// Program IDs from Fares' instructions
+// Program IDs from deployed contracts
 const REPUTATION_PROGRAM_ID = "7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY";
 const CREDIT_MARKET_PROGRAM_ID = "6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp";
 const LIQUIDITY_ROUTER_PROGRAM_ID = "AXQfi8qNUB4wShb3LRKuVnYPF2CErMv1N6KiRwdHmQBu";
@@ -29,23 +29,38 @@ export const usePLNPrograms = (): Programs => {
     return new AnchorProvider(connection, wallet as Wallet, { preflightCommitment: 'confirmed' });
   }, [wallet]);
 
+  // Anchor 0.29 API: new Program(idl, programId, provider)
   const reputationProgram = useMemo(() => {
     if (!provider) return null;
-    // Anchor 0.30+ uses (idl, provider) signature with address in IDL
-    const idlWithAddress = { ...reputationIDL, address: REPUTATION_PROGRAM_ID };
-    return new Program(idlWithAddress as unknown as Idl, provider);
+    try {
+      const programId = new PublicKey(REPUTATION_PROGRAM_ID);
+      return new Program(reputationIDL as Idl, programId, provider);
+    } catch (e) {
+      console.error("Failed to create reputation program:", e);
+      return null;
+    }
   }, [provider]);
 
   const creditMarketProgram = useMemo(() => {
     if (!provider) return null;
-    const idlWithAddress = { ...creditMarketIDL, address: CREDIT_MARKET_PROGRAM_ID };
-    return new Program(idlWithAddress as unknown as Idl, provider);
+    try {
+      const programId = new PublicKey(CREDIT_MARKET_PROGRAM_ID);
+      return new Program(creditMarketIDL as Idl, programId, provider);
+    } catch (e) {
+      console.error("Failed to create credit market program:", e);
+      return null;
+    }
   }, [provider]);
 
   const liquidityRouterProgram = useMemo(() => {
     if (!provider) return null;
-    const idlWithAddress = { ...liquidityRouterIDL, address: LIQUIDITY_ROUTER_PROGRAM_ID };
-    return new Program(idlWithAddress as unknown as Idl, provider);
+    try {
+      const programId = new PublicKey(LIQUIDITY_ROUTER_PROGRAM_ID);
+      return new Program(liquidityRouterIDL as Idl, programId, provider);
+    } catch (e) {
+      console.error("Failed to create liquidity router program:", e);
+      return null;
+    }
   }, [provider]);
 
   return {

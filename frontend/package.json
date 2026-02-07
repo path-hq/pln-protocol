@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@bonfida/spl-name-service": "^3.0.16",
+    "@coral-xyz/anchor": "^0.29.0",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-phantom": "^0.9.28",
     "@solana/wallet-adapter-react": "^0.15.39",
@@ -18,7 +19,6 @@
     "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.4",
     "lucide-react": "^0.563.0",
-    "@coral-xyz/anchor": "^0.30.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
