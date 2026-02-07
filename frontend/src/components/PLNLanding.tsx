@@ -47,6 +47,7 @@ const Check = ({ size = 14 }: { size?: number }) => (
 
 const PLNLanding = () => {
   const [mounted, setMounted] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -626,7 +627,189 @@ const PLNLanding = () => {
         }
         
         .footer-links a:hover { color: #fafafa; }
+        
+        /* Install Modal */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+        }
+        
+        .modal-content {
+          background: #0f0f12;
+          border: 1px solid #27272a;
+          border-radius: 16px;
+          max-width: 480px;
+          width: 100%;
+          padding: 24px;
+        }
+        
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        
+        .modal-title {
+          font-size: 20px;
+          font-weight: 700;
+        }
+        
+        .modal-close {
+          background: none;
+          border: none;
+          color: #71717a;
+          cursor: pointer;
+          font-size: 24px;
+          padding: 0;
+          line-height: 1;
+        }
+        
+        .modal-close:hover { color: #fff; }
+        
+        .install-step {
+          margin-bottom: 20px;
+        }
+        
+        .install-step-num {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #22c55e;
+          color: #09090b;
+          font-size: 12px;
+          font-weight: 700;
+          margin-right: 10px;
+        }
+        
+        .install-step-title {
+          font-size: 15px;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+        
+        .install-code {
+          background: #09090b;
+          border: 1px solid #27272a;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px;
+          color: #22c55e;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .copy-btn {
+          background: #27272a;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 10px;
+          color: #a1a1aa;
+          font-size: 12px;
+          cursor: pointer;
+        }
+        
+        .copy-btn:hover { background: #3f3f46; color: #fff; }
+        
+        .install-note {
+          font-size: 13px;
+          color: #71717a;
+          margin-top: 8px;
+        }
+        
+        .install-alt {
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid #27272a;
+        }
+        
+        .install-alt-title {
+          font-size: 13px;
+          color: #71717a;
+          margin-bottom: 12px;
+        }
+        
+        .install-alt-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: #27272a;
+          color: #fff;
+          padding: 10px 16px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        
+        .install-alt-btn:hover { background: #3f3f46; }
       `}</style>
+
+      {/* Install Modal */}
+      {showInstall && (
+        <div className="modal-overlay" onClick={() => setShowInstall(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Install PLN Skill</h2>
+              <button className="modal-close" onClick={() => setShowInstall(false)}>×</button>
+            </div>
+            
+            <div className="install-step">
+              <div className="install-step-title">
+                <span className="install-step-num">1</span>
+                Copy the skill to your OpenClaw workspace
+              </div>
+              <div className="install-code">
+                <span>git clone https://github.com/path-hq/pln-protocol.git</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('git clone https://github.com/path-hq/pln-protocol.git')}>Copy</button>
+              </div>
+            </div>
+            
+            <div className="install-step">
+              <div className="install-step-title">
+                <span className="install-step-num">2</span>
+                Link the skill
+              </div>
+              <div className="install-code">
+                <span>cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/')}>Copy</button>
+              </div>
+            </div>
+            
+            <div className="install-step">
+              <div className="install-step-title">
+                <span className="install-step-num">3</span>
+                Start chatting
+              </div>
+              <p className="install-note">
+                Say "activate PLN" or "I want to lend my USDC" — your agent will handle the rest.
+              </p>
+            </div>
+            
+            <div className="install-alt">
+              <div className="install-alt-title">Or try the web app directly:</div>
+              <a href="/lend" className="install-alt-btn">
+                <Wallet size={16} />
+                Open Lend Dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="hero-section">
@@ -640,10 +823,10 @@ const PLNLanding = () => {
         <p className="hero-subtitle">
           Install the PLN skill. Fund your wallet. Say "lend my USDC" — your agent handles the rest.
         </p>
-        <a href="/lend" className="cta-button">
+        <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
           <Download size={18} />
           Install PLN Skill
-        </a>
+        </button>
 
         {/* Chat Preview */}
         <div className="chat-preview">
@@ -763,10 +946,10 @@ const PLNLanding = () => {
         <h2>Ready to put your USDC to work?</h2>
         <p>Install the skill and start earning in minutes.</p>
         <div className="cta-buttons">
-          <a href="/lend" className="cta-button">
+          <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
             <Download size={18} />
             Install Skill
-          </a>
+          </button>
           <a href="https://github.com/path-hq/pln-protocol" className="cta-secondary">
             View on GitHub
           </a>
