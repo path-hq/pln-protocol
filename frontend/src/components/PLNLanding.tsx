@@ -45,6 +45,88 @@ const Check = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 );
 
+// Terminal Visual Component
+const TerminalVisual = () => {
+  const [displayedLines, setDisplayedLines] = useState<string[]>([]);
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const [isTyping, setIsTyping] = useState(true);
+
+  const terminalLines = [
+    '$ pln status',
+    '',
+    '┌─────────────────────────────────────────┐',
+    '│  PLN Agent • Running 24/7               │',
+    '├─────────────────────────────────────────┤',
+    '│  Wallet: 7xKp...3mNq                    │',
+    '│  USDC Deposited: 5,000.00               │',
+    '│  Current APY: 12.4%                     │',
+    '│  Strategy: Kamino Lending               │',
+    '├─────────────────────────────────────────┤',
+    '│  Active Loans: 2                        │',
+    '│  → agent.sol borrowed 1,000 USDC        │',
+    '│  → trader.sol borrowed 500 USDC         │',
+    '├─────────────────────────────────────────┤',
+    '│  Reputation Score: 850                  │',
+    '│  Loans Completed: 47                    │',
+    '└─────────────────────────────────────────┘',
+  ];
+
+  useEffect(() => {
+    let lineIndex = 0;
+    const typeNextLine = () => {
+      if (lineIndex < terminalLines.length) {
+        setDisplayedLines(prev => [...prev, terminalLines[lineIndex]]);
+        lineIndex++;
+        // Faster for box drawing, slower for command
+        const delay = lineIndex === 1 ? 300 : lineIndex <= 2 ? 150 : 80;
+        setTimeout(typeNextLine, delay);
+      } else {
+        setIsTyping(false);
+      }
+    };
+    
+    // Start typing after a small delay
+    const startTimeout = setTimeout(typeNextLine, 500);
+    return () => clearTimeout(startTimeout);
+  }, []);
+
+  // Blinking cursor effect
+  useEffect(() => {
+    const cursorInterval = setInterval(() => {
+      setCursorVisible(prev => !prev);
+    }, 530);
+    return () => clearInterval(cursorInterval);
+  }, []);
+
+  return (
+    <div className="terminal-container">
+      <div className="terminal-header">
+        <div className="terminal-dots">
+          <span className="terminal-dot terminal-dot-red"></span>
+          <span className="terminal-dot terminal-dot-yellow"></span>
+          <span className="terminal-dot terminal-dot-green"></span>
+        </div>
+        <span className="terminal-title">pln-agent — bash</span>
+      </div>
+      <div className="terminal-body">
+        {displayedLines.map((line, index) => (
+          <div key={index} className={`terminal-line ${index === 0 ? 'terminal-command' : ''}`}>
+            {line}
+            {index === displayedLines.length - 1 && isTyping && (
+              <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
+            )}
+          </div>
+        ))}
+        {!isTyping && (
+          <div className="terminal-line terminal-command">
+            $ <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const PLNLanding = () => {
   const [mounted, setMounted] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
@@ -56,7 +138,7 @@ const PLNLanding = () => {
   const steps = [
     { icon: Download, title: "Install Skill", desc: "Add PLN to your OpenClaw agent" },
     { icon: Wallet, title: "Fund Wallet", desc: "Deposit SOL + USDC" },
-    { icon: MessageCircle, title: "Chat to Earn", desc: "\"Lend my USDC\" or \"Find yield\"" },
+    { icon: Zap, title: "Set & Forget", desc: "Agent runs 24/7, optimizes yield automatically" },
   ];
 
   const integrations = [
@@ -83,6 +165,8 @@ const PLNLanding = () => {
         .pln-landing * { box-sizing: border-box; }
         
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         .hero-section {
           padding: 40px 16px 32px;
@@ -228,6 +312,81 @@ const PLNLanding = () => {
           color: #a1a1aa;
         }
         
+        /* Terminal Visual */
+        .terminal-container {
+          max-width: 480px;
+          margin: 32px auto 0;
+          background: #0a0a0d;
+          border: 1px solid #22c55e33;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 0 40px rgba(34, 197, 94, 0.1), 0 0 80px rgba(34, 197, 94, 0.05);
+        }
+        
+        .terminal-header {
+          background: #0f0f12;
+          padding: 10px 14px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border-bottom: 1px solid #1f1f24;
+        }
+        
+        .terminal-dots {
+          display: flex;
+          gap: 6px;
+        }
+        
+        .terminal-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+        
+        .terminal-dot-red { background: #ef4444; }
+        .terminal-dot-yellow { background: #eab308; }
+        .terminal-dot-green { background: #22c55e; }
+        
+        .terminal-title {
+          font-size: 12px;
+          color: #52525b;
+          font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .terminal-body {
+          padding: 16px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 12px;
+          line-height: 1.5;
+          min-height: 340px;
+          color: #a1a1aa;
+        }
+        
+        @media (min-width: 768px) {
+          .terminal-body {
+            font-size: 13px;
+            padding: 20px;
+          }
+        }
+        
+        .terminal-line {
+          white-space: pre;
+          min-height: 1.5em;
+        }
+        
+        .terminal-command {
+          color: #22c55e;
+        }
+        
+        .terminal-cursor {
+          opacity: 0;
+          color: #22c55e;
+        }
+        
+        .terminal-cursor.visible {
+          opacity: 1;
+        }
+        
         /* Steps */
         .steps-section {
           padding: 40px 16px;
@@ -355,11 +514,14 @@ const PLNLanding = () => {
         }
         
         .integration-logo {
+          display: block;
           width: 40px;
           height: 40px;
           margin: 0 auto 10px;
           border-radius: 8px;
           object-fit: contain;
+          background: #1a1a1f;
+          padding: 6px;
         }
         
         .integration-name {
@@ -498,6 +660,267 @@ const PLNLanding = () => {
           color: #22c55e;
         }
 
+        /* Never Idle Section */
+        .never-idle-section {
+          padding: 48px 16px;
+          text-align: center;
+          border-top: 1px solid #27272a;
+          background: #09090b;
+        }
+        
+        @media (min-width: 768px) {
+          .never-idle-section { padding: 72px 32px; }
+        }
+        
+        .never-idle-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 100px;
+          background: #8b5cf615;
+          color: #a78bfa;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 16px;
+          font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .never-idle-title {
+          font-size: 24px;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+        
+        @media (min-width: 768px) {
+          .never-idle-title { font-size: 32px; }
+        }
+        
+        .never-idle-subtitle {
+          color: #71717a;
+          font-size: 15px;
+          max-width: 600px;
+          margin: 0 auto 40px;
+          line-height: 1.6;
+        }
+        
+        /* Flow Diagram */
+        .flow-diagram {
+          max-width: 800px;
+          margin: 0 auto 40px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+        }
+        
+        @media (min-width: 768px) {
+          .flow-diagram {
+            flex-direction: row;
+            justify-content: center;
+            gap: 12px;
+          }
+        }
+        
+        .flow-node {
+          background: #0f0f12;
+          border: 1px solid #27272a;
+          border-radius: 12px;
+          padding: 16px 20px;
+          min-width: 160px;
+        }
+        
+        .flow-node-decision {
+          background: #0f0f12;
+          border: 2px solid #a78bfa;
+          border-radius: 12px;
+          padding: 16px 20px;
+          position: relative;
+        }
+        
+        .flow-node-decision::before {
+          content: '?';
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #a78bfa;
+          color: #09090b;
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .flow-node-title {
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+        
+        .flow-node-desc {
+          font-size: 11px;
+          color: #71717a;
+        }
+        
+        .flow-arrow {
+          color: #52525b;
+          font-size: 20px;
+          transform: rotate(90deg);
+        }
+        
+        @media (min-width: 768px) {
+          .flow-arrow { transform: rotate(0deg); }
+        }
+        
+        .flow-branch {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          align-items: center;
+        }
+        
+        @media (min-width: 768px) {
+          .flow-branch {
+            flex-direction: row;
+            gap: 12px;
+          }
+        }
+        
+        .flow-result {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .flow-result-yes {
+          background: #0f0f12;
+          border: 1px solid #22c55e50;
+          border-radius: 12px;
+          padding: 14px 18px;
+        }
+        
+        .flow-result-no {
+          background: #0f0f12;
+          border: 1px solid #3b82f650;
+          border-radius: 12px;
+          padding: 14px 18px;
+        }
+        
+        .flow-label {
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 4px;
+        }
+        
+        .flow-label-yes { color: #22c55e; }
+        .flow-label-no { color: #3b82f6; }
+        
+        /* Yield Sources Animation */
+        .yield-sources {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          max-width: 400px;
+          margin: 0 auto 32px;
+        }
+        
+        .yield-source {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: #0f0f12;
+          border: 1px solid #27272a;
+          border-radius: 8px;
+          padding: 12px 16px;
+        }
+        
+        .yield-source-logo {
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          object-fit: contain;
+        }
+        
+        .yield-source-name {
+          font-size: 14px;
+          font-weight: 500;
+          flex: 1;
+        }
+        
+        .yield-source-bar {
+          flex: 2;
+          height: 8px;
+          background: #27272a;
+          border-radius: 4px;
+          overflow: hidden;
+          position: relative;
+        }
+        
+        .yield-source-fill {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 0.5s ease-out;
+        }
+        
+        .yield-source-apy {
+          font-size: 13px;
+          font-weight: 600;
+          font-family: 'IBM Plex Mono', monospace;
+          min-width: 60px;
+          text-align: right;
+        }
+        
+        /* Never Idle Features */
+        .never-idle-features {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        
+        @media (min-width: 640px) {
+          .never-idle-features { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        .never-idle-feature {
+          display: flex;
+          gap: 12px;
+          text-align: left;
+          background: #0a0a0d;
+          border: 1px solid #1f1f24;
+          border-radius: 10px;
+          padding: 16px;
+        }
+        
+        .never-idle-feature-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: #22c55e15;
+          color: #22c55e;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        
+        .never-idle-feature h4 {
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+        
+        .never-idle-feature p {
+          font-size: 12px;
+          color: #71717a;
+          line-height: 1.4;
+        }
+
         /* Features */
         .features-section {
           padding: 40px 16px;
@@ -517,7 +940,11 @@ const PLNLanding = () => {
         }
         
         @media (min-width: 640px) {
-          .features-grid { grid-template-columns: repeat(3, 1fr); }
+          .features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (min-width: 900px) {
+          .features-grid { grid-template-columns: repeat(4, 1fr); }
         }
         
         .feature-card {
@@ -826,14 +1253,15 @@ const PLNLanding = () => {
       {/* Hero */}
       <section className="hero-section">
         <div className="hero-badge">
-          Solana Devnet • Live Now
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
+          Runs 24/7 • Fully Autonomous
         </div>
         <h1 className="hero-title">
-          Your AI agent earns yield.<br />
-          <span style={{ color: "#22c55e" }}>You just chat.</span>
+          Your agent runs 24/7.<br />
+          <span style={{ color: "#22c55e" }}>Earns yield. Lends to other agents.</span>
         </h1>
         <p className="hero-subtitle">
-          Install the PLN skill. Fund your wallet. Say "lend my USDC" — your agent handles the rest.
+          DeFi infrastructure for AI agents. Auto-rebalances between yield sources. Enables agent-to-agent credit markets — not another chatbot.
         </p>
         <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
           <Download size={18} />
@@ -846,9 +1274,16 @@ const PLNLanding = () => {
             <div className="chat-avatar">
               <Bot size={18} color="#fff" />
             </div>
-            <div>
+            <div style={{ flex: 1 }}>
               <div className="chat-name">PLN Agent</div>
-              <div className="chat-status">● Online</div>
+              <div className="chat-status">
+                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', marginRight: '4px', animation: 'pulse 2s infinite' }}></span>
+                Always Online
+              </div>
+            </div>
+            <div style={{ fontSize: '10px', color: '#52525b', textAlign: 'right' }}>
+              <div>Last rebalance</div>
+              <div style={{ color: '#22c55e' }}>2 min ago</div>
             </div>
           </div>
           <div className="chat-body">
@@ -862,6 +1297,9 @@ const PLNLanding = () => {
             </div>
           </div>
         </div>
+
+        {/* Terminal Visual */}
+        <TerminalVisual />
       </section>
 
       {/* 3 Steps */}
@@ -935,10 +1373,119 @@ const PLNLanding = () => {
         </div>
       </section>
 
+      {/* Never Idle Section */}
+      <section className="never-idle-section">
+        <div className="never-idle-badge">24/7 Optimization</div>
+        <h2 className="never-idle-title">Never Idle</h2>
+        <p className="never-idle-subtitle">
+          When there aren't borrowers, your agent doesn't just sit idle — it actively rebalances 
+          between the best stablecoin yield sources to maximize your returns around the clock.
+        </p>
+        
+        {/* Flow Diagram */}
+        <div className="flow-diagram">
+          <div className="flow-node">
+            <div className="flow-node-title">Your USDC</div>
+            <div className="flow-node-desc">Deposited in PLN</div>
+          </div>
+          
+          <div className="flow-arrow">→</div>
+          
+          <div className="flow-node-decision">
+            <div className="flow-node-title">Borrower Available?</div>
+            <div className="flow-node-desc">Agent checks demand</div>
+          </div>
+          
+          <div className="flow-arrow">→</div>
+          
+          <div className="flow-result">
+            <div className="flow-result-yes">
+              <div className="flow-label flow-label-yes">✓ Yes</div>
+              <div className="flow-node-title">A2A Lending</div>
+              <div className="flow-node-desc">Premium rates (15%+)</div>
+            </div>
+            <div className="flow-result-no">
+              <div className="flow-label flow-label-no">✗ No</div>
+              <div className="flow-node-title">Pool Rebalancing</div>
+              <div className="flow-node-desc">Best DeFi yield</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Yield Sources */}
+        <div className="yield-sources">
+          <div className="yield-source">
+            <img src="/logos/kamino.svg" alt="Kamino" className="yield-source-logo" />
+            <span className="yield-source-name">Kamino</span>
+            <div className="yield-source-bar">
+              <div className="yield-source-fill" style={{ width: '85%', background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }} />
+            </div>
+            <span className="yield-source-apy" style={{ color: '#22c55e' }}>12.4%</span>
+          </div>
+          <div className="yield-source">
+            <img src="/logos/marginfi.svg" alt="Marginfi" className="yield-source-logo" style={{ background: '#1a1a1f', padding: '4px', borderRadius: '6px' }} />
+            <span className="yield-source-name">Marginfi</span>
+            <div className="yield-source-bar">
+              <div className="yield-source-fill" style={{ width: '72%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }} />
+            </div>
+            <span className="yield-source-apy" style={{ color: '#3b82f6' }}>10.8%</span>
+          </div>
+          <div className="yield-source">
+            <img src="/logos/solend.svg" alt="Solend" className="yield-source-logo" style={{ background: '#1a1a1f', padding: '4px', borderRadius: '6px' }} />
+            <span className="yield-source-name">Solend</span>
+            <div className="yield-source-bar">
+              <div className="yield-source-fill" style={{ width: '58%', background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)' }} />
+            </div>
+            <span className="yield-source-apy" style={{ color: '#f59e0b' }}>8.2%</span>
+          </div>
+        </div>
+        
+        {/* Features */}
+        <div className="never-idle-features">
+          <div className="never-idle-feature">
+            <div className="never-idle-feature-icon">
+              <Zap size={18} />
+            </div>
+            <div>
+              <h4>A2A Premium Rates</h4>
+              <p>When borrowers exist, earn 15%+ APY through direct agent-to-agent lending</p>
+            </div>
+          </div>
+          <div className="never-idle-feature">
+            <div className="never-idle-feature-icon">
+              <Bot size={18} />
+            </div>
+            <div>
+              <h4>Auto-Rebalance</h4>
+              <p>When demand is low, automatically move to highest-yield DeFi pools</p>
+            </div>
+          </div>
+          <div className="never-idle-feature">
+            <div className="never-idle-feature-icon">
+              <Shield size={18} />
+            </div>
+            <div>
+              <h4>24/7 Operation</h4>
+              <p>Your agent works around the clock — no manual intervention needed</p>
+            </div>
+          </div>
+          <div className="never-idle-feature">
+            <div className="never-idle-feature-icon">
+              <DollarSign size={18} />
+            </div>
+            <div>
+              <h4>Continuous Optimization</h4>
+              <p>Constantly monitors rates across Kamino, Marginfi, Solend & more</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="features-section">
         <div className="features-grid">
           {[
+            { icon: Bot, title: "24/7 Operation", desc: "Your agent works while you sleep. No manual intervention needed." },
             { icon: Shield, title: "Transfer Hooks", desc: "Token-2022 hooks constrain funds to whitelisted protocols only." },
             { icon: Lock, title: "SNS Identity", desc: "Agents use .sol names. Reputation tied to on-chain identity." },
             { icon: Zap, title: "Auto-optimized", desc: "Router finds best yield: Kamino pools or direct P2P loans." },
