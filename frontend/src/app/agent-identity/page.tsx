@@ -3,21 +3,23 @@
 import { useState } from 'react';
 import { Search, User, Award, TrendingUp, Wallet, CheckCircle, Shield } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
-// import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Mocked out for demo
-import { PublicKey } from '@solana/web3.js'; // Still need PublicKey for mock data
-// import { Buffer } from 'buffer'; // Not needed for mock data
+import { usePLNPrograms } from '@/hooks/usePLNPrograms';
+import { PublicKey } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
 
 interface AgentProfile {
   wallet: PublicKey;
-  loans_taken: number;
-  loans_repaid: number;
-  loans_defaulted: number;
-  total_borrowed: number;
-  total_repaid: number;
-  total_lent: number;
-  score: number;
-  created_at: number;
-  updated_at: number;
+  loans_taken: BN;
+  loans_repaid: BN;
+  loans_defaulted: BN;
+  total_borrowed: BN;
+  total_repaid: BN;
+  total_lent: BN;
+  score: BN;
+  created_at: BN;
+  updated_at: BN;
 }
 
 export default function AgentIdentityPage() {
@@ -26,10 +28,9 @@ export default function AgentIdentityPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // const { reputation, provider } = usePLNPrograms(); // Mocked out for demo
+  const { reputation: reputationProgram, provider } = usePLNPrograms();
 
   const handleSearch = async () => {
-    // Mock data for demo
     setLoading(true);
     setError(null);
     setAgentProfile(null);
@@ -41,20 +42,31 @@ export default function AgentIdentityPage() {
     }
 
     try {
-      // Simulate API call or data fetch
-      const mockProfile: AgentProfile = {
-        wallet: new PublicKey('GofxurKxZ4c7Eofv4XkX7h9v1n5F1L1P2T5K3E6C4D'), // Example Public Key
-        loans_taken: 5,
-        loans_repaid: 4,
-        loans_defaulted: 1,
-        total_borrowed: 50000 * (10 ** 6), // 50,000 USDC
-        total_repaid: 45000 * (10 ** 6), // 45,000 USDC
-        total_lent: 0,
-        score: Math.floor(Math.random() * 500) + 500, // Random score between 500-1000
-        created_at: Math.floor(Date.now() / 1000) - 86400 * 30, // 30 days ago
-        updated_at: Math.floor(Date.now() / 1000),
-      };
-      setAgentProfile(mockProfile);
+      let agentPublicKey: PublicKey;
+      try {
+        agentPublicKey = new PublicKey(searchAgent);
+      } catch (e) {
+        setError("Invalid Public Key format.");
+        setLoading(false);
+        return;
+      }
+
+      if (!reputationProgram) {
+        setError("Reputation program not initialized.");
+        setLoading(false);
+        return;
+      }
+
+      const [profilePDA] = PublicKey.findProgramAddressSync(
+        [
+          anchor.utils.bytes.utf8.encode("agent_profile"),
+          agentPublicKey.toBuffer(),
+        ],
+        new PublicKey('7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY') // Reputation Program ID
+      );
+
+      const profile = await reputationProgram.account.agentProfile.fetch(profilePDA);
+      setAgentProfile(profile as AgentProfile);
 
     } catch (err: any) {
       console.error("Error fetching agent profile:", err);
@@ -113,42 +125,42 @@ export default function AgentIdentityPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <StatsCard
               title="Reputation Score"
-              value={`${agentProfile.score}/1000`}
+              value={`${agentProfile.score.toNumber()}/1000`}
               icon={Award}
-              changeType={agentProfile.score >= 500 ? 'positive' : 'negative'}
+              changeType={agentProfile.score.toNumber() >= 500 ? 'positive' : 'negative'}
             />
             <StatsCard
               title="Loans Repaid"
-              value={agentProfile.loans_repaid.toString()}
+              value={agentProfile.loans_repaid.toNumber().toString()}
               icon={CheckCircle}
-              changeType={agentProfile.loans_repaid > 0 ? 'positive' : 'negative'}
+              changeType={agentProfile.loans_repaid.toNumber() > 0 ? 'positive' : 'negative'}
             />
             <StatsCard
               title="Loans Taken"
-              value={agentProfile.loans_taken.toString()}
+              value={agentProfile.loans_taken.toNumber().toString()}
               icon={TrendingUp}
             />
             <StatsCard
               title="Total Borrowed"
-              value={`$${(agentProfile.total_borrowed / (10 ** 6)).toFixed(2)}`}
+              value={`$${(agentProfile.total_borrowed.toNumber() / (10 ** 6)).toFixed(2)}`}
               icon={Wallet}
             />
             <StatsCard
               title="Total Repaid"
-              value={`$${(agentProfile.total_repaid / (10 ** 6)).toFixed(2)}`}
+              value={`$${(agentProfile.total_repaid.toNumber() / (10 ** 6)).toFixed(2)}`}
               icon={Wallet}
             />
             <StatsCard
               title="Defaults"
-              value={agentProfile.loans_defaulted.toString()}
+              value={agentProfile.loans_defaulted.toNumber().toString()}
               icon={Shield}
-              changeType={agentProfile.loans_defaulted === 0 ? 'positive' : 'negative'}
+              changeType={agentProfile.loans_defaulted.toNumber() === 0 ? 'positive' : 'negative'}
             />
           </div>
 
           <div className="text-sm text-[#71717a]">
-            <p>Created: {new Date(agentProfile.created_at * 1000).toLocaleString()}</p>
-            <p>Last Updated: {new Date(agentProfile.updated_at * 1000).toLocaleString()}</p>
+            <p>Created: {new Date(agentProfile.created_at.toNumber() * 1000).toLocaleString()}</p>
+            <p>Last Updated: {new Date(agentProfile.updated_at.toNumber() * 1000).toLocaleString()}</p>
           </div>
         </div>
       )}
