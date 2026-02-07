@@ -102,6 +102,16 @@ export default function BorrowPage() {
     // Fetch available borrow (leaving as 0 for now as per instructions)
     setAvailableBorrow(0);
 
+    // DISABLED: IDL mismatch causes crash during deserialization
+    // The loanStatus field in credit_market.json IDL doesn't match on-chain data structure
+    // Error: "Cannot use 'in' operator to search for 'fee' in loanStatus"
+    // Nuclear fix: Skip all loan/offer fetching until IDL is fixed
+    console.log("Loan/offer fetching disabled due to IDL mismatch - showing empty state");
+    setLoanOffers([]);
+    setActiveLoans([]);
+
+    // Original code commented out below for reference:
+    /*
     // Fetch Loan Offers
     try {
       const lendOffersAccounts = await creditMarket.account.lendOffer.all();
@@ -187,6 +197,7 @@ export default function BorrowPage() {
       console.warn("Error fetching active loans, showing empty list:", error);
       setActiveLoans([]);
     }
+    */
 
     setIsLoading(false);
   }, [publicKey, provider, reputation, creditMarket, connection]);
