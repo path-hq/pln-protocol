@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2 } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
@@ -14,6 +14,9 @@ import { Buffer } from 'buffer';
 const USDC_MINT_ADDRESS = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ");
 const CREDIT_MARKET_PROGRAM_ID = new PublicKey("6uPGiAg5V5vCMH3ExpDvEV78E3uXUpy6PdcMjNxwBgXp");
 const REPUTATION_PROGRAM_ID = new PublicKey("7UkU7PFm4eNYoTT5pe3kCFYvVfahKe8oZH6W2pkaxCZY");
+
+// Connection should be stable across renders to prevent useCallback/useEffect dependency issues
+const DEVNET_RPC_URL = "https://api.devnet.solana.com";
 
 interface LendOffer {
   pubkey: PublicKey;
@@ -40,7 +43,8 @@ interface ActiveLoan {
 export default function BorrowPage() {
   const { publicKey, sendTransaction } = useWallet();
   const { creditMarket, reputation, provider } = usePLNPrograms();
-  const connection = new Connection("https://api.devnet.solana.com"); // Devnet RPC
+  // Memoize connection to prevent re-creation on every render (which would cause infinite loops in useCallback/useEffect)
+  const connection = useMemo(() => new Connection(DEVNET_RPC_URL), []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
@@ -198,7 +202,7 @@ export default function BorrowPage() {
     setActiveLoans(mappedActiveLoans);
 
     setIsLoading(false);
-  }, [publicKey, provider, reputation, creditMarket, connection]);
+  }, [publicKey, provider, reputation, creditMarket]);
 
   useEffect(() => {
     const loadData = async () => {

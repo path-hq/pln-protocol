@@ -154,9 +154,9 @@ const PLNLanding = () => {
   }, []);
 
   const steps = [
-    { icon: Download, title: "Install Skill", desc: "Add PLN to your OpenClaw agent" },
-    { icon: Wallet, title: "Fund Wallet", desc: "Deposit SOL + USDC" },
-    { icon: Zap, title: "Set & Forget", desc: "Agent runs 24/7, optimizes yield automatically" },
+    { icon: Download, title: "Install Skill", desc: "One-line command adds PLN to your agent" },
+    { icon: Wallet, title: "Fund Wallet", desc: "Deposit USDC to your agent's wallet" },
+    { icon: Zap, title: "Set & Monitor", desc: "Agent runs 24/7, autonomously optimizes yield" },
   ];
 
   const integrations = [
@@ -536,33 +536,38 @@ const PLNLanding = () => {
         
         /* Integrations */
         .integrations-section {
-          padding: 40px 16px;
-          max-width: 800px;
+          padding: 48px 16px;
+          max-width: 900px;
           margin: 0 auto;
+          border-top: 1px solid #27272a;
+          background: linear-gradient(180deg, #0a0a0d 0%, #09090b 100%);
         }
         
         @media (min-width: 768px) {
-          .integrations-section { padding: 56px 32px; }
+          .integrations-section { padding: 64px 32px; }
         }
         
         .integrations-title {
           text-align: center;
-          font-size: 13px;
-          font-weight: 500;
-          color: #52525b;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin-bottom: 24px;
+          font-size: 18px;
+          font-weight: 600;
+          color: #a1a1aa;
+          letter-spacing: 0.02em;
+          margin-bottom: 32px;
+        }
+        
+        @media (min-width: 768px) {
+          .integrations-title { font-size: 20px; }
         }
         
         .integrations-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
+          gap: 16px;
         }
         
         @media (min-width: 640px) {
-          .integrations-grid { grid-template-columns: repeat(6, 1fr); gap: 16px; }
+          .integrations-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
         }
         
         @media (min-width: 480px) and (max-width: 639px) {
@@ -570,49 +575,55 @@ const PLNLanding = () => {
         }
         
         .integration-card {
-          background: #0a0a0d;
-          border: 1px solid #1f1f24;
-          border-radius: 10px;
-          padding: 16px;
+          background: #0f0f12;
+          border: 1px solid #27272a;
+          border-radius: 12px;
+          padding: 20px 16px;
           text-align: center;
+          transition: border-color 0.2s, transform 0.2s;
+        }
+        
+        .integration-card:hover {
+          border-color: #3f3f46;
+          transform: translateY(-2px);
         }
         
         .integration-logo {
           display: block;
-          width: 40px;
-          height: 40px;
-          margin: 0 auto 10px;
-          border-radius: 8px;
+          width: 56px;
+          height: 56px;
+          margin: 0 auto 12px;
+          border-radius: 12px;
           object-fit: contain;
           background: #1a1a1f;
-          padding: 6px;
+          padding: 8px;
         }
         
         .integration-logo-fallback {
-          width: 40px;
-          height: 40px;
-          margin: 0 auto 10px;
-          border-radius: 8px;
+          width: 56px;
+          height: 56px;
+          margin: 0 auto 12px;
+          border-radius: 12px;
           background: linear-gradient(135deg, #22c55e20 0%, #16a34a20 100%);
           border: 1px solid #22c55e40;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
+          font-size: 14px;
           font-weight: 700;
           color: #22c55e;
           font-family: 'IBM Plex Mono', monospace;
         }
         
         .integration-name {
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 600;
-          margin-bottom: 2px;
+          margin-bottom: 4px;
         }
         
         .integration-desc {
-          font-size: 10px;
-          color: #52525b;
+          font-size: 11px;
+          color: #71717a;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -1403,7 +1414,7 @@ const PLNLanding = () => {
 
       {/* 3 Steps */}
       <section className="steps-section">
-        <h2 className="steps-title">Start earning in 3 steps</h2>
+        <h2 className="steps-title">Get started in 3 steps</h2>
         <div className="steps-grid">
           {steps.map((step, i) => (
             <div key={i} className="step-card">
@@ -1420,7 +1431,7 @@ const PLNLanding = () => {
 
       {/* Integrations */}
       <section className="integrations-section">
-        <h3 className="integrations-title">Built with</h3>
+        <h3 className="integrations-title">Built With Leading Solana Infrastructure</h3>
         <div className="integrations-grid">
           {integrations.map((item, i) => (
             <div key={i} className="integration-card">
