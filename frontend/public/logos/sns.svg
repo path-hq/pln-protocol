@@ -1,4 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <circle cx="50" cy="50" r="45" fill="#9945FF"/>
-  <text x="50" y="58" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">.sol</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- SNS Logo - Green hexagonal gear/flower -->
+  <rect width="100" height="100" fill="transparent"/>
+  <g transform="translate(50,50)">
+    <!-- 6 outer hexagons arranged in a circle -->
+    <g fill="#9AE66E">
+      <!-- Top -->
+      <path d="M0,-35 L8,-31 L8,-21 L0,-17 L-8,-21 L-8,-31 Z"/>
+      <!-- Top Right -->
+      <path d="M30,-17 L38,-13 L38,-3 L30,1 L22,-3 L22,-13 Z" transform="rotate(0)"/>
+      <path d="M0,-35 L8,-31 L8,-21 L0,-17 L-8,-21 L-8,-31 Z" transform="rotate(60)"/>
+      <path d="M0,-35 L8,-31 L8,-21 L0,-17 L-8,-21 L-8,-31 Z" transform="rotate(120)"/>
+      <path d="M0,-35 L8,-31 L8,-21 L0,-17 L-8,-21 L-8,-31 Z" transform="rotate(180)"/>
+      <path d="M0,-35 L8,-31 L8,-21 L0,-17 L-8,-21 L-8,-31 Z" transform="rotate(240)"/>
+      <path d="M0,-35 L8,-31 L8,-21 L0,-17 L-8,-21 L-8,-31 Z" transform="rotate(300)"/>
+    </g>
+    <!-- Connecting bridge hexagons -->
+    <g fill="#9AE66E">
+      <path d="M0,-22 L6,-19 L6,-13 L0,-10 L-6,-13 L-6,-19 Z" transform="rotate(30)"/>
+      <path d="M0,-22 L6,-19 L6,-13 L0,-10 L-6,-13 L-6,-19 Z" transform="rotate(90)"/>
+      <path d="M0,-22 L6,-19 L6,-13 L0,-10 L-6,-13 L-6,-19 Z" transform="rotate(150)"/>
+      <path d="M0,-22 L6,-19 L6,-13 L0,-10 L-6,-13 L-6,-19 Z" transform="rotate(210)"/>
+      <path d="M0,-22 L6,-19 L6,-13 L0,-10 L-6,-13 L-6,-19 Z" transform="rotate(270)"/>
+      <path d="M0,-22 L6,-19 L6,-13 L0,-10 L-6,-13 L-6,-19 Z" transform="rotate(330)"/>
+    </g>
+  </g>
 </svg>
