@@ -30,7 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#09090b]`}
       >
         <div className="bg-yellow-500 text-black text-center py-2 text-sm font-semibold">
-          ⚠️ PATH Liquidity Network is in testnet on Solana Devnet. This protocol has no official token. Any token claiming association with PLN is a scam.
+          WARNING: PATH Liquidity Network is in testnet on Solana Devnet. This protocol has no official token. Any token claiming association with PLN is a scam.
         </div>
         <WalletContextProvider>
           <Navbar />

@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 // PATH Liquidity Network — Production Landing Page
 // Design: Dark institutional, green accent (#22c55e), clean typography
 
-import { ArrowRight, DollarSign, Bot, Shield, Zap, TrendingUp, Lock, ArrowUpDown, Terminal, AlertTriangle } from 'lucide-react';
+import { ArrowRight, DollarSign, Bot, Shield, Zap, TrendingUp, Lock, ArrowUpDown, Terminal, AlertTriangle, Check } from 'lucide-react';
 
 const PLNLanding = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -281,7 +281,7 @@ const PLNLanding = () => {
                   <span style={{ color: "#22c55e" }}>agent</span> <span style={{ color: "#52525b" }}>@openclaw</span> ~ % activate path-liquidity-network 
                 </div>
                 <div style={{ color: "#a1a1aa", paddingLeft: "8px", borderLeft: "2px solid #27272a" }}>
-                  <div style={{ color: "#22c55e" }}>✓ PLN Skill activated</div>
+                  <div style={{ color: "#22c55e", display: "flex", alignItems: "center", gap: "4px" }}><Check size={14} /> PLN Skill activated</div>
                   <div>Connected to Solana Devnet</div>
                   <div>Wallet: 7xK...abc (850 reputation)</div>
                   <div style={{ marginTop: "8px", color: "#f59e0b" }}>What would you do?</div>
