@@ -771,33 +771,37 @@ const PLNLanding = () => {
             <div className="install-step">
               <div className="install-step-title">
                 <span className="install-step-num">1</span>
-                Copy the skill to your OpenClaw workspace
+                One-line install
               </div>
               <div className="install-code">
-                <span>git clone https://github.com/path-hq/pln-protocol.git</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('git clone https://github.com/path-hq/pln-protocol.git')}>Copy</button>
+                <span style={{ fontSize: '11px' }}>curl -sL https://raw.githubusercontent.com/path-hq/pln-protocol/main/install.sh | bash</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('curl -sL https://raw.githubusercontent.com/path-hq/pln-protocol/main/install.sh | bash')}>Copy</button>
               </div>
+              <p className="install-note">Downloads skill to ~/.openclaw/workspace/skills/pln</p>
             </div>
             
             <div className="install-step">
               <div className="install-step-title">
                 <span className="install-step-num">2</span>
-                Link the skill
-              </div>
-              <div className="install-code">
-                <span>cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/')}>Copy</button>
-              </div>
-            </div>
-            
-            <div className="install-step">
-              <div className="install-step-title">
-                <span className="install-step-num">3</span>
                 Start chatting
               </div>
               <p className="install-note">
-                Say "activate PLN" or "I want to lend my USDC" — your agent will handle the rest.
+                Say "activate PLN" or "lend my USDC" — your agent reads SKILL.md and handles the rest.
               </p>
+            </div>
+            
+            <div className="install-step">
+              <div className="install-step-title" style={{ marginBottom: '12px' }}>
+                Or install manually
+              </div>
+              <div className="install-code" style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px' }}>git clone https://github.com/path-hq/pln-protocol.git</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('git clone https://github.com/path-hq/pln-protocol.git')}>Copy</button>
+              </div>
+              <div className="install-code">
+                <span style={{ fontSize: '12px' }}>cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/')}>Copy</button>
+              </div>
             </div>
             
             <div className="install-alt">
