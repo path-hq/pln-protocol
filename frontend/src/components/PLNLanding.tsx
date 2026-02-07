@@ -60,12 +60,12 @@ const PLNLanding = () => {
   ];
 
   const integrations = [
-    { name: "Solana", desc: "Chain" },
-    { name: "USDC", desc: "Stablecoin" },
-    { name: "SNS", desc: "Identity" },
-    { name: "OpenClaw", desc: "Agent" },
-    { name: "Kamino", desc: "Yield" },
-    { name: "Jupiter", desc: "Trading" },
+    { name: "Solana", desc: "Chain", logo: "/logos/solana-sol-logo.svg" },
+    { name: "USDC", desc: "Stablecoin", logo: "/logos/usd-coin-usdc-logo.svg" },
+    { name: "SNS", desc: "Identity", logo: "/logos/sns.svg" },
+    { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.svg" },
+    { name: "Kamino", desc: "Yield", logo: "/logos/kamino.svg" },
+    { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg" },
   ];
 
   return (
@@ -354,14 +354,22 @@ const PLNLanding = () => {
           text-align: center;
         }
         
+        .integration-logo {
+          width: 40px;
+          height: 40px;
+          margin: 0 auto 10px;
+          border-radius: 8px;
+          object-fit: contain;
+        }
+        
         .integration-name {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 600;
           margin-bottom: 2px;
         }
         
         .integration-desc {
-          font-size: 11px;
+          font-size: 10px;
           color: #52525b;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -879,6 +887,7 @@ const PLNLanding = () => {
         <div className="integrations-grid">
           {integrations.map((item, i) => (
             <div key={i} className="integration-card">
+              <img src={item.logo} alt={item.name} className="integration-logo" />
               <div className="integration-name">{item.name}</div>
               <div className="integration-desc">{item.desc}</div>
             </div>
