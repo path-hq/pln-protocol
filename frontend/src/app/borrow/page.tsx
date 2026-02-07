@@ -1,40 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
-// import { usePLNPrograms } from '@/hooks/usePLNPrograms'; // Commented out for mock data
+import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey } from '@solana/web3.js'; // Added SystemProgram
-// import { getAssociatedTokenAddress } from '@solana/spl-token'; // Commented out for mock data
-// import BN from 'bn.js'; // Mocked out for demo
-// import * as anchor from '@project-serum/anchor'; // Commented out for mock data // Added Anchor for utf8 encoding
+import { Connection, PublicKey } from '@solana/web3.js';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import BN from 'bn.js';
+import * as anchor from '@coral-xyz/anchor';
+import { Buffer } from 'buffer';
 
-// const USDC_MINT_ADDRESS = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ"; // Example Devnet USDC Mint
+const USDC_MINT_ADDRESS = new PublicKey("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9dq22VJLJ");
 
 interface LendOffer {
-  id: string;
-  lender: string;
-  amount: number;
-  minRate: number;
-  maxDuration: string;
+  pubkey: PublicKey;
+  lender: PublicKey;
+  amount: BN;
+  minRateBps: number;
+  maxDuration: BN; // In seconds
   minReputation: number;
-  lenderUsdcAccount: PublicKey; // To pass to acceptLendOffer
+  lenderUsdcAccount: PublicKey;
 }
 
 interface ActiveLoan {
-  id: string;
-  lender: string;
-  amount: string;
-  repayAmount: string;
+  pubkey: PublicKey;
+  lender: PublicKey;
+  borrower: PublicKey;
+  loanMint: PublicKey;
+  principalAmount: BN;
+  repaymentAmount: BN;
   apy: number;
-  dueDate: string;
-  status: 'active' | 'repaid' | 'defaulted';
+  dueDate: BN; // Timestamp
+  status: 'active' | 'repaid' | 'liquidated'; // Changed 'defaulted' to 'liquidated' to match program
 }
 
 export default function BorrowPage() {
   const { publicKey, sendTransaction } = useWallet();
-  // const { creditMarket, reputation, provider } = usePLNPrograms(); // Commented out for mock data
+  const { creditMarket, reputation, provider } = usePLNPrograms();
+  const connection = new Connection("https://api.devnet.solana.com"); // Devnet RPC
 
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [agentReputation, setAgentReputation] = useState<number | null>(null);
@@ -50,75 +54,119 @@ export default function BorrowPage() {
   const [selectedLoanForTrade, setSelectedLoanForTrade] = useState<string>('');
   const [instructionData, setInstructionData] = useState('');
 
+  const fetchData = useCallback(async () => {
+    if (!publicKey || !provider || !reputation) {
+      return;
+    }
+
+    try {
+      // Fetch USDC Balance
+      const associatedTokenAccount = await getAssociatedTokenAddress(
+        USDC_MINT_ADDRESS,
+        publicKey
+      );
+
+      try {
+        const accountInfo = await connection.getTokenAccountBalance(associatedTokenAccount);
+        setUsdcBalance(accountInfo.value.uiAmount || 0);
+      } catch (error) {
+        console.warn("USDC Associated Token Account not found or empty, setting balance to 0:", error);
+        setUsdcBalance(0);
+      }
+
+      // Fetch Agent Reputation
+      const [agentReputationPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("reputation"), publicKey.toBuffer()],
+        reputation.programId
+      );
+
+      try {
+        const agentReputationAccount = await reputation.account.agent.fetch(agentReputationPDA);
+        setAgentReputation(agentReputationAccount.totalReputation.toNumber());
+      } catch (error) {
+        console.warn("Agent Reputation Account not found, setting reputation to 0:", error);
+        setAgentReputation(0);
+      }
+
+      // Fetch available borrow (leaving as 0 for now as per instructions)
+      setAvailableBorrow(0);
+
+      const agentReputationValue = agentReputation !== null ? agentReputation : 0; // Use 0 if reputation not yet loaded
+
+      // Fetch Loan Offers
+      const lendOffersAccounts = await creditMarket.account.lendOffer.all();
+      const mappedLoanOffers: LendOffer[] = lendOffersAccounts
+        .filter(offer => offer.account.isActive && offer.account.minReputation.toNumber() <= agentReputationValue)
+        .map(offer => ({
+          pubkey: offer.publicKey,
+          lender: offer.account.lender,
+          amount: offer.account.amount,
+          minRateBps: offer.account.minRateBps,
+          maxDuration: offer.account.maxDuration,
+          minReputation: offer.account.minReputation.toNumber(),
+          lenderUsdcAccount: offer.account.lenderUsdcAccount,
+        }));
+      setLoanOffers(mappedLoanOffers);
+
+      // Fetch Active Loans
+      const loanAccounts = await creditMarket.account.loan.all();
+      const mappedActiveLoans: ActiveLoan[] = loanAccounts
+        .filter(loan => publicKey && loan.account.borrower.equals(publicKey))
+        .map(loan => {
+          let status: 'active' | 'repaid' | 'liquidated';
+          if (loan.account.status.active) {
+            status = 'active';
+          } else if (loan.account.status.repaid) {
+            status = 'repaid';
+          } else if (loan.account.status.liquidated) {
+            status = 'liquidated';
+          } else {
+            status = 'active'; // Default or handle other cases if needed
+          }
+
+          return {
+            pubkey: loan.publicKey,
+            lender: loan.account.lender,
+            borrower: loan.account.borrower,
+            loanMint: loan.account.loanMint,
+            principalAmount: loan.account.principalAmount,
+            repaymentAmount: loan.account.repaymentAmount,
+            apy: loan.account.apy.toNumber(),
+            dueDate: loan.account.dueDate,
+            status: status,
+          };
+        });
+      setActiveLoans(mappedActiveLoans);
+
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setUsdcBalance(null);
+      setAgentReputation(null);
+      setAvailableBorrow(null);
+      setLoanOffers([]);
+      setActiveLoans([]);
+    }
+  }, [publicKey, provider, reputation, connection]);
 
   useEffect(() => {
-    // Mock data for demo
-    setUsdcBalance(7500.00);
-    setAgentReputation(850);
-    setAvailableBorrow(75000.00);
-    setLoanOffers([
-      {
-        id: "offer1",
-        lender: "LenderA...",
-        amount: 10000,
-        minRate: 7.5,
-        maxDuration: "30 days",
-        minReputation: 100,
-        lenderUsdcAccount: new PublicKey('11111111111111111111111111111111')
-      },
-      {
-        id: "offer2",
-        lender: "LenderB...",
-        amount: 25000,
-        minRate: 8.0,
-        maxDuration: "60 days",
-        minReputation: 200,
-        lenderUsdcAccount: new PublicKey('11111111111111111111111111111111')
-      },
-    ]);
-    setActiveLoans([
-      {
-        id: "loan1",
-        lender: "LenderC...",
-        amount: "5,000.00 USDC",
-        repayAmount: "5,100.00 USDC",
-        apy: 9.0,
-        dueDate: "2026-03-01",
-        status: "active",
-      },
-      {
-        id: "loan2",
-        lender: "LenderD...",
-        amount: "12,000.00 USDC",
-        repayAmount: "12,300.00 USDC",
-        apy: 8.5,
-        dueDate: "2026-03-15",
-        status: "active",
-      },
-    ]);
-
-    // Simulate periodic refresh for demo (optional, but good for dynamic feel)
-    const interval = setInterval(() => {
-      setUsdcBalance(prev => (prev !== null ? prev + Math.random() * 100 - 50 : 7500.00));
-      setAvailableBorrow(prev => (prev !== null ? prev + Math.random() * 5000 - 2500 : 75000.00));
-    }, 15000);
-
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   const handleAcceptOffer = async (offer: LendOffer) => {
-    // Mock action for demo
-    alert(`Accepting offer ${offer.id} by ${offer.lender} is disabled in demo mode.`);
+    // TODO: Implement actual accept offer logic
+    alert(`Accepting offer ${offer.pubkey.toBase58()} by ${offer.lender.toBase58()} is not yet implemented.`);
   };
 
   const handleBorrowRequest = async () => {
-    // Mock action for demo
-    alert("Borrow request is disabled in demo mode.");
+    // TODO: Implement actual borrow request logic
+    alert("Borrow request is not yet implemented.");
   };
 
-  const handleRepayLoan = async (loanId: string) => {
-    // Mock action for demo
-    alert(`Repaying loan ${loanId} is disabled in demo mode.`);
+  const handleRepayLoan = async (loanId: PublicKey) => {
+    // TODO: Implement actual repay loan logic
+    alert(`Repaying loan ${loanId.toBase58()} is not yet implemented.`);
   };
 
 
@@ -163,7 +211,7 @@ export default function BorrowPage() {
       </div>
 
       {/* Loan Request Form */}
-      <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6">
+      <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
         <h2 className="text-lg font-semibold text-white">New Loan Request</h2>
         <p className="text-sm text-[#71717a]">Enter details for your desired loan</p>
 
@@ -175,7 +223,7 @@ export default function BorrowPage() {
               value={borrowAmount}
               onChange={(e) => setBorrowAmount(e.target.value)}
               placeholder="50000"
-              className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -185,7 +233,7 @@ export default function BorrowPage() {
               value={borrowDuration}
               onChange={(e) => setBorrowDuration(e.target.value)}
               placeholder="604800 (1 week)"
-              className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -195,7 +243,7 @@ export default function BorrowPage() {
               value={maxRateBps}
               onChange={(e) => setMaxRateBps(e.target.value)}
               placeholder="1500"
-              className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
             />
           </div>
         </div>
@@ -222,11 +270,11 @@ export default function BorrowPage() {
               </thead>
               <tbody className="divide-y divide-[#1f1f24]">
                 {loanOffers.map((offer) => (
-                  <tr key={offer.id} className="hover:bg-[#1f1f24]/30">
-                    <td className="px-6 py-4 whitespace-nowrap text-white">{offer.lender}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-white">{offer.amount.toFixed(2)} USDC</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{offer.minRate}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.maxDuration}</td>
+                  <tr key={offer.pubkey.toBase58()} className="hover:bg-[#1f1f24]/30">
+                    <td className="px-6 py-4 whitespace-nowrap text-white">{offer.lender.toBase58().slice(0, 8)}...</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-white">{offer.amount.toString()} USDC</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{offer.minRateBps / 100}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.maxDuration.toString()} seconds</td>
                     <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.minReputation}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
@@ -268,12 +316,12 @@ export default function BorrowPage() {
               </thead>
               <tbody className="divide-y divide-[#1f1f24]">
                 {activeLoans.map((loan) => (
-                  <tr key={loan.id} className="hover:bg-[#1f1f24]/30">
-                    <td className="px-6 py-4 whitespace-nowrap text-white">{loan.lender}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-white">{loan.amount}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-white">{loan.repayAmount}</td>
+                  <tr key={loan.pubkey.toBase58()} className="hover:bg-[#1f1f24]/30">
+                    <td className="px-6 py-4 whitespace-nowrap text-white">{loan.lender.toBase58().slice(0, 8)}...</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-white">{loan.principalAmount.toString()} USDC</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-white">{loan.repaymentAmount.toString()} USDC</td>
                     <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{loan.apy}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.dueDate}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{new Date(loan.dueDate.toNumber() * 1000).toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         loan.status === 'active' ? 'bg-blue-500/20 text-blue-400' :
@@ -286,7 +334,7 @@ export default function BorrowPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {loan.status === 'active' && (
                         <button
-                          onClick={() => handleRepayLoan(loan.id)}
+                          onClick={() => handleRepayLoan(loan.pubkey)}
                           className="rounded-lg bg-red-500 px-3 py-1 text-sm font-medium text-white hover:bg-red-600 transition-colors"
                         >
                           Repay
