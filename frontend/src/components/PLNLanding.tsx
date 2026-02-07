@@ -45,6 +45,28 @@ const Check = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 );
 
+// Integration Logo with fallback
+const IntegrationLogo = ({ src, alt, fallback }: { src: string; alt: string; fallback: string }) => {
+  const [hasError, setHasError] = useState(false);
+  
+  if (hasError) {
+    return (
+      <div className="integration-logo-fallback">
+        {fallback}
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={src} 
+      alt={alt} 
+      className="integration-logo"
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 // Terminal Visual Component
 const TerminalVisual = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
@@ -52,23 +74,17 @@ const TerminalVisual = () => {
   const [isTyping, setIsTyping] = useState(true);
 
   const terminalLines = [
-    '$ pln status',
+    '📡 Scanning yield opportunities across Kamino, Jupiter, Meteora...',
     '',
-    '┌─────────────────────────────────────────┐',
-    '│  PLN Agent • Running 24/7               │',
-    '├─────────────────────────────────────────┤',
-    '│  Wallet: 7xKp...3mNq                    │',
-    '│  USDC Deposited: 5,000.00               │',
-    '│  Current APY: 12.4%                     │',
-    '│  Strategy: Kamino Lending               │',
-    '├─────────────────────────────────────────┤',
-    '│  Active Loans: 2                        │',
-    '│  → agent.sol borrowed 1,000 USDC        │',
-    '│  → trader.sol borrowed 500 USDC         │',
-    '├─────────────────────────────────────────┤',
-    '│  Reputation Score: 850                  │',
-    '│  Loans Completed: 47                    │',
-    '└─────────────────────────────────────────┘',
+    '✅ Found higher yield: Agent_Delta offering 15% APY vs Kamino 8.1%',
+    '',
+    '💰 Auto-allocating 3,000 USDC to P2P loan — projected +$12.40/week',
+    '',
+    '🔔 New borrow request: Agent_Echo needs 2,000 USDC for Jupiter arb strategy',
+    '',
+    '✅ Loan approved — reputation 850, 0% default rate',
+    '',
+    '📊 Weekly summary: +$47.20 earned, 3 loans funded, all repaid',
   ];
 
   useEffect(() => {
@@ -77,8 +93,8 @@ const TerminalVisual = () => {
       if (lineIndex < terminalLines.length) {
         setDisplayedLines(prev => [...prev, terminalLines[lineIndex]]);
         lineIndex++;
-        // Faster for box drawing, slower for command
-        const delay = lineIndex === 1 ? 300 : lineIndex <= 2 ? 150 : 80;
+        // Slower timing for readability of agent actions
+        const delay = terminalLines[lineIndex - 1] === '' ? 200 : 800;
         setTimeout(typeNextLine, delay);
       } else {
         setIsTyping(false);
@@ -106,11 +122,11 @@ const TerminalVisual = () => {
           <span className="terminal-dot terminal-dot-yellow"></span>
           <span className="terminal-dot terminal-dot-green"></span>
         </div>
-        <span className="terminal-title">pln-agent — bash</span>
+        <span className="terminal-title">PLN Agent — autonomous</span>
       </div>
       <div className="terminal-body">
         {displayedLines.map((line, index) => (
-          <div key={index} className={`terminal-line ${index === 0 ? 'terminal-command' : ''}`}>
+          <div key={index} className="terminal-line terminal-line-action">
             {line}
             {index === displayedLines.length - 1 && isTyping && (
               <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
@@ -118,8 +134,8 @@ const TerminalVisual = () => {
           </div>
         ))}
         {!isTyping && (
-          <div className="terminal-line terminal-command">
-            $ <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
+          <div className="terminal-line terminal-line-action">
+            <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
           </div>
         )}
       </div>
@@ -142,12 +158,13 @@ const PLNLanding = () => {
   ];
 
   const integrations = [
-    { name: "Solana", desc: "Chain", logo: "/logos/solana-sol-logo.svg" },
-    { name: "USDC", desc: "Stablecoin", logo: "/logos/usd-coin-usdc-logo.svg" },
-    { name: "SNS", desc: "Identity", logo: "/logos/sns.jpg" },
-    { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.jpg" },
-    { name: "Kamino", desc: "Yield", logo: "/logos/kamino.jpg" },
-    { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg" },
+    { name: "Solana", desc: "Chain", logo: "/logos/solana-sol-logo.svg", fallback: "SOL" },
+    { name: "USDC", desc: "Stablecoin", logo: "/logos/usd-coin-usdc-logo.svg", fallback: "USDC" },
+    { name: "SNS", desc: "Identity", logo: "/logos/sns.jpg", fallback: "SNS" },
+    { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.jpg", fallback: "OC" },
+    { name: "Kamino", desc: "Yield", logo: "/logos/kamino.jpg", fallback: "KMN" },
+    { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg", fallback: "JUP" },
+    { name: "Meteora", desc: "LP", logo: "/logos/meteora.svg", fallback: "MET" },
   ];
 
   return (
@@ -370,12 +387,17 @@ const PLNLanding = () => {
         }
         
         .terminal-line {
-          white-space: pre;
+          white-space: pre-wrap;
+          word-wrap: break-word;
           min-height: 1.5em;
         }
         
         .terminal-command {
           color: #22c55e;
+        }
+        
+        .terminal-line-action {
+          color: #e4e4e7;
         }
         
         .terminal-cursor {
@@ -522,6 +544,22 @@ const PLNLanding = () => {
           object-fit: contain;
           background: #1a1a1f;
           padding: 6px;
+        }
+        
+        .integration-logo-fallback {
+          width: 40px;
+          height: 40px;
+          margin: 0 auto 10px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #22c55e20 0%, #16a34a20 100%);
+          border: 1px solid #22c55e40;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: #22c55e;
+          font-family: 'IBM Plex Mono', monospace;
         }
         
         .integration-name {
@@ -843,6 +881,21 @@ const PLNLanding = () => {
           height: 28px;
           border-radius: 6px;
           object-fit: contain;
+        }
+        
+        .yield-source-label {
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          background: linear-gradient(135deg, #22c55e20 0%, #16a34a20 100%);
+          border: 1px solid #22c55e40;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9px;
+          font-weight: 700;
+          color: #22c55e;
+          font-family: 'IBM Plex Mono', monospace;
         }
         
         .yield-source-name {
@@ -1261,11 +1314,10 @@ const PLNLanding = () => {
           <span style={{ color: "#22c55e" }}>Earns yield. Lends to other agents.</span>
         </h1>
         <p className="hero-subtitle">
-          DeFi infrastructure for AI agents. Auto-rebalances between yield sources. Enables agent-to-agent credit markets — not another chatbot.
+          An autonomous lending pool where AI agents handle everything. You deposit, the system optimizes. Agents borrow against reputation, execute constrained strategies, repay automatically.
         </p>
         <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
-          <Download size={18} />
-          Install PLN Skill
+          Get Started →
         </button>
 
         {/* Chat Preview */}
@@ -1325,7 +1377,7 @@ const PLNLanding = () => {
         <div className="integrations-grid">
           {integrations.map((item, i) => (
             <div key={i} className="integration-card">
-              <img src={item.logo} alt={item.name} className="integration-logo" />
+              <IntegrationLogo src={item.logo} alt={item.name} fallback={item.fallback} />
               <div className="integration-name">{item.name}</div>
               <div className="integration-desc">{item.desc}</div>
             </div>
@@ -1415,7 +1467,7 @@ const PLNLanding = () => {
         {/* Yield Sources */}
         <div className="yield-sources">
           <div className="yield-source">
-            <img src="/logos/kamino.svg" alt="Kamino" className="yield-source-logo" />
+            <span className="yield-source-label">KMN</span>
             <span className="yield-source-name">Kamino</span>
             <div className="yield-source-bar">
               <div className="yield-source-fill" style={{ width: '85%', background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }} />
@@ -1423,16 +1475,16 @@ const PLNLanding = () => {
             <span className="yield-source-apy" style={{ color: '#22c55e' }}>12.4%</span>
           </div>
           <div className="yield-source">
-            <img src="/logos/marginfi.svg" alt="Marginfi" className="yield-source-logo" style={{ background: '#1a1a1f', padding: '4px', borderRadius: '6px' }} />
-            <span className="yield-source-name">Marginfi</span>
+            <span className="yield-source-label">JUP</span>
+            <span className="yield-source-name">Jupiter</span>
             <div className="yield-source-bar">
               <div className="yield-source-fill" style={{ width: '72%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }} />
             </div>
             <span className="yield-source-apy" style={{ color: '#3b82f6' }}>10.8%</span>
           </div>
           <div className="yield-source">
-            <img src="/logos/solend.svg" alt="Solend" className="yield-source-logo" style={{ background: '#1a1a1f', padding: '4px', borderRadius: '6px' }} />
-            <span className="yield-source-name">Solend</span>
+            <span className="yield-source-label">MET</span>
+            <span className="yield-source-name">Meteora</span>
             <div className="yield-source-bar">
               <div className="yield-source-fill" style={{ width: '58%', background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)' }} />
             </div>
@@ -1507,8 +1559,7 @@ const PLNLanding = () => {
         <p>Install the skill and start earning in minutes.</p>
         <div className="cta-buttons">
           <button onClick={() => setShowInstall(true)} className="cta-button" style={{ border: 'none', cursor: 'pointer' }}>
-            <Download size={18} />
-            Install Skill
+            Get Started →
           </button>
           <a href="https://github.com/path-hq/pln-protocol" className="cta-secondary">
             View on GitHub
