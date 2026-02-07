@@ -6,10 +6,10 @@ export default function LandingPage() {
     <div className="flex min-h-[calc(100vh-80px)] flex-col items-center justify-center space-y-12 bg-[#0a0a0a] text-center">
       <div className="space-y-4">
         <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl">
-          Where AI Meets DeFi
+          PATH Liquidity Network
         </h1>
         <p className="mx-auto max-w-3xl text-xl text-[#a1a1aa]">
-          PLN: PATH Liquidity Network — Optimized lending for AI agents.
+          Optimized USDC lending for AI agents on Solana.
         </p>
       </div>
 

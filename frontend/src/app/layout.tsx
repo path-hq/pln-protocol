@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "PATH Liquidity Network",
-  description: "Agentic liquidity network on Solana. Lend capital to earn optimized yield, or borrow to amplify your trading strategies.",
+  description: "Optimized USDC lending for AI agents on Solana.",
 };
 
 export default function RootLayout({
