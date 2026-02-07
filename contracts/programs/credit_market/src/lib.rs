@@ -569,9 +569,10 @@ pub mod credit_market {
         require!(actual_payout > 0, CreditMarketError::InsufficientInsurancePool);
 
         // Transfer from insurance pool to lender
+        let bump = ctx.bumps.insurance_pool;
         let seeds = &[
-            b"insurance_pool",
-            &[ctx.bumps.insurance_pool],
+            b"insurance_pool".as_ref(),
+            &[bump],
         ];
         let signer_seeds = &[&seeds[..]];
 
@@ -680,7 +681,7 @@ pub struct PostLendOffer<'info> {
         init,
         payer = lender,
         space = 8 + LendOffer::INIT_SPACE,
-        seeds = [b"offer", lender.key().as_ref(), &global_state.next_loan_id.to_le_bytes()],
+        seeds = [b"offer", lender.key().as_ref(), global_state.next_loan_id.to_le_bytes().as_ref()],
         bump,
     )]
     pub offer: Account<'info, LendOffer>,
@@ -752,13 +753,13 @@ pub struct AcceptLendOffer<'info> {
         init,
         payer = borrower,
         space = 8 + Loan::INIT_SPACE,
-        seeds = [b"loan", &global_state.next_loan_id.to_le_bytes()],
+        seeds = [b"loan", global_state.next_loan_id.to_le_bytes().as_ref()],
         bump,
     )]
     pub loan: Account<'info, Loan>,
     #[account(
         mut,
-        seeds = [b"loan_vault", &global_state.next_loan_id.to_le_bytes()],
+        seeds = [b"loan_vault", global_state.next_loan_id.to_le_bytes().as_ref()],
         bump,
     )]
     pub loan_vault: Account<'info, TokenAccount>,
