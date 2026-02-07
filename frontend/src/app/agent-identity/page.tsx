@@ -20,6 +20,7 @@ interface AgentProfile {
   score: BN;
   created_at: BN;
   updated_at: BN;
+  bump: number;
 }
 
 export default function AgentIdentityPage() {
@@ -66,7 +67,7 @@ export default function AgentIdentityPage() {
       );
 
       const profile = await reputationProgram.account.agentProfile.fetch(profilePDA);
-      setAgentProfile(profile as AgentProfile);
+      setAgentProfile(profile as unknown as AgentProfile);
 
     } catch (err: any) {
       console.error("Error fetching agent profile:", err);

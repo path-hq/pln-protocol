@@ -5,8 +5,8 @@ import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, P
 import StatsCard from '@/components/StatsCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import BN from 'bn.js';
 import * as anchor from '@coral-xyz/anchor';
 import { Buffer } from 'buffer';
@@ -57,7 +57,7 @@ export default function BorrowPage() {
   const [instructionData, setInstructionData] = useState('');
 
   const fetchData = useCallback(async () => {
-    if (!publicKey || !provider || !reputation) {
+    if (!publicKey || !provider || !reputation || !creditMarket) {
       return;
     }
 
@@ -83,7 +83,7 @@ export default function BorrowPage() {
       );
 
       try {
-        const agentReputationAccount = await reputation.account.agent.fetch(agentReputationPDA);
+        const agentReputationAccount = await reputation.account.agent.fetch(agentReputationPDA) as { totalReputation: { toNumber: () => number } };
         setAgentReputation(agentReputationAccount.totalReputation.toNumber());
       } catch (error) {
         console.warn("Agent Reputation Account not found, setting reputation to 0:", error);
@@ -97,9 +97,9 @@ export default function BorrowPage() {
 
       // Fetch Loan Offers
       const lendOffersAccounts = await creditMarket.account.lendOffer.all();
-      const mappedLoanOffers: LendOffer[] = lendOffersAccounts
-        .filter(offer => offer.account.isActive && offer.account.minReputation.toNumber() <= agentReputationValue)
-        .map(offer => ({
+      const mappedLoanOffers = lendOffersAccounts
+        .filter((offer: any) => offer.account.isActive && offer.account.minReputation.toNumber() <= agentReputationValue)
+        .map((offer: any) => ({
           pubkey: offer.publicKey,
           lender: offer.account.lender,
           amount: offer.account.amount,
@@ -107,14 +107,14 @@ export default function BorrowPage() {
           maxDuration: offer.account.maxDuration,
           minReputation: offer.account.minReputation.toNumber(),
           lenderUsdcAccount: offer.account.lenderUsdcAccount,
-        }));
+        } as LendOffer));
       setLoanOffers(mappedLoanOffers);
 
       // Fetch Active Loans
       const loanAccounts = await creditMarket.account.loan.all();
-      const mappedActiveLoans: ActiveLoan[] = loanAccounts
-        .filter(loan => publicKey && loan.account.borrower.equals(publicKey))
-        .map(loan => {
+      const mappedActiveLoans = loanAccounts
+        .filter((loan: any) => publicKey && loan.account.borrower.equals(publicKey))
+        .map((loan: any) => {
           let status: 'active' | 'repaid' | 'liquidated';
           if (loan.account.status.active) {
             status = 'active';
@@ -136,7 +136,7 @@ export default function BorrowPage() {
             apy: loan.account.apy.toNumber(),
             dueDate: loan.account.dueDate,
             status: status,
-          };
+          } as ActiveLoan;
         });
       setActiveLoans(mappedActiveLoans);
 
@@ -314,7 +314,7 @@ export default function BorrowPage() {
     }
 
     try {
-      const loanAccount = await creditMarket.account.loan.fetch(loanPubKey);
+      const loanAccount = await creditMarket.account.loan.fetch(loanPubKey) as any;
 
       const borrowerUsdcAccount = await getAssociatedTokenAddress(
         USDC_MINT_ADDRESS,

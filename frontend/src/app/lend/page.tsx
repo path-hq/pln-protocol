@@ -99,8 +99,8 @@ export default function LendPage() {
         liquidityRouter.programId
       );
 
-      const account = await liquidityRouter.account.lenderPosition.fetch(positionPDA);
-      setLenderPositionAccount(account as LenderPositionAccount);
+      const account = await liquidityRouter.account.lenderPosition.fetch(positionPDA) as unknown as LenderPositionAccount;
+      setLenderPositionAccount(account);
       setMinP2PRateBps(account.minP2PRateBps);
       setKaminoBufferBps(account.kaminoBufferBps);
 
@@ -118,21 +118,21 @@ export default function LendPage() {
 
   // Fetch active loans from Credit Market
   const fetchActiveLoans = useCallback(async () => {
-    if (!publicKey || !reputation?.program || !liquidityRouter) { // Access program from reputation
+    if (!publicKey || !reputation || !liquidityRouter) {
       setActiveLoans([]);
       return;
     }
     try {
       // Fetch all loan accounts
-      const allLoans = await reputation.program.account.loan.all(); // Use reputation.program
+      const allLoans = await reputation.account.loan.all();
       const USDC_DECIMALS = 6;
 
       const filteredLoans: DisplayLoan[] = allLoans
-        .filter(loan =>
+        .filter((loan: any) =>
           loan.account.lender.equals(publicKey) &&
           (loan.account.status as any).active !== undefined // Check if status is Active
         )
-        .map(loan => {
+        .map((loan: any) => {
           const loanAccount = loan.account;
           const principal = loanAccount.principal.toNumber() / (10 ** USDC_DECIMALS);
           const rateApy = loanAccount.rateBps / 100; // Convert BPS to percentage
@@ -317,7 +317,7 @@ export default function LendPage() {
       </div>
 
       {/* Strategy Configuration */}
-      <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6">
+      <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
         <h2 className="text-lg font-semibold text-white">Lending Strategy</h2>
         <p className="text-sm text-[#71717a]">Configure your automatic yield routing strategy</p>
 
@@ -329,7 +329,7 @@ export default function LendPage() {
               type="number"
               value={minP2PRateBps}
               onChange={(e) => setMinP2PRateBps(parseInt(e.target.value))}
-              className="w-32 rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
+              className="w-32 rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
               placeholder="e.g., 700 (7%)"
             />
             <p className="text-sm text-[#71717a]">Minimum APY for direct P2P loans (vs. Kamino).</p>
@@ -341,7 +341,7 @@ export default function LendPage() {
               type="number"
               value={kaminoBufferBps}
               onChange={(e) => setKaminoBufferBps(parseInt(e.target.value))}
-              className="w-32 rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
+              className="w-32 rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 px-3 text-white focus:border-[#22c55e] focus:outline-none"
               placeholder="e.g., 100 (1%)"
             />
             <p className="text-sm text-[#71717a]">P2P rate must be X bps higher than Kamino APY.</p>
@@ -359,7 +359,7 @@ export default function LendPage() {
       </div>
 
       {/* Deposit Input */}
-      <div className="mt-6 rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6">
+      <div className="mt-6 rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
         <h2 className="text-lg font-semibold text-white">Deposit Capital</h2>
         <p className="mt-1 text-[#71717a]">Deposit USDC to start earning yield.</p>
         <div className="mt-4 flex gap-2">
@@ -370,7 +370,7 @@ export default function LendPage() {
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-[#22c55e] focus:outline-none"
+              className="w-full rounded-lg border border-[#27272a] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-[#22c55e] focus:outline-none"
             />
           </div>
           <button
@@ -383,8 +383,8 @@ export default function LendPage() {
       </div>
 
       {/* Active Loans Table */}
-      <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
+      <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] overflow-hidden">
+        <div className="flex items-center justify-between border-b border-[#27272a] px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Your Active Loans</h2>
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-[#22c55e]" />
@@ -395,7 +395,7 @@ export default function LendPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1f1f24] bg-[#09090b]">
+              <tr className="border-b border-[#27272a] bg-[#09090b]">
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
                   Borrower
                 </th>
@@ -418,23 +418,23 @@ export default function LendPage() {
             </thead>
             <tbody>
               {activeLoans.map((loan) => (
-                <tr key={loan.id.toString()} className="hover:bg-[#1f1f24]/30">
+                <tr key={loan.id} className="hover:bg-[#1f1f24]/30">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-[#22c55e]/10 flex items-center justify-center">
                         <span className="text-xs font-medium text-[#22c55e]">
-                          {loan.borrower.toBase58().charAt(0)}
+                          {loan.borrower.charAt(0)}
                         </span>
                       </div>
-                      <span className="font-medium text-white">{loan.borrower.toBase58()}</span>
+                      <span className="font-medium text-white">{loan.borrower}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-white">{`${loan.principal.toNumber() / (10 ** 6)} USDC`}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{`${(loan.principal.toNumber() * 1.5) / (10 ** 6)} USDC`}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-white">{loan.amount}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.collateral}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-[#22c55e]">{loan.rateBps / 100}%</span>
+                    <span className="text-[#22c55e]">{loan.apy}%</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{new Date(loan.startTime.toNumber() * 1000).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{loan.startDate}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span className={getHealthColor(loan.health)}>{loan.health.toFixed(2)}</span>
