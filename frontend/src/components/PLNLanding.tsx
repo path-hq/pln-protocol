@@ -60,6 +60,8 @@ const PLNLanding = () => {
 
   const integrations = [
     { name: "Solana", desc: "Chain" },
+    { name: "USDC", desc: "Stablecoin" },
+    { name: "SNS", desc: "Identity" },
     { name: "OpenClaw", desc: "Agent" },
     { name: "Kamino", desc: "Yield" },
     { name: "Jupiter", desc: "Trading" },
@@ -336,7 +338,11 @@ const PLNLanding = () => {
         }
         
         @media (min-width: 640px) {
-          .integrations-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+          .integrations-grid { grid-template-columns: repeat(6, 1fr); gap: 16px; }
+        }
+        
+        @media (min-width: 480px) and (max-width: 639px) {
+          .integrations-grid { grid-template-columns: repeat(3, 1fr); }
         }
         
         .integration-card {
@@ -360,6 +366,129 @@ const PLNLanding = () => {
           letter-spacing: 0.05em;
         }
         
+        /* A2A Section */
+        .a2a-section {
+          padding: 48px 16px;
+          text-align: center;
+          border-top: 1px solid #27272a;
+          background: linear-gradient(180deg, #0f0f12 0%, #09090b 100%);
+        }
+        
+        @media (min-width: 768px) {
+          .a2a-section { padding: 72px 32px; }
+        }
+        
+        .a2a-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 100px;
+          background: #f59e0b15;
+          color: #f59e0b;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 16px;
+          font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .a2a-title {
+          font-size: 24px;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+        
+        @media (min-width: 768px) {
+          .a2a-title { font-size: 32px; }
+        }
+        
+        .a2a-subtitle {
+          color: #71717a;
+          font-size: 15px;
+          max-width: 600px;
+          margin: 0 auto 32px;
+          line-height: 1.6;
+        }
+        
+        .a2a-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          align-items: center;
+          max-width: 900px;
+          margin: 0 auto 32px;
+        }
+        
+        @media (min-width: 768px) {
+          .a2a-grid {
+            flex-direction: row;
+            justify-content: center;
+          }
+        }
+        
+        .a2a-card {
+          background: #0a0a0d;
+          border: 1px solid #27272a;
+          border-radius: 12px;
+          padding: 20px;
+          width: 100%;
+          max-width: 240px;
+        }
+        
+        .a2a-card-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 12px;
+        }
+        
+        .a2a-card h3 {
+          font-size: 15px;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+        
+        .a2a-card p {
+          font-size: 13px;
+          color: #71717a;
+        }
+        
+        .a2a-arrow {
+          color: #22c55e;
+          font-size: 24px;
+          display: none;
+        }
+        
+        @media (min-width: 768px) {
+          .a2a-arrow { display: block; }
+        }
+        
+        .a2a-features {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          font-size: 13px;
+          color: #a1a1aa;
+          max-width: 500px;
+          margin: 0 auto;
+          text-align: left;
+        }
+        
+        @media (min-width: 768px) {
+          .a2a-features {
+            flex-direction: row;
+            gap: 24px;
+            text-align: center;
+            max-width: none;
+            justify-content: center;
+          }
+        }
+        
+        .a2a-features strong {
+          color: #22c55e;
+        }
+
         /* Features */
         .features-section {
           padding: 40px 16px;
@@ -570,13 +699,53 @@ const PLNLanding = () => {
         </div>
       </section>
 
+      {/* A2A Section */}
+      <section className="a2a-section">
+        <div className="a2a-badge">The Innovation</div>
+        <h2 className="a2a-title">Agent-to-Agent Lending</h2>
+        <p className="a2a-subtitle">
+          Not just another DeFi pool. PLN enables AI agents to lend directly to other AI agents — 
+          building on-chain reputation with every successful loan.
+        </p>
+        <div className="a2a-grid">
+          <div className="a2a-card">
+            <div className="a2a-card-icon" style={{ background: '#3b82f615', color: '#3b82f6' }}>
+              <Bot size={24} />
+            </div>
+            <h3>Agent A (Lender)</h3>
+            <p>Deposits 10,000 USDC. Wants 12%+ APY.</p>
+          </div>
+          <div className="a2a-arrow">→</div>
+          <div className="a2a-card">
+            <div className="a2a-card-icon" style={{ background: '#22c55e15', color: '#22c55e' }}>
+              <Shield size={24} />
+            </div>
+            <h3>PLN Router</h3>
+            <p>Matches lenders with borrowers. Checks reputation.</p>
+          </div>
+          <div className="a2a-arrow">→</div>
+          <div className="a2a-card">
+            <div className="a2a-card-icon" style={{ background: '#f59e0b15', color: '#f59e0b' }}>
+              <Bot size={24} />
+            </div>
+            <h3>Agent B (Borrower)</h3>
+            <p>850 reputation. Borrows for Jupiter arb.</p>
+          </div>
+        </div>
+        <div className="a2a-features">
+          <div><strong>SNS Identity</strong> — Agents identified by .sol names</div>
+          <div><strong>On-chain History</strong> — Every loan builds reputation</div>
+          <div><strong>Constrained Funds</strong> — Borrowed USDC locked to whitelisted protocols</div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="features-section">
         <div className="features-grid">
           {[
-            { icon: Shield, title: "Constrained Funds", desc: "Borrowed USDC can only be used on whitelisted protocols. No rugs." },
-            { icon: Lock, title: "On-chain Reputation", desc: "Every loan recorded transparently. Build trust over time." },
-            { icon: Zap, title: "Auto-optimized", desc: "Router finds the best yield between Kamino and P2P loans." },
+            { icon: Shield, title: "Transfer Hooks", desc: "Token-2022 hooks constrain funds to whitelisted protocols only." },
+            { icon: Lock, title: "SNS Identity", desc: "Agents use .sol names. Reputation tied to on-chain identity." },
+            { icon: Zap, title: "Auto-optimized", desc: "Router finds best yield: Kamino pools or direct P2P loans." },
           ].map((item, i) => (
             <div key={i} className="feature-card">
               <div className="feature-icon">
