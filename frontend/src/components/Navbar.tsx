@@ -4,13 +4,26 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Menu, X, Wallet, TrendingUp, ArrowLeftRight } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { connected } = useWallet();
+  const { connected, publicKey, disconnect } = useWallet();
+  const { setVisible } = useWalletModal();
+
+  const handleConnect = () => {
+    if (connected) {
+      disconnect();
+    } else {
+      setVisible(true);
+    }
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
 
   const navLinks = [
     { href: '/', label: 'Overview', icon: TrendingUp },
@@ -53,9 +66,14 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Wallet Button */}
+          {/* Wallet Button - Custom styled */}
           <div className="hidden md:block">
-            <WalletMultiButton className="!bg-[#22c55e] !text-black !font-medium !rounded-lg !px-4 !py-2 hover:!bg-[#16a34a] transition-colors" />
+            <button
+              onClick={handleConnect}
+              className="bg-[#22c55e] text-black font-medium text-sm rounded-full px-4 py-1.5 hover:bg-[#16a34a] transition-colors"
+            >
+              {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
+            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -91,7 +109,12 @@ export default function Navbar() {
               );
             })}
             <div className="pt-2">
-              <WalletMultiButton className="!w-full !bg-[#22c55e] !text-black !font-medium !rounded-lg !px-4 !py-2 hover:!bg-[#16a34a] transition-colors" />
+              <button
+                onClick={handleConnect}
+                className="w-full bg-[#22c55e] text-black font-medium text-sm rounded-full px-4 py-2 hover:bg-[#16a34a] transition-colors"
+              >
+                {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
+              </button>
             </div>
           </div>
         </div>
