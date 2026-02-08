@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -9,9 +9,29 @@ import { Menu, X, Wallet, ArrowLeftRight, Home, LayoutDashboard } from 'lucide-r
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const { connected, publicKey, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
+  
+  // Safely access wallet hooks with fallbacks
+  let connected = false;
+  let publicKey: { toBase58: () => string } | null = null;
+  let disconnect = async () => {};
+  let setVisible = (_visible: boolean) => {};
+  
+  try {
+    const wallet = useWallet();
+    const modal = useWalletModal();
+    connected = wallet?.connected ?? false;
+    publicKey = wallet?.publicKey ?? null;
+    disconnect = wallet?.disconnect ?? (async () => {});
+    setVisible = modal?.setVisible ?? ((_visible: boolean) => {});
+  } catch (e) {
+    console.warn('Wallet hooks not available:', e);
+  }
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleConnect = () => {
     if (connected) {
@@ -70,12 +90,14 @@ export default function Navbar() {
 
           {/* Wallet Button - Custom styled */}
           <div className="hidden md:block">
-            <button
-              onClick={handleConnect}
-              className="bg-[#00FFB8] text-black font-medium text-sm rounded-lg px-4 py-1.5 hover:bg-[#00E6A5] transition-colors"
-            >
-              {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
-            </button>
+            {mounted && (
+              <button
+                onClick={handleConnect}
+                className="bg-[#00FFB8] text-black font-medium text-sm rounded-lg px-4 py-1.5 hover:bg-[#00E6A5] transition-colors"
+              >
+                {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
+              </button>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -110,14 +132,16 @@ export default function Navbar() {
                 </Link>
               );
             })}
-            <div className="pt-2">
-              <button
-                onClick={handleConnect}
-                className="w-full bg-[#00FFB8] text-black font-medium text-sm rounded-lg px-4 py-2 hover:bg-[#00E6A5] transition-colors"
-              >
-                {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
-              </button>
-            </div>
+            {mounted && (
+              <div className="pt-2">
+                <button
+                  onClick={handleConnect}
+                  className="w-full bg-[#00FFB8] text-black font-medium text-sm rounded-lg px-4 py-2 hover:bg-[#00E6A5] transition-colors"
+                >
+                  {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
