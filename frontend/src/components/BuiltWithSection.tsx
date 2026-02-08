@@ -1,112 +1,58 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 interface Partner {
   name: string;
   url: string;
   description: string;
-  svg: string;
+  logo: string;
+  fallback: string;
 }
 
 const PARTNERS: Partner[] = [
   {
     name: "Solana",
     url: "https://solana.com",
-    description: "Layer 1 Blockchain",
-    svg: `<svg viewBox="0 0 397.7 311.7" xmlns="http://www.w3.org/2000/svg">
-      <linearGradient id="solana-gradient-a" gradientUnits="userSpaceOnUse" x1="360.879" y1="351.455" x2="141.213" y2="-69.294" gradientTransform="matrix(1 0 0 -1 0 314)">
-        <stop offset="0" stop-color="#00ffa3"/>
-        <stop offset="1" stop-color="#dc1fff"/>
-      </linearGradient>
-      <linearGradient id="solana-gradient-b" gradientUnits="userSpaceOnUse" x1="264.829" y1="401.601" x2="45.163" y2="-19.148" gradientTransform="matrix(1 0 0 -1 0 314)">
-        <stop offset="0" stop-color="#00ffa3"/>
-        <stop offset="1" stop-color="#dc1fff"/>
-      </linearGradient>
-      <linearGradient id="solana-gradient-c" gradientUnits="userSpaceOnUse" x1="312.548" y1="376.688" x2="92.882" y2="-44.061" gradientTransform="matrix(1 0 0 -1 0 314)">
-        <stop offset="0" stop-color="#00ffa3"/>
-        <stop offset="1" stop-color="#dc1fff"/>
-      </linearGradient>
-      <path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z" fill="url(#solana-gradient-a)"/>
-      <path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z" fill="url(#solana-gradient-b)"/>
-      <path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z" fill="url(#solana-gradient-c)"/>
-    </svg>`,
+    description: "Chain",
+    logo: "/logos/solana-sol-logo.svg",
+    fallback: "SOL",
   },
   {
-    name: "Kamino",
-    url: "https://kamino.finance",
-    description: "Yield Optimizer",
-    svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="kamino-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#6366f1"/>
-          <stop offset="100%" stop-color="#8b5cf6"/>
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="45" fill="url(#kamino-grad)"/>
-      <path d="M30 35 L50 20 L70 35 L70 65 L50 80 L30 65 Z" fill="none" stroke="white" stroke-width="3"/>
-      <circle cx="50" cy="50" r="12" fill="white"/>
-    </svg>`,
+    name: "USDC",
+    url: "https://circle.com",
+    description: "Stablecoin",
+    logo: "/logos/usd-coin-usdc-logo.svg",
+    fallback: "USDC",
   },
   {
-    name: "Jupiter",
-    url: "https://jup.ag",
-    description: "DEX Aggregator",
-    svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="jupiter-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#c7f284"/>
-          <stop offset="100%" stop-color="#00bef0"/>
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="45" fill="#000"/>
-      <circle cx="50" cy="50" r="40" fill="url(#jupiter-grad)"/>
-      <ellipse cx="50" cy="50" rx="30" ry="8" fill="none" stroke="#000" stroke-width="2" transform="rotate(-20 50 50)"/>
-      <ellipse cx="50" cy="50" rx="30" ry="8" fill="none" stroke="#000" stroke-width="2" transform="rotate(20 50 50)"/>
-      <circle cx="50" cy="50" r="15" fill="#000"/>
-      <circle cx="50" cy="50" r="10" fill="url(#jupiter-grad)"/>
-    </svg>`,
-  },
-  {
-    name: "Anchor",
-    url: "https://anchor-lang.com",
-    description: "Smart Contract Framework",
-    svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="45" fill="#1a1a2e"/>
-      <path d="M50 15 L50 85" stroke="#00d4aa" stroke-width="4" stroke-linecap="round"/>
-      <path d="M50 25 C35 25, 25 40, 25 55 C25 65, 30 72, 40 75" stroke="#00d4aa" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <path d="M50 25 C65 25, 75 40, 75 55 C75 65, 70 72, 60 75" stroke="#00d4aa" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <circle cx="50" cy="20" r="6" fill="#00d4aa"/>
-      <path d="M35 80 L65 80" stroke="#00d4aa" stroke-width="4" stroke-linecap="round"/>
-    </svg>`,
+    name: "SNS",
+    url: "https://sns.id",
+    description: "Identity",
+    logo: "/logos/sns.jpg",
+    fallback: "SNS",
   },
   {
     name: "OpenClaw",
     url: "https://openclaw.ai",
-    description: "Agent Infrastructure",
-    svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="openclaw-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#00FFB8"/>
-          <stop offset="100%" stop-color="#00CC92"/>
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="45" fill="#0a0a0a"/>
-      <path d="M30 40 Q25 50 30 60 Q40 75 50 75 Q60 75 70 60 Q75 50 70 40 Q60 25 50 25 Q40 25 30 40" fill="none" stroke="url(#openclaw-grad)" stroke-width="3"/>
-      <circle cx="40" cy="45" r="5" fill="url(#openclaw-grad)"/>
-      <circle cx="60" cy="45" r="5" fill="url(#openclaw-grad)"/>
-      <path d="M35 58 Q50 68 65 58" fill="none" stroke="url(#openclaw-grad)" stroke-width="2" stroke-linecap="round"/>
-    </svg>`,
+    description: "Agent",
+    logo: "/logos/openclaw.jpg",
+    fallback: "OC",
   },
   {
-    name: "Circle",
-    url: "https://circle.com",
-    description: "USDC Issuer",
-    svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="45" fill="#2775ca"/>
-      <circle cx="50" cy="50" r="35" fill="none" stroke="white" stroke-width="3"/>
-      <text x="50" y="58" text-anchor="middle" fill="white" font-size="24" font-weight="bold" font-family="Arial, sans-serif">$</text>
-    </svg>`,
+    name: "Kamino",
+    url: "https://kamino.finance",
+    description: "Yield",
+    logo: "/logos/kamino.jpg",
+    fallback: "KMN",
+  },
+  {
+    name: "Jupiter",
+    url: "https://jup.ag",
+    description: "Trading",
+    logo: "/logos/jupiter-ag-jup-logo.svg",
+    fallback: "JUP",
   },
 ];
 
@@ -116,77 +62,86 @@ interface PartnerCardProps {
 }
 
 function PartnerCard({ partner, index }: PartnerCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef<HTMLAnchorElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          // Staggered animation delay based on index
-          setTimeout(() => {
-            setIsVisible(true);
-          }, index * 100);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [index]);
+  const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <a
-      ref={cardRef}
       href={partner.url}
       target="_blank"
       rel="noopener noreferrer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: "12px",
-        padding: "24px 16px",
-        background: "rgba(255, 255, 255, 0.02)",
-        border: `1px solid ${isHovered ? "rgba(0, 255, 184, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
+        padding: "24px 20px",
         borderRadius: "12px",
+        border: `1px solid ${hovered ? "rgba(0, 255, 184, 0.3)" : "rgba(39, 39, 42, 0.6)"}`,
+        background: hovered ? "rgba(0, 255, 184, 0.04)" : "rgba(15, 15, 18, 0.5)",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         textDecoration: "none",
-        transition: "all 0.3s ease",
-        transform: isVisible
-          ? isHovered
-            ? "translateY(-2px)"
-            : "translateY(0)"
-          : "translateY(20px)",
-        opacity: isVisible ? 1 : 0,
         cursor: "pointer",
+        minWidth: "140px",
+        flex: "1 1 140px",
+        maxWidth: "180px",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
       }}
     >
       <div
         style={{
           width: "48px",
           height: "48px",
+          opacity: hovered ? 1 : 0.7,
+          transition: "opacity 0.3s ease",
+          filter: hovered ? "drop-shadow(0 0 8px rgba(0, 255, 184, 0.2))" : "none",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          borderRadius: "8px",
+          overflow: "hidden",
         }}
-        dangerouslySetInnerHTML={{ __html: partner.svg }}
-      />
+      >
+        {imgError ? (
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              background: "rgba(0, 255, 184, 0.1)",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: "12px",
+              fontWeight: 600,
+              color: "#00FFB8",
+            }}
+          >
+            {partner.fallback}
+          </div>
+        ) : (
+          <Image
+            src={partner.logo}
+            alt={partner.name}
+            width={48}
+            height={48}
+            style={{ objectFit: "contain" }}
+            onError={() => setImgError(true)}
+          />
+        )}
+      </div>
       <div style={{ textAlign: "center" }}>
         <div
           style={{
-            fontFamily: "'IBM Plex Sans', sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#fafafa",
-            marginBottom: "4px",
+            fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: hovered ? "#FAFAFA" : "#A1A1AA",
+            letterSpacing: "0.02em",
+            transition: "color 0.3s ease",
           }}
         >
           {partner.name}
@@ -194,10 +149,11 @@ function PartnerCard({ partner, index }: PartnerCardProps) {
         <div
           style={{
             fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: "11px",
-            color: "rgba(255, 255, 255, 0.5)",
+            fontSize: "10px",
+            color: "#52525B",
+            marginTop: "4px",
+            letterSpacing: "0.03em",
             textTransform: "uppercase",
-            letterSpacing: "0.5px",
           }}
         >
           {partner.description}
@@ -208,20 +164,19 @@ function PartnerCard({ partner, index }: PartnerCardProps) {
 }
 
 interface StatItemProps {
-  label: string;
   value: string;
+  label: string;
 }
 
-function StatItem({ label, value }: StatItemProps) {
+function StatItem({ value, label }: StatItemProps) {
   return (
     <div style={{ textAlign: "center" }}>
       <div
         style={{
-          fontFamily: "'IBM Plex Sans', sans-serif",
-          fontSize: "16px",
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: "14px",
           fontWeight: 600,
-          color: "#fafafa",
-          marginBottom: "4px",
+          color: "#FAFAFA",
         }}
       >
         {value}
@@ -229,10 +184,11 @@ function StatItem({ label, value }: StatItemProps) {
       <div
         style={{
           fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: "11px",
-          color: "rgba(255, 255, 255, 0.5)",
+          fontSize: "10px",
+          color: "#52525B",
+          marginTop: "4px",
           textTransform: "uppercase",
-          letterSpacing: "0.5px",
+          letterSpacing: "0.1em",
         }}
       >
         {label}
@@ -242,98 +198,127 @@ function StatItem({ label, value }: StatItemProps) {
 }
 
 export default function BuiltWithSection() {
-  const [sectionVisible, setSectionVisible] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setSectionVisible(true);
-          observer.disconnect();
+          setVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.2 }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
+    if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
+    <div
+      ref={ref}
       style={{
-        padding: "64px 16px",
-        maxWidth: "900px",
-        margin: "0 auto",
-        opacity: sectionVisible ? 1 : 0,
-        transform: sectionVisible ? "translateY(0)" : "translateY(20px)",
-        transition: "all 0.6s ease-out",
+        width: "100%",
+        background: "#000000",
+        padding: "64px 24px",
+        fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
       }}
     >
-      {/* Section Header */}
-      <div style={{ textAlign: "center", marginBottom: "48px" }}>
+      <div
+        style={{
+          maxWidth: "960px",
+          margin: "0 auto",
+        }}
+      >
+        {/* Section header */}
         <div
           style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: "11px",
-            fontWeight: 500,
-            color: "#00FFB8",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-            marginBottom: "12px",
+            textAlign: "center",
+            marginBottom: "40px",
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0)" : "translateY(20px)",
+            transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          BUILT WITH
+          <div
+            style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: "11px",
+              fontWeight: 500,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "#00FFB8",
+              marginBottom: "12px",
+            }}
+          >
+            Built With
+          </div>
+          <h2
+            style={{
+              fontSize: "24px",
+              fontWeight: 600,
+              color: "#FAFAFA",
+              margin: 0,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Institutional-Grade Infrastructure
+          </h2>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#71717A",
+              margin: "8px 0 0 0",
+              lineHeight: 1.5,
+            }}
+          >
+            PLN is built on battle-tested protocols trusted by billions in TVL
+          </p>
         </div>
-        <h2
+
+        {/* Logo grid */}
+        <div
           style={{
-            fontFamily: "'IBM Plex Sans', sans-serif",
-            fontSize: "24px",
-            fontWeight: 600,
-            color: "#fafafa",
-            margin: 0,
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "12px",
           }}
         >
-          Institutional-Grade Infrastructure
-        </h2>
-      </div>
+          {PARTNERS.map((partner, i) => (
+            <div
+              key={partner.name}
+              style={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? "translateY(0)" : "translateY(24px)",
+                transition: `all 0.5s cubic-bezier(0.4, 0, 0.2, 1) ${i * 100 + 200}ms`,
+              }}
+            >
+              <PartnerCard partner={partner} index={i} />
+            </div>
+          ))}
+        </div>
 
-      {/* Partner Cards Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: "16px",
-          marginBottom: "48px",
-        }}
-      >
-        {PARTNERS.map((partner, index) => (
-          <PartnerCard key={partner.name} partner={partner} index={index} />
-        ))}
+        {/* Stats bar */}
+        <div
+          style={{
+            marginTop: "48px",
+            paddingTop: "24px",
+            borderTop: "1px solid rgba(39, 39, 42, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            gap: "48px",
+            flexWrap: "wrap",
+            opacity: visible ? 1 : 0,
+            transition: "opacity 0.6s ease 0.8s",
+          }}
+        >
+          <StatItem value="Deployed" label="Solana Devnet" />
+          <StatItem value="3 Programs" label="Smart Contracts" />
+          <StatItem value="Jupiter + Kamino" label="Whitelisted Protocols" />
+        </div>
       </div>
-
-      {/* Bottom Stats */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: "48px",
-          flexWrap: "wrap",
-          padding: "24px",
-          background: "rgba(255, 255, 255, 0.02)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: "12px",
-        }}
-      >
-        <StatItem label="Deployed" value="Solana Devnet" />
-        <StatItem label="Smart Contracts" value="3 Programs" />
-        <StatItem label="Whitelisted Protocols" value="Jupiter + Kamino" />
-      </div>
-    </section>
+    </div>
   );
 }
