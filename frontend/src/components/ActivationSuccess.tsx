@@ -36,7 +36,7 @@ export default function ActivationSuccess({ amount, strategy, apy }: Props) {
         
         <h1 className="text-2xl font-bold text-white mb-6">Your Agent is Live</h1>
         
-        <div className="space-y-3 text-left bg-black/30 rounded-lg p-4 mb-6">
+        <div className="space-y-3 text-left bg-[#09090B] rounded-lg p-4 mb-6 border border-[#27272A]">
           <div className="flex justify-between">
             <span className="text-[#71717A]">Deposited</span>
             <span className="text-white font-medium">${amount} USDC</span>

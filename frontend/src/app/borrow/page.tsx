@@ -571,10 +571,10 @@ export default function BorrowPage() {
   if (!publicKey) {
     return (
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 32px' }}>
-        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#27272a] bg-[#0f0f12] p-8">
-          <Wallet className="h-16 w-16 text-[#71717a] mb-4" />
+        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#27272A] bg-[#0F0F12] p-8">
+          <Wallet className="h-16 w-16 text-[#71717A] mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Wallet Not Connected</h2>
-          <p className="text-[#71717a] text-center max-w-md">
+          <p className="text-[#71717A] text-center max-w-md">
             Connect your wallet to view borrowing options.
           </p>
         </div>
@@ -586,10 +586,10 @@ export default function BorrowPage() {
   if (isLoading && usdcBalance === null) {
     return (
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 32px' }}>
-        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#27272a] bg-[#0f0f12] p-8">
-          <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-4" />
+        <div className="flex flex-col items-center justify-center min-h-[400px] rounded-xl border border-[#27272A] bg-[#0F0F12] p-8">
+          <Loader2 className="h-12 w-12 text-[#00FFB8] animate-spin mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Loading...</h2>
-          <p className="text-[#71717a] text-center">
+          <p className="text-[#71717A] text-center">
             Fetching your borrowing data from the blockchain.
           </p>
         </div>
@@ -604,7 +604,7 @@ export default function BorrowPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Borrower Dashboard</h1>
-            <p className="mt-1 text-[#71717a]">Manage your agent's borrowing and trading activity</p>
+            <p className="mt-1 text-[#71717A]">Manage your agent's borrowing and trading activity</p>
           </div>
         </div>
 
@@ -642,14 +642,14 @@ export default function BorrowPage() {
         />
 
         {/* How Reputation Works - Explainer Card */}
-        <div className="rounded-xl border border-[#27272a] bg-gradient-to-br from-[#0f0f12] to-[#1a1a2e] p-6">
+        <div className="rounded-xl border border-[#27272A] bg-[#0F0F12] p-6">
           <div className="flex items-start gap-4">
-            <div className="rounded-full bg-blue-500/20 p-3">
-              <Info className="h-6 w-6 text-blue-400" />
+            <div className="rounded-full bg-[#00FFB8]/20 p-3">
+              <Info className="h-6 w-6 text-[#00FFB8]" />
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-white mb-2">How Reputation Works</h2>
-              <p className="text-[#a1a1aa] mb-4">
+              <p className="text-[#71717A] mb-4">
                 Every successful repayment increases your score. Higher scores unlock bigger credit limits.
               </p>
               
@@ -659,8 +659,8 @@ export default function BorrowPage() {
                   <div key={tier.tier} className="flex items-center">
                     <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
                       creditTier >= tier.tier 
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
-                        : 'bg-[#27272a] text-[#71717a] border border-[#3f3f46]'
+                        ? 'bg-[#00FFB8]/20 text-[#00FFB8] border border-[#00FFB8]/30' 
+                        : 'bg-[#27272A] text-[#71717A] border border-[#27272A]'
                     }`}>
                       {creditTier >= tier.tier && <Star className="h-3 w-3" />}
                       <span className="font-medium">T{tier.tier}: {tier.name}</span>
@@ -669,7 +669,7 @@ export default function BorrowPage() {
                       </span>
                     </div>
                     {index < TIER_PROGRESSION.length - 1 && (
-                      <ChevronRight className="h-4 w-4 text-[#52525b] mx-1" />
+                      <ChevronRight className="h-4 w-4 text-[#52525B] mx-1" />
                     )}
                   </div>
                 ))}
@@ -679,10 +679,10 @@ export default function BorrowPage() {
         </div>
 
         {/* Request Capital Form */}
-        <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
+        <div className="rounded-xl border border-[#27272A] bg-[#0F0F12] p-6">
           <div className="mb-1">
             <h2 className="text-lg font-semibold text-white">Request Capital</h2>
-            <p className="text-sm text-[#71717a]">
+            <p className="text-sm text-[#71717A]">
               Max available: {formatCurrency(maxBorrowLimit)} USDC (Tier {creditTier})
             </p>
           </div>
@@ -692,7 +692,7 @@ export default function BorrowPage() {
             <div className="space-y-3">
               <label className="text-sm font-medium text-white">Amount</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717a] text-lg">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717A] text-lg">$</span>
                 <input
                   type="number"
                   min="0"
@@ -700,7 +700,7 @@ export default function BorrowPage() {
                   value={borrowAmountUsd || ''}
                   onChange={(e) => setBorrowAmountUsd(Math.min(Number(e.target.value) || 0, maxBorrowLimit))}
                   placeholder="0"
-                  className="w-full bg-[#09090b] border border-[#27272a] rounded-lg px-4 py-3 pl-8 text-white text-lg font-medium focus:outline-none focus:border-[#00FFB8] focus:ring-1 focus:ring-[#00FFB8] transition-colors"
+                  className="w-full bg-[#09090B] border border-[#27272A] rounded-lg px-4 py-3 pl-8 text-white text-lg font-medium focus:outline-none focus:border-[#00FFB8] focus:ring-1 focus:ring-[#00FFB8] transition-colors"
                 />
               </div>
               
@@ -713,9 +713,9 @@ export default function BorrowPage() {
                   step={maxBorrowLimit >= 1000 ? 50 : 10}
                   value={borrowAmountUsd}
                   onChange={(e) => setBorrowAmountUsd(Number(e.target.value))}
-                  className="flex-1 h-2 bg-[#27272a] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00FFB8] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#00FFB8] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                  className="flex-1 h-2 bg-[#27272A] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00FFB8] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#00FFB8] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
-                <span className="text-sm text-[#71717a] whitespace-nowrap">{formatCurrency(maxBorrowLimit)}</span>
+                <span className="text-sm text-[#71717A] whitespace-nowrap">{formatCurrency(maxBorrowLimit)}</span>
               </div>
             </div>
 
@@ -730,7 +730,7 @@ export default function BorrowPage() {
                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                       selectedDurationIndex === index
                         ? 'bg-[#00FFB8] text-black'
-                        : 'bg-[#27272a] text-[#a1a1aa] hover:bg-[#3f3f46] border border-[#3f3f46]'
+                        : 'bg-[#27272A] text-[#71717A] hover:bg-[#27272A]/80 border border-[#27272A]'
                     }`}
                   >
                     {preset.label}
@@ -742,17 +742,17 @@ export default function BorrowPage() {
             {/* Cost Estimate */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-white">Cost Estimate</label>
-              <div className="rounded-lg bg-[#09090b] border border-[#27272a] p-4 space-y-2">
+              <div className="rounded-lg bg-[#09090B] border border-[#27272A] p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#71717a]">Interest rate</span>
+                  <span className="text-sm text-[#71717A]">Interest rate</span>
                   <span className="text-sm text-white">~{(DEFAULT_MAX_RATE_BPS / 100).toFixed(1)}% APY</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#71717a]">Estimated cost</span>
+                  <span className="text-sm text-[#71717A]">Estimated cost</span>
                   <span className="text-sm text-white">{formatCurrency(estimatedCost.dollars)} USDC</span>
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-[#27272a]">
-                  <span className="text-sm text-[#71717a]">You repay</span>
+                <div className="flex items-center justify-between pt-2 border-t border-[#27272A]">
+                  <span className="text-sm text-[#71717A]">You repay</span>
                   <span className="text-sm font-semibold text-white">{formatCurrency(borrowAmountUsd + estimatedCost.dollars)} USDC</span>
                 </div>
               </div>
@@ -764,8 +764,8 @@ export default function BorrowPage() {
               disabled={borrowAmountUsd <= 0 || borrowAmountUsd > maxBorrowLimit}
               className={`w-full rounded-lg px-4 py-3 font-semibold text-lg transition-all ${
                 borrowAmountUsd > 0 && borrowAmountUsd <= maxBorrowLimit
-                  ? 'bg-[#00FFB8] text-black hover:bg-[#00e6a5] active:scale-[0.98]'
-                  : 'bg-[#27272a] text-[#52525b] cursor-not-allowed'
+                  ? 'bg-[#00FFB8] text-black hover:bg-[#00E6A5] active:scale-[0.98]'
+                  : 'bg-[#27272A] text-[#52525B] cursor-not-allowed'
               }`}
             >
               Request Capital
@@ -774,41 +774,41 @@ export default function BorrowPage() {
         </div>
 
         {/* Available Loan Offers (Auto-matched) */}
-        <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
+        <div className="rounded-xl border border-[#27272A] bg-[#0F0F12] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[#27272A] px-6 py-4">
             <h2 className="text-lg font-semibold text-white">Available Loan Offers</h2>
-            <ChevronsRight className="h-4 w-4 text-blue-500" />
+            <ChevronsRight className="h-4 w-4 text-[#00FFB8]" />
           </div>
           <div className="max-h-[300px] overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 text-blue-500 animate-spin mr-2" />
-                <span className="text-[#71717a]">Loading offers...</span>
+                <Loader2 className="h-6 w-6 text-[#00FFB8] animate-spin mr-2" />
+                <span className="text-[#71717A]">Loading offers...</span>
               </div>
             ) : loanOffers.length > 0 ? (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1f1f24] bg-[#09090b]">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Lender</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Min Rate (APY)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Max Duration</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Min Rep</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Action</th>
+                  <tr className="border-b border-[#27272A] bg-[#09090B]">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Lender</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Min Rate (APY)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Max Duration</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Min Rep</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1f1f24]">
+                <tbody className="divide-y divide-[#27272A]">
                   {loanOffers.map((offer) => (
-                    <tr key={offer.pubkey.toBase58()} className="hover:bg-[#1f1f24]/30">
+                    <tr key={offer.pubkey.toBase58()} className="hover:bg-[#27272A]/30">
                       <td className="px-6 py-4 whitespace-nowrap text-white">{offer.lender.toBase58().slice(0, 8)}...</td>
                       <td className="px-6 py-4 whitespace-nowrap text-white">{offer.amount.toString()} USDC</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{offer.minRateBps / 100}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.maxDuration.toString()} seconds</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{offer.minReputation}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-[#00FFB8]">{offer.minRateBps / 100}%</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-[#71717A]">{offer.maxDuration.toString()} seconds</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-[#71717A]">{offer.minReputation}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleAcceptOffer(offer)}
-                          className="rounded-lg bg-blue-500 px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 transition-colors"
+                          className="rounded-lg bg-[#00FFB8] px-3 py-1 text-sm font-medium text-black hover:bg-[#00E6A5] transition-colors"
                         >
                           Accept Offer
                         </button>
@@ -819,51 +819,51 @@ export default function BorrowPage() {
               </table>
             ) : (
               <div className="p-8 text-center">
-                <DollarSign className="h-10 w-10 text-[#71717a] mx-auto mb-3" />
-                <p className="text-[#71717a]">No loan offers currently match your criteria.</p>
-                <p className="text-sm text-[#52525b] mt-1">Check back later or improve your reputation score.</p>
+                <DollarSign className="h-10 w-10 text-[#71717A] mx-auto mb-3" />
+                <p className="text-[#71717A]">No loan offers currently match your criteria.</p>
+                <p className="text-sm text-[#52525B] mt-1">Check back later or improve your reputation score.</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Your Active Loans */}
-        <div className="rounded-xl border border-[#1f1f24] bg-[#0f0f12] overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#1f1f24] px-6 py-4">
+        <div className="rounded-xl border border-[#27272A] bg-[#0F0F12] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[#27272A] px-6 py-4">
             <h2 className="text-lg font-semibold text-white">Your Active Loans</h2>
-            <Shield className="h-4 w-4 text-[#22c55e]" />
+            <Shield className="h-4 w-4 text-[#00FFB8]" />
           </div>
           <div className="max-h-[300px] overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 text-blue-500 animate-spin mr-2" />
-                <span className="text-[#71717a]">Loading loans...</span>
+                <Loader2 className="h-6 w-6 text-[#00FFB8] animate-spin mr-2" />
+                <span className="text-[#71717A]">Loading loans...</span>
               </div>
             ) : activeLoans.length > 0 ? (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1f1f24] bg-[#09090b]">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Lender</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Repay Amt</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">APY</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Due Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">Action</th>
+                  <tr className="border-b border-[#27272A] bg-[#09090B]">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Lender</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Repay Amt</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">APY</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Due Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#71717A] uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1f1f24]">
+                <tbody className="divide-y divide-[#27272A]">
                   {activeLoans.map((loan) => (
-                    <tr key={loan.pubkey.toBase58()} className="hover:bg-[#1f1f24]/30">
+                    <tr key={loan.pubkey.toBase58()} className="hover:bg-[#27272A]/30">
                       <td className="px-6 py-4 whitespace-nowrap text-white">{loan.lender.toBase58().slice(0, 8)}...</td>
                       <td className="px-6 py-4 whitespace-nowrap text-white">{loan.principalAmount.toString()} USDC</td>
                       <td className="px-6 py-4 whitespace-nowrap text-white">{loan.repaymentAmount.toString()} USDC</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#22c55e]">{loan.apy}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-[#71717a]">{new Date(loan.dueDate.toNumber() * 1000).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-[#00FFB8]">{loan.apy}%</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-[#71717A]">{new Date(loan.dueDate.toNumber() * 1000).toLocaleDateString()}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           loan.status === 'active' ? 'bg-blue-500/20 text-blue-400' :
-                          loan.status === 'repaid' ? 'bg-[#22c55e]/20 text-[#22c55e]' :
+                          loan.status === 'repaid' ? 'bg-[#00FFB8]/20 text-[#00FFB8]' :
                           'bg-red-500/20 text-red-400'
                         }`}>
                           {loan.status}
@@ -885,9 +885,9 @@ export default function BorrowPage() {
               </table>
             ) : (
               <div className="p-8 text-center">
-                <Clock className="h-10 w-10 text-[#71717a] mx-auto mb-3" />
-                <p className="text-[#71717a]">No active loans found.</p>
-                <p className="text-sm text-[#52525b] mt-1">Request capital or accept an offer to get started.</p>
+                <Clock className="h-10 w-10 text-[#71717A] mx-auto mb-3" />
+                <p className="text-[#71717A]">No active loans found.</p>
+                <p className="text-sm text-[#52525B] mt-1">Request capital or accept an offer to get started.</p>
               </div>
             )}
           </div>
@@ -902,7 +902,7 @@ export default function BorrowPage() {
           <p className="text-sm text-[#71717A] mb-4">
             Let your agent borrow, trade, and repay automatically.
           </p>
-          <div className="flex items-center gap-2 bg-black/50 rounded-lg px-4 py-3 font-mono text-sm">
+          <div className="flex items-center gap-2 bg-[#000000] rounded-lg px-4 py-3 font-mono text-sm border border-[#27272A]">
             <code className="text-[#00FFB8] flex-1">npx openclaw install pln-borrower</code>
             <button 
               onClick={() => {

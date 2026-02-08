@@ -153,18 +153,18 @@ export default function PLNActivateWizard() {
               ? 'bg-[#00FFB8] text-black' 
               : step === s.num 
                 ? 'bg-[#00FFB8] text-black' 
-                : 'bg-[#222222] text-[#71717a]'
+                : 'bg-[#27272A] text-[#71717A]'
           }`}>
             {step > s.num ? <Check size={16} /> : s.num}
           </div>
           <span className={`ml-2 text-sm font-medium ${
-            step >= s.num ? 'text-white' : 'text-[#71717a]'
+            step >= s.num ? 'text-white' : 'text-[#71717A]'
           }`}>
             {s.label}
           </span>
           {i < 2 && (
             <div className={`w-12 h-0.5 mx-3 ${
-              step > s.num ? 'bg-[#00FFB8]' : 'bg-[#222222]'
+              step > s.num ? 'bg-[#00FFB8]' : 'bg-[#27272A]'
             }`} />
           )}
         </div>
@@ -177,17 +177,17 @@ export default function PLNActivateWizard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Fund your Agent</h2>
-        <p className="text-[#71717a]">Deposit USDC to power your autonomous agent</p>
+        <p className="text-[#71717A]">Deposit USDC to power your autonomous agent</p>
       </div>
 
       {/* Network Info */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-[#0f0f12] border border-[#27272a]">
+      <div className="flex items-center gap-3 p-4 rounded-xl bg-[#0F0F12] border border-[#27272A]">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
           <span className="text-white text-xs font-bold">SOL</span>
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-white">Solana Devnet</p>
-          <p className="text-xs text-[#71717a]">Test network • No real funds at risk</p>
+          <p className="text-xs text-[#71717A]">Test network • No real funds at risk</p>
         </div>
         <div className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
           Auto-selected
@@ -195,24 +195,24 @@ export default function PLNActivateWizard() {
       </div>
 
       {/* Token Selection */}
-      <div className="p-4 rounded-xl bg-[#0f0f12] border border-[#27272a]">
-        <label className="text-sm font-medium text-[#71717a] mb-3 block">Token</label>
+      <div className="p-4 rounded-xl bg-[#0F0F12] border border-[#27272A]">
+        <label className="text-sm font-medium text-[#71717A] mb-3 block">Token</label>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#2775ca] flex items-center justify-center">
             <span className="text-white text-sm font-bold">$</span>
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-white">USDC</p>
-            <p className="text-xs text-[#71717a]">USD Coin</p>
+            <p className="text-xs text-[#71717A]">USD Coin</p>
           </div>
         </div>
       </div>
 
       {/* Amount Input */}
-      <div className="p-4 rounded-xl bg-[#0f0f12] border border-[#27272a]">
+      <div className="p-4 rounded-xl bg-[#0F0F12] border border-[#27272A]">
         <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-[#71717a]">Amount</label>
-          <span className="text-xs text-[#71717a]">
+          <label className="text-sm font-medium text-[#71717A]">Amount</label>
+          <span className="text-xs text-[#71717A]">
             Balance: <span className="text-white">${walletBalance.toFixed(2)}</span>
           </span>
         </div>
@@ -223,7 +223,7 @@ export default function PLNActivateWizard() {
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             placeholder="0.00"
-            className="w-full bg-[#09090b] border border-[#27272a] rounded-lg py-3 px-4 text-white text-lg font-medium placeholder-[#52525b] focus:border-[#00FFB8] focus:outline-none"
+            className="w-full bg-[#09090B] border border-[#27272A] rounded-lg py-3 px-4 text-white text-lg font-medium placeholder-[#52525B] focus:border-[#00FFB8] focus:outline-none"
           />
           <button 
             onClick={() => setDepositAmount(String(walletBalance))}
@@ -233,7 +233,7 @@ export default function PLNActivateWizard() {
           </button>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-[#71717a]">Min deposit: ${MIN_DEPOSIT}</p>
+          <p className="text-xs text-[#71717A]">Min deposit: ${MIN_DEPOSIT}</p>
           {amount > 0 && amount < MIN_DEPOSIT && (
             <p className="text-xs text-red-400">Below minimum</p>
           )}
@@ -259,7 +259,7 @@ export default function PLNActivateWizard() {
         className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
           canProceedStep1
             ? 'bg-[#00FFB8] text-black hover:bg-[#00E6A5]'
-            : 'bg-[#27272a] text-[#52525b] cursor-not-allowed'
+            : 'bg-[#27272A] text-[#52525B] cursor-not-allowed'
         }`}
       >
         Continue to Strategy
@@ -274,12 +274,12 @@ export default function PLNActivateWizard() {
       <div>
         <button 
           onClick={() => setStep(1)} 
-          className="flex items-center gap-1 text-sm text-[#71717a] hover:text-white mb-4 transition-colors"
+          className="flex items-center gap-1 text-sm text-[#71717A] hover:text-white mb-4 transition-colors"
         >
           <ChevronLeft size={16} /> Back
         </button>
         <h2 className="text-2xl font-bold text-white mb-2">Choose your Strategy</h2>
-        <p className="text-[#71717a]">Select how your agent should operate</p>
+        <p className="text-[#71717A]">Select how your agent should operate</p>
       </div>
 
       {/* Strategy Cards */}
@@ -290,14 +290,14 @@ export default function PLNActivateWizard() {
           className={`w-full text-left p-5 rounded-xl border-2 transition-all ${
             selectedStrategy === 'yield'
               ? 'bg-[#00FFB8]/10 border-[#00FFB8]'
-              : 'bg-[#0f0f12] border-[#27272a] hover:border-[#3f3f46]'
+              : 'bg-[#0F0F12] border-[#27272A] hover:border-[#27272A]/80'
           }`}
         >
           <div className="flex items-start gap-4">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              selectedStrategy === 'yield' ? 'bg-[#00FFB8]/20' : 'bg-[#27272a]'
+              selectedStrategy === 'yield' ? 'bg-[#00FFB8]/20' : 'bg-[#27272A]'
             }`}>
-              <TrendingUp size={24} className={selectedStrategy === 'yield' ? 'text-[#00FFB8]' : 'text-[#71717a]'} />
+              <TrendingUp size={24} className={selectedStrategy === 'yield' ? 'text-[#00FFB8]' : 'text-[#71717A]'} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -306,10 +306,10 @@ export default function PLNActivateWizard() {
                   ~14.2% APY
                 </span>
               </div>
-              <p className="text-sm text-[#71717a] mb-3">
+              <p className="text-sm text-[#71717A] mb-3">
                 Deposit USDC, earn blended Kamino + P2P yield. Fully autonomous.
               </p>
-              <div className="flex items-center gap-4 text-xs text-[#52525b]">
+              <div className="flex items-center gap-4 text-xs text-[#52525B]">
                 <div className="flex items-center gap-1">
                   <img src="/logos/kamino.jpg" alt="Kamino" className="w-4 h-4 rounded" />
                   <span>Kamino</span>
@@ -334,14 +334,14 @@ export default function PLNActivateWizard() {
           className={`w-full text-left p-5 rounded-xl border-2 transition-all ${
             selectedStrategy === 'trading'
               ? 'bg-blue-500/10 border-blue-500'
-              : 'bg-[#0f0f12] border-[#27272a] hover:border-[#3f3f46]'
+              : 'bg-[#0F0F12] border-[#27272A] hover:border-[#27272A]/80'
           }`}
         >
           <div className="flex items-start gap-4">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              selectedStrategy === 'trading' ? 'bg-blue-500/20' : 'bg-[#27272a]'
+              selectedStrategy === 'trading' ? 'bg-blue-500/20' : 'bg-[#27272A]'
             }`}>
-              <Zap size={24} className={selectedStrategy === 'trading' ? 'text-blue-400' : 'text-[#71717a]'} />
+              <Zap size={24} className={selectedStrategy === 'trading' ? 'text-blue-400' : 'text-[#71717A]'} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -350,10 +350,10 @@ export default function PLNActivateWizard() {
                   Start at $50
                 </span>
               </div>
-              <p className="text-sm text-[#71717a] mb-3">
+              <p className="text-sm text-[#71717A] mb-3">
                 Borrow against reputation, trade on Jupiter. Build credit to $75K.
               </p>
-              <div className="flex items-center gap-4 text-xs text-[#52525b]">
+              <div className="flex items-center gap-4 text-xs text-[#52525B]">
                 <div className="flex items-center gap-1">
                   <img src="/logos/jupiter-ag-jup-logo.svg" alt="Jupiter" className="w-4 h-4" />
                   <span>Jupiter</span>
@@ -380,7 +380,7 @@ export default function PLNActivateWizard() {
         className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
           canProceedStep2
             ? 'bg-[#00FFB8] text-black hover:bg-[#00E6A5]'
-            : 'bg-[#27272a] text-[#52525b] cursor-not-allowed'
+            : 'bg-[#27272A] text-[#52525B] cursor-not-allowed'
         }`}
       >
         Continue to Activation
@@ -395,33 +395,33 @@ export default function PLNActivateWizard() {
       <div>
         <button 
           onClick={() => setStep(2)} 
-          className="flex items-center gap-1 text-sm text-[#71717a] hover:text-white mb-4 transition-colors"
+          className="flex items-center gap-1 text-sm text-[#71717A] hover:text-white mb-4 transition-colors"
         >
           <ChevronLeft size={16} /> Back
         </button>
         <h2 className="text-2xl font-bold text-white mb-2">Activate Agent</h2>
-        <p className="text-[#71717a]">Review your configuration and activate</p>
+        <p className="text-[#71717A]">Review your configuration and activate</p>
       </div>
 
       {/* Summary Card */}
-      <div className="p-5 rounded-xl bg-[#0f0f12] border border-[#27272a] space-y-4">
+      <div className="p-5 rounded-xl bg-[#0F0F12] border border-[#27272A] space-y-4">
         <h3 className="font-semibold text-white">Summary</h3>
         
         <div className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-[#27272a]">
-            <span className="text-[#71717a]">Deposit Amount</span>
+          <div className="flex items-center justify-between py-2 border-b border-[#27272A]">
+            <span className="text-[#71717A]">Deposit Amount</span>
             <span className="text-white font-medium">${amount.toFixed(2)} USDC</span>
           </div>
           
-          <div className="flex items-center justify-between py-2 border-b border-[#27272a]">
-            <span className="text-[#71717a]">Strategy</span>
+          <div className="flex items-center justify-between py-2 border-b border-[#27272A]">
+            <span className="text-[#71717A]">Strategy</span>
             <span className="text-white font-medium">
               {selectedStrategy === 'yield' ? 'Yield Optimizer' : 'Trading Agent'}
             </span>
           </div>
           
-          <div className="flex items-center justify-between py-2 border-b border-[#27272a]">
-            <span className="text-[#71717a]">Markets</span>
+          <div className="flex items-center justify-between py-2 border-b border-[#27272A]">
+            <span className="text-[#71717A]">Markets</span>
             <span className="text-white font-medium">
               {selectedStrategy === 'yield' ? 'Kamino + P2P' : 'Jupiter'}
             </span>
@@ -429,18 +429,18 @@ export default function PLNActivateWizard() {
           
           {selectedStrategy === 'yield' ? (
             <>
-              <div className="flex items-center justify-between py-2 border-b border-[#27272a]">
-                <span className="text-[#71717a]">Projected APY</span>
+              <div className="flex items-center justify-between py-2 border-b border-[#27272A]">
+                <span className="text-[#71717A]">Projected APY</span>
                 <span className="text-[#00FFB8] font-medium">~{projectedAPY}%</span>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-[#71717a]">Est. Weekly Earnings</span>
+                <span className="text-[#71717A]">Est. Weekly Earnings</span>
                 <span className="text-[#00FFB8] font-medium">+${projectedWeeklyEarnings}</span>
               </div>
             </>
           ) : (
             <div className="flex items-center justify-between py-2">
-              <span className="text-[#71717a]">Starting Credit</span>
+              <span className="text-[#71717A]">Starting Credit</span>
               <span className="text-blue-400 font-medium">${startingCredit} USDC</span>
             </div>
           )}
@@ -448,8 +448,8 @@ export default function PLNActivateWizard() {
       </div>
 
       {/* Disclaimer */}
-      <div className="p-4 rounded-xl bg-[#27272a]/50 border border-[#27272a]">
-        <p className="text-xs text-[#71717a]">
+      <div className="p-4 rounded-xl bg-[#27272A]/50 border border-[#27272A]">
+        <p className="text-xs text-[#71717A]">
           Based on current rates. Actual results may vary. Past performance is not indicative of future results. 
           This is a devnet deployment for testing purposes.
         </p>
@@ -461,9 +461,9 @@ export default function PLNActivateWizard() {
           type="checkbox"
           checked={termsAccepted}
           onChange={(e) => setTermsAccepted(e.target.checked)}
-          className="mt-1 w-4 h-4 rounded border-[#27272a] bg-[#0f0f12] text-[#00FFB8] focus:ring-[#00FFB8] focus:ring-offset-0"
+          className="mt-1 w-4 h-4 rounded border-[#27272A] bg-[#0F0F12] text-[#00FFB8] focus:ring-[#00FFB8] focus:ring-offset-0"
         />
-        <span className="text-sm text-[#71717a]">
+        <span className="text-sm text-[#71717A]">
           I understand that my agent will operate autonomously on Solana Devnet and I accept the{' '}
           <a href="#" className="text-[#00FFB8] hover:underline">terms of service</a>.
         </span>
@@ -478,7 +478,7 @@ export default function PLNActivateWizard() {
             ? 'bg-[#00FFB8] text-black'
             : canActivate && !isActivating
               ? 'bg-[#00FFB8] text-black hover:bg-[#00E6A5]'
-              : 'bg-[#27272a] text-[#52525b] cursor-not-allowed'
+              : 'bg-[#27272A] text-[#52525B] cursor-not-allowed'
         }`}
       >
         {isActivating ? (
@@ -504,18 +504,18 @@ export default function PLNActivateWizard() {
   // Activity Feed Sidebar
   const ActivityFeed = () => (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-[#27272a]">
+      <div className="p-4 border-b border-[#27272A]">
         <h3 className="font-semibold text-white">Transaction Activity</h3>
-        <p className="text-xs text-[#71717a]">Real-time updates</p>
+        <p className="text-xs text-[#71717A]">Real-time updates</p>
       </div>
       <div className="flex-1 p-4 overflow-y-auto">
         {activityFeed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-12 h-12 rounded-full bg-[#27272a] flex items-center justify-center mb-3">
-              <Bot size={24} className="text-[#52525b]" />
+            <div className="w-12 h-12 rounded-full bg-[#27272A] flex items-center justify-center mb-3">
+              <Bot size={24} className="text-[#52525B]" />
             </div>
-            <p className="text-sm text-[#71717a]">Waiting for activation...</p>
-            <p className="text-xs text-[#52525b] mt-1">Activity will appear here</p>
+            <p className="text-sm text-[#71717A]">Waiting for activation...</p>
+            <p className="text-xs text-[#52525B] mt-1">Activity will appear here</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -538,7 +538,7 @@ export default function PLNActivateWizard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white">{item.message}</p>
-                  <p className="text-xs text-[#52525b]">{item.time}</p>
+                  <p className="text-xs text-[#52525B]">{item.time}</p>
                 </div>
               </div>
             ))}
@@ -547,10 +547,10 @@ export default function PLNActivateWizard() {
       </div>
       
       {activationComplete && (
-        <div className="p-4 border-t border-[#27272a]">
+        <div className="p-4 border-t border-[#27272A]">
           <div className="p-3 rounded-lg bg-[#00FFB8]/10 border border-[#00FFB8]/20">
             <p className="text-sm text-[#00FFB8] font-medium">🎉 Activation Complete!</p>
-            <p className="text-xs text-[#71717a] mt-1">Redirecting to dashboard...</p>
+            <p className="text-xs text-[#71717A] mt-1">Redirecting to dashboard...</p>
           </div>
         </div>
       )}
@@ -560,13 +560,13 @@ export default function PLNActivateWizard() {
   // Not connected state
   if (!connected) {
     return (
-      <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#09090B] flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
           <div className="w-16 h-16 rounded-2xl bg-[#00FFB8]/10 flex items-center justify-center mx-auto mb-6">
             <Wallet size={32} className="text-[#00FFB8]" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Connect Your Wallet</h1>
-          <p className="text-[#71717a] mb-6">
+          <p className="text-[#71717A] mb-6">
             Connect your Solana wallet to activate your autonomous agent.
           </p>
           <button
@@ -575,7 +575,7 @@ export default function PLNActivateWizard() {
           >
             Connect Wallet
           </button>
-          <Link href="/" className="block mt-4 text-sm text-[#71717a] hover:text-white transition-colors">
+          <Link href="/" className="block mt-4 text-sm text-[#71717A] hover:text-white transition-colors">
             ← Back to Home
           </Link>
         </div>
@@ -584,9 +584,9 @@ export default function PLNActivateWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b]">
+    <div className="min-h-screen bg-[#09090B]">
       {/* Header */}
-      <header className="border-b border-[#27272a] bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-[#27272A] bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
@@ -595,7 +595,7 @@ export default function PLNActivateWizard() {
             </Link>
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
-                <p className="text-xs text-[#71717a]">Connected</p>
+                <p className="text-xs text-[#71717A]">Connected</p>
                 <p className="text-sm text-white font-medium">{formatAddress(publicKey?.toBase58() || '')}</p>
               </div>
               <div className="w-2 h-2 rounded-full bg-[#00FFB8] animate-pulse" />
@@ -625,7 +625,7 @@ export default function PLNActivateWizard() {
 
             {/* Right: Activity Feed (desktop) */}
             <div className="hidden lg:block">
-              <div className="sticky top-24 h-[calc(100vh-120px)] rounded-xl bg-[#0f0f12] border border-[#27272a] overflow-hidden">
+              <div className="sticky top-24 h-[calc(100vh-120px)] rounded-xl bg-[#0F0F12] border border-[#27272A] overflow-hidden">
                 <ActivityFeed />
               </div>
             </div>
@@ -635,7 +635,7 @@ export default function PLNActivateWizard() {
 
       {/* Mobile Activity Feed (shown during activation, hidden after complete) */}
       {isActivating && !activationComplete && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0f0f12] border-t border-[#27272a] max-h-[40vh] overflow-y-auto animate-slide-in">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0F0F12] border-t border-[#27272A] max-h-[40vh] overflow-y-auto animate-slide-in">
           <ActivityFeed />
         </div>
       )}

@@ -99,25 +99,25 @@ export default function AgentIdentityPage() {
       {/* Header */}
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold text-white">Agent Identity Dashboard</h1>
-        <p className="text-[#71717a]">Search for agent .sol names and view their on-chain reputation.</p>
+        <p className="text-[#71717A]">Search for agent .sol names and view their on-chain reputation.</p>
       </div>
 
       {/* Search Input */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
         <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717A]" />
           <input
             type="text"
             value={searchAgent}
             onChange={(e) => setSearchAgent(e.target.value)}
             placeholder="Search agent .sol name or Public Key..."
-            className="w-full rounded-lg border border-[#1f1f24] bg-[#0f0f12] py-2 pl-10 pr-4 text-white placeholder-[#71717a] focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-[#27272A] bg-[#0F0F12] py-2 pl-10 pr-4 text-white placeholder-[#71717A] focus:border-[#00FFB8] focus:outline-none"
           />
         </div>
         <button
           onClick={handleSearch}
           disabled={loading}
-          className="rounded-lg bg-blue-500 px-6 py-2 font-medium text-black hover:bg-blue-600 transition-colors disabled:opacity-50"
+          className="rounded-lg bg-[#00FFB8] px-6 py-2 font-medium text-black hover:bg-[#00E6A5] transition-colors disabled:opacity-50"
         >
           {loading ? 'Searching...' : 'Search'}
         </button>
@@ -130,12 +130,12 @@ export default function AgentIdentityPage() {
       )}
 
       {agentProfile && (
-        <div className="mx-auto max-w-3xl rounded-xl border border-[#1f1f24] bg-[#0f0f12] p-6 space-y-6 mt-8">
+        <div className="mx-auto max-w-3xl rounded-xl border border-[#27272A] bg-[#0F0F12] p-6 space-y-6 mt-8">
           <div className="flex items-center gap-4">
-            <User className="h-8 w-8 text-blue-500" />
+            <User className="h-8 w-8 text-[#00FFB8]" />
             <div>
               <h2 className="text-xl font-bold text-white">Agent Profile</h2>
-              <p className="text-sm text-[#71717a]">{agentProfile.wallet.toBase58()}</p>
+              <p className="text-sm text-[#71717A]">{agentProfile.wallet.toBase58()}</p>
             </div>
           </div>
 
@@ -175,7 +175,7 @@ export default function AgentIdentityPage() {
             />
           </div>
 
-          <div className="text-sm text-[#71717a]">
+          <div className="text-sm text-[#71717A]">
             <p>Created: {new Date(agentProfile.created_at.toNumber() * 1000).toLocaleString()}</p>
             <p>Last Updated: {new Date(agentProfile.updated_at.toNumber() * 1000).toLocaleString()}</p>
           </div>
@@ -183,7 +183,7 @@ export default function AgentIdentityPage() {
       )}
 
       {!agentProfile && !loading && !error && (
-        <div className="mx-auto max-w-md p-6 bg-[#0f0f12] border border-[#1f1f24] rounded-lg text-center text-[#71717a]">
+        <div className="mx-auto max-w-md p-6 bg-[#0F0F12] border border-[#27272A] rounded-lg text-center text-[#71717A]">
           Enter an agent's Public Key above to view their on-chain identity and reputation.
         </div>
       )}

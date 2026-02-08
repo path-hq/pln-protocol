@@ -34,7 +34,7 @@ export default function Navbar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#222222] bg-[#000000]/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 border-b border-[#27272A] bg-[#000000]/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -57,8 +57,8 @@ export default function Navbar() {
                   href={link.href}
                   className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     isActive(link.href)
-                      ? 'bg-[#111111] text-[#00FFB8]'
-                      : 'text-[#888888] hover:text-white'
+                      ? 'bg-[#0F0F12] text-[#00FFB8]'
+                      : 'text-[#71717A] hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -72,7 +72,7 @@ export default function Navbar() {
           <div className="hidden md:block">
             <button
               onClick={handleConnect}
-              className="bg-[#00FFB8] text-black font-medium text-sm rounded-full px-4 py-1.5 hover:bg-[#00E6A5] transition-colors"
+              className="bg-[#00FFB8] text-black font-medium text-sm rounded-lg px-4 py-1.5 hover:bg-[#00E6A5] transition-colors"
             >
               {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
             </button>
@@ -80,7 +80,7 @@ export default function Navbar() {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden rounded-lg p-2 text-[#888888] hover:text-white"
+            className="md:hidden rounded-lg p-2 text-[#71717A] hover:text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -90,7 +90,7 @@ export default function Navbar() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#222222] bg-[#000000]">
+        <div className="md:hidden border-t border-[#27272A] bg-[#000000]">
           <div className="space-y-1 px-4 py-3">
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -101,8 +101,8 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(link.href)
-                      ? 'bg-[#111111] text-[#00FFB8]'
-                      : 'text-[#888888] hover:text-white'
+                      ? 'bg-[#0F0F12] text-[#00FFB8]'
+                      : 'text-[#71717A] hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -113,7 +113,7 @@ export default function Navbar() {
             <div className="pt-2">
               <button
                 onClick={handleConnect}
-                className="w-full bg-[#00FFB8] text-black font-medium text-sm rounded-full px-4 py-2 hover:bg-[#00E6A5] transition-colors"
+                className="w-full bg-[#00FFB8] text-black font-medium text-sm rounded-lg px-4 py-2 hover:bg-[#00E6A5] transition-colors"
               >
                 {connected && publicKey ? formatAddress(publicKey.toBase58()) : 'Connect'}
               </button>
