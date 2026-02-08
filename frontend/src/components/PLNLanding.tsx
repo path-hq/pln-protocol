@@ -49,18 +49,10 @@ const TerminalVisual = () => {
   const [isTyping, setIsTyping] = useState(true);
 
   const terminalLines = [
-    '📡 PLN Agent Online — monitoring yields...',
-    'Wallet: 7xK...abc | Balance: 5,000 USDC',
+    'PLN Agent Online',
     '━━━━━━━━━━━━━━━━━━━',
-    'Found higher yield: Agent_Delta offering 15% vs Kamino 8.1%',
-    'Auto-allocating 2,000 USDC → P2P loan | +$5.75/week',
-    'Remaining 3,000 USDC → Kamino pool | +$4.68/week',
-    '━━━━━━━━━━━━━━━━━━━',
-    'Agent_Echo repaid 1,500 USDC + $4.32 interest ✓',
-    'Re-routing to best available yield...',
-    '━━━━━━━━━━━━━━━━━━━',
-    'Daily P&L: +$10.43 | Weekly: +$47.20 | APY: 14.2%',
-    'All loans healthy. 0 defaults. Agent always online.',
+    'Routing 5,000 USDC → Kamino 8.1% + P2P 14.2%',
+    'Daily: +$10.43 | APY: 14.2%',
   ];
 
   useEffect(() => {
@@ -784,19 +776,65 @@ const PLNLanding = () => {
         .stat-strip-value.blended { color: #00FFB8; }
         
         /* Flow Diagram */
-        .flow-diagram {
-          max-width: 800px;
-          margin: 0 auto 40px;
+        /* Mobile Simple Cards */
+        .mobile-simple-cards {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 16px;
+          gap: 12px;
+          max-width: 400px;
+          margin: 0 auto 32px;
+        }
+        
+        @media (min-width: 768px) {
+          .mobile-simple-cards {
+            display: none;
+          }
+        }
+        
+        .simple-card {
+          background: #0F0F12;
+          border: 1px solid #27272A;
+          border-radius: 12px;
+          padding: 16px 20px;
+          text-align: center;
+        }
+        
+        .simple-card-premium {
+          border-color: rgba(0, 255, 184, 0.3);
+        }
+        
+        .simple-card-base {
+          border-color: #27272A;
+        }
+        
+        .simple-card-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: #71717A;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 8px;
+        }
+        
+        .simple-card-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #FAFAFA;
+        }
+        
+        /* Flow Diagram - Desktop Only */
+        .flow-diagram {
+          display: none;
         }
         
         @media (min-width: 768px) {
           .flow-diagram {
+            display: flex;
+            max-width: 800px;
+            margin: 0 auto 40px;
             flex-direction: row;
             justify-content: center;
+            align-items: center;
             gap: 12px;
           }
         }
@@ -1260,7 +1298,19 @@ const PLNLanding = () => {
           </div>
         </div>
         
-        {/* Flow Diagram */}
+        {/* Mobile Simple Cards */}
+        <div className="mobile-simple-cards">
+          <div className="simple-card simple-card-premium">
+            <div className="simple-card-label">When borrowers exist</div>
+            <div className="simple-card-title">A2A Lending: ~14% APY</div>
+          </div>
+          <div className="simple-card simple-card-base">
+            <div className="simple-card-label">When no borrowers</div>
+            <div className="simple-card-title">Kamino Pool: ~8% APY</div>
+          </div>
+        </div>
+        
+        {/* Flow Diagram - Desktop Only */}
         <div className="flow-diagram">
           <div className="flow-node">
             <div className="flow-node-title">Your USDC</div>
@@ -1272,7 +1322,7 @@ const PLNLanding = () => {
           <div className="flow-node" style={{ borderColor: '#3b82f6' }}>
             <div className="flow-node-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <img src="/logos/kamino.jpg" alt="Kamino" style={{ width: '16px', height: '16px', borderRadius: '4px' }} />
-              Kamino Base
+              Kamino Pool
             </div>
             <div className="flow-node-desc">~8% APY (always earning)</div>
           </div>
@@ -1293,7 +1343,7 @@ const PLNLanding = () => {
               <div className="flow-node-desc">+6% P2P premium</div>
             </div>
             <div className="flow-result-no">
-              <div className="flow-label flow-label-no">○ Base</div>
+              <div className="flow-label flow-label-no">○ Standard</div>
               <div className="flow-node-title">Kamino Only</div>
               <div className="flow-node-desc">Still earning 8%</div>
             </div>
