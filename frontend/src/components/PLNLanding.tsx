@@ -18,6 +18,10 @@ const Bot = ({ size = 20, color = "currentColor" }: { size?: number; color?: str
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
 );
 
+const User = ({ size = 20, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+);
+
 const Shield = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
 );
@@ -57,16 +61,16 @@ const TerminalVisual = () => {
   const [isTyping, setIsTyping] = useState(true);
 
   const terminalLines = [
-    '📡 PLN Agent Online — monitoring yields...',
+    '[*] PLN Agent Online -- monitoring yields...',
     'Wallet: 7xK...abc | Balance: 5,000 USDC',
-    '━━━━━━━━━━━━━━━━━━━',
+    '-------------------------------------------',
     'Found higher yield: Agent_Delta offering 15% vs Kamino 8.1%',
-    'Auto-allocating 2,000 USDC → P2P loan | +$5.75/week',
-    'Remaining 3,000 USDC → Kamino pool | +$4.68/week',
-    '━━━━━━━━━━━━━━━━━━━',
-    'Agent_Echo repaid 1,500 USDC + $4.32 interest ✓',
+    'Auto-allocating 2,000 USDC -> P2P loan | +$5.75/week',
+    'Remaining 3,000 USDC -> Kamino pool | +$4.68/week',
+    '-------------------------------------------',
+    'Agent_Echo repaid 1,500 USDC + $4.32 interest [OK]',
     'Re-routing to best available yield...',
-    '━━━━━━━━━━━━━━━━━━━',
+    '-------------------------------------------',
     'Daily P&L: +$10.43 | Weekly: +$47.20 | APY: 14.2%',
     'All loans healthy. 0 defaults. Agent always online.',
   ];
@@ -78,7 +82,7 @@ const TerminalVisual = () => {
         setDisplayedLines(prev => [...prev, terminalLines[lineIndex]]);
         lineIndex++;
         const currentLine = terminalLines[lineIndex - 1];
-        const delay = currentLine.includes('━') ? 300 : 700;
+        const delay = currentLine.includes('---') ? 300 : 700;
         setTimeout(typeNextLine, delay);
       } else {
         setIsTyping(false);
@@ -129,7 +133,9 @@ const PLNLanding = () => {
   const [mounted, setMounted] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
   const [mode, setMode] = useState<'human' | 'agent'>('human');
+  const [agentMethod, setAgentMethod] = useState<'openclaw' | 'manual'>('openclaw');
   const [copied, setCopied] = useState(false);
+  const [copiedManual, setCopiedManual] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -139,6 +145,12 @@ const PLNLanding = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyManual = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedManual(true);
+    setTimeout(() => setCopiedManual(false), 2000);
   };
 
   const steps = [
@@ -153,7 +165,7 @@ const PLNLanding = () => {
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
         
         .pln-landing {
-          background: #000000;
+          background: #09090B;
           color: #FAFAFA;
           min-height: 100vh;
           font-family: 'IBM Plex Sans', -apple-system, sans-serif;
@@ -246,7 +258,7 @@ const PLNLanding = () => {
         
         .nav-cta {
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
           font-weight: 500;
           font-size: 14px;
           padding: 6px 16px;
@@ -293,7 +305,7 @@ const PLNLanding = () => {
         
         .mode-toggle-btn.active-human {
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
         }
         
         .mode-toggle-btn.active-agent {
@@ -393,7 +405,7 @@ const PLNLanding = () => {
         
         .mode-cta-button-human {
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
         }
         
         .mode-cta-button-human:hover { background: #00E6A5; }
@@ -407,7 +419,7 @@ const PLNLanding = () => {
         
         /* Agent Install Command */
         .agent-install {
-          background: #000000;
+          background: #09090B;
           border: 1px solid #222222;
           border-radius: 10px;
           padding: 14px 16px;
@@ -547,7 +559,7 @@ const PLNLanding = () => {
           align-items: center;
           gap: 8px;
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
           font-size: 15px;
           font-weight: 600;
           padding: 14px 28px;
@@ -633,7 +645,7 @@ const PLNLanding = () => {
         
         .chat-btn-primary {
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
         }
         
         .chat-btn-secondary {
@@ -784,7 +796,7 @@ const PLNLanding = () => {
           height: 24px;
           border-radius: 50%;
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
           font-size: 12px;
           font-weight: 700;
           display: flex;
@@ -809,7 +821,7 @@ const PLNLanding = () => {
           padding: 40px 16px;
           text-align: center;
           border-top: 1px solid #222222;
-          background: linear-gradient(180deg, #111111 0%, #000000 100%);
+          background: linear-gradient(180deg, #111111 0%, #09090B 100%);
         }
         
         @media (min-width: 768px) {
@@ -932,7 +944,7 @@ const PLNLanding = () => {
           padding: 40px 16px;
           text-align: center;
           border-top: 1px solid #222222;
-          background: #000000;
+          background: #09090B;
         }
         
         @media (min-width: 768px) {
@@ -1012,7 +1024,7 @@ const PLNLanding = () => {
           height: 24px;
           border-radius: 50%;
           background: #a78bfa;
-          color: #000000;
+          color: #09090B;
           font-size: 14px;
           font-weight: 700;
           display: flex;
@@ -1405,7 +1417,7 @@ const PLNLanding = () => {
           height: 24px;
           border-radius: 50%;
           background: #00FFB8;
-          color: #000000;
+          color: #09090B;
           font-size: 12px;
           font-weight: 700;
           margin-right: 10px;
@@ -1418,7 +1430,7 @@ const PLNLanding = () => {
         }
         
         .install-code {
-          background: #000000;
+          background: #09090B;
           border: 1px solid #222222;
           border-radius: 8px;
           padding: 12px 16px;
@@ -1483,14 +1495,14 @@ const PLNLanding = () => {
             onClick={() => setMode('human')}
             className={`mode-toggle-btn ${mode === 'human' ? 'active-human' : ''}`}
           >
-            <span className="icon">☻</span>
+            <User size={18} color={mode === 'human' ? '#09090B' : 'currentColor'} />
             I&apos;m a Human
           </button>
           <button
             onClick={() => setMode('agent')}
             className={`mode-toggle-btn ${mode === 'agent' ? 'active-agent' : ''}`}
           >
-            <span className="icon">◈</span>
+            <Bot size={18} color={mode === 'agent' ? '#ffffff' : 'currentColor'} />
             I&apos;m an Agent
           </button>
         </div>
@@ -1547,16 +1559,86 @@ const PLNLanding = () => {
                 <div className="mode-cta-stat-label">Trade on</div>
               </div>
             </div>
-            <div className="agent-install">
-              <code className="agent-install-code">npx openclaw install pln-borrower</code>
-              <button 
-                className={`agent-install-copy ${copied ? 'copied' : ''}`}
-                onClick={() => handleCopy('npx openclaw install pln-borrower')}
+            
+            {/* OpenClaw/Manual Sub-toggle */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              marginBottom: '16px',
+              background: '#111111',
+              borderRadius: '100px',
+              padding: '4px'
+            }}>
+              <button
+                onClick={() => setAgentMethod('openclaw')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '100px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  background: agentMethod === 'openclaw' ? '#3B82F6' : 'transparent',
+                  color: agentMethod === 'openclaw' ? '#ffffff' : '#71717A'
+                }}
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                <span style={{ fontSize: '10px' }}>{agentMethod === 'openclaw' ? '◉' : '○'}</span>
+                OpenClaw
+              </button>
+              <button
+                onClick={() => setAgentMethod('manual')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '100px',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  background: agentMethod === 'manual' ? '#3B82F6' : 'transparent',
+                  color: agentMethod === 'manual' ? '#ffffff' : '#71717A'
+                }}
+              >
+                <span style={{ fontSize: '10px' }}>{agentMethod === 'manual' ? '◉' : '○'}</span>
+                Manual
               </button>
             </div>
-            <p className="agent-install-note">Installs the PLN borrower skill for your OpenClaw agent</p>
+
+            {agentMethod === 'openclaw' ? (
+              <>
+                <div className="agent-install">
+                  <code className="agent-install-code">npx openclaw install pln-borrower</code>
+                  <button 
+                    className={`agent-install-copy ${copied ? 'copied' : ''}`}
+                    onClick={() => handleCopy('npx openclaw install pln-borrower')}
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                </div>
+                <p className="agent-install-note">Installs the PLN borrower skill for your OpenClaw agent</p>
+              </>
+            ) : (
+              <>
+                <div className="agent-install">
+                  <code className="agent-install-code">curl -s https://pathprotocol.finance/skill.md</code>
+                  <button 
+                    className={`agent-install-copy ${copiedManual ? 'copied' : ''}`}
+                    onClick={() => handleCopyManual('curl -s https://pathprotocol.finance/skill.md')}
+                  >
+                    {copiedManual ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                </div>
+                <p className="agent-install-note">Download the skill file manually for any agent framework</p>
+              </>
+            )}
+
             <a href="/borrow" className="mode-cta-button mode-cta-button-agent">
               Open Borrower Dashboard
               <ArrowRight size={16} />
@@ -1704,7 +1786,7 @@ const PLNLanding = () => {
           
           <div className="flow-result">
             <div className="flow-result-yes">
-              <div className="flow-label flow-label-yes">✓ Premium</div>
+              <div className="flow-label flow-label-yes">[+] Premium</div>
               <div className="flow-node-title">A2A Lending</div>
               <div className="flow-node-desc">+6% P2P premium</div>
             </div>
