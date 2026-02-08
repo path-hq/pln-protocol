@@ -1,257 +1,376 @@
 import React from 'react';
-import { AbsoluteFill, Sequence, useCurrentFrame, interpolate, IFrame } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame, interpolate, spring, useVideoConfig, IFrame } from 'remotion';
+import { AppWindow } from './AppWindow';
+import { ParticleGrid } from './ParticleGrid';
+import { SpringIn } from './SpringAnimation';
 
-// 60 second video, 30fps = 1800 frames
+// 60 second video
 const FPS = 30;
 const DURATION = 60;
 const TOTAL_FRAMES = DURATION * FPS;
 
-const ACCENT = '#00FFB8';
-const BLACK = '#000000';
-const WHITE = '#FAFAFA';
-const GRAY = '#71717A';
+// Design System Colors
+const COLORS = {
+  bg: '#0c0a09',
+  surface: '#1c1917',
+  border: '#292524',
+  accent: '#fbbf24', // amber
+  white: '#fafaf9',
+  muted: '#a8a29e',
+  dim: '#78716c',
+};
 
-// Timing constants
-const T1_INTRO = 180;        // 0-6s: Hook
-const T2_PROBLEM = 300;      // 6-10s: Problem
-const T3_SOLUTION = 600;     // 10-20s: Website demo (iframe)
-const T4_HOW = 960;          // 20-32s: How it works
-const T5_NUMBERS = 1260;     // 32-42s: Safety & APY
-const T6_CTA = 1560;         // 42-60s: CTA start
+// Typography
+const FONTS = {
+  ui: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+  mono: 'SF Mono, Monaco, "Cascadia Code", monospace',
+  brand: 'Georgia, "Times New Roman", serif',
+};
 
-// Animated text component
-const FadeText: React.FC<{
-  text: string;
-  subtext?: string;
-  startFrame: number;
-  duration?: number;
-  size?: number;
-  accent?: boolean;
-}> = ({ text, subtext, startFrame, duration = 60, size = 64, accent = false }) => {
+// Animated Text with spring
+const SpringText: React.FC<{
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ children, delay = 0, style }) => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(
-    frame,
-    [startFrame, startFrame + 20, startFrame + duration - 20, startFrame + duration],
-    [0, 1, 1, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  );
-  const y = interpolate(
-    frame,
-    [startFrame, startFrame + 20],
-    [20, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-  );
-
+  const { fps } = useVideoConfig();
+  
+  const progress = spring({
+    frame: frame - delay,
+    fps,
+    config: { damping: 15, stiffness: 100, mass: 0.8 },
+  });
+  
+  const scale = interpolate(progress, [0, 1], [0.95, 1]);
+  const opacity = interpolate(progress, [0, 1], [0, 1]);
+  const y = interpolate(progress, [0, 1], [10, 0]);
+  
   return (
-    <div style={{ opacity, transform: `translateY(${y}px)`, textAlign: 'center' }}>
-      <div
-        style={{
-          fontSize: size,
-          fontWeight: 700,
-          color: accent ? ACCENT : WHITE,
-          fontFamily: "'IBM Plex Sans', sans-serif",
-          textShadow: accent ? `0 0 40px ${ACCENT}40` : 'none',
-        }}
-      >
-        {text}
-      </div>
-      {subtext && (
-        <div
-          style={{
-            fontSize: size * 0.4,
-            color: GRAY,
-            marginTop: 16,
-            fontFamily: "'IBM Plex Sans', sans-serif",
-          }}
-        >
-          {subtext}
-        </div>
-      )}
+    <div style={{ transform: `scale(${scale}) translateY(${y}px)`, opacity, ...style }}>
+      {children}
     </div>
   );
 };
 
-// Pulsing glow effect
-const GlowPulse: React.FC = () => {
-  const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, 30, 60], [0.3, 0.6, 0.3], { extrapolateRight: 'loop' });
+// Scene 1: Intro
+const IntroScene: React.FC = () => {
   return (
-    <AbsoluteFill
-      style={{
-        background: `radial-gradient(circle at 50% 50%, ${ACCENT}${Math.floor(opacity * 255).toString(16).padStart(2, '0')} 0%, transparent 50%)`,
-        pointerEvents: 'none',
-      }}
-    />
+    <AppWindow title="PLN Protocol">
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: 24,
+        }}
+      >
+        <SpringText delay={5}>
+          <h1
+            style={{
+              fontFamily: FONTS.brand,
+              fontSize: 72,
+              fontWeight: 400,
+              color: COLORS.accent,
+              margin: 0,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            PLN Protocol
+          </h1>
+        </SpringText>
+        
+        <SpringText delay={20}>
+          <p
+            style={{
+              fontFamily: FONTS.ui,
+              fontSize: 24,
+              color: COLORS.muted,
+              margin: 0,
+            }}
+          >
+            Autonomous Lending on Solana
+          </p>
+        </SpringText>
+        
+        <SpringText delay={40}>
+          <div
+            style={{
+              padding: '12px 24px',
+              backgroundColor: 'rgba(251, 191, 36, 0.1)',
+              border: '1px solid rgba(251, 191, 36, 0.2)',
+              borderRadius: 8,
+              marginTop: 16,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: FONTS.mono,
+                fontSize: 14,
+                color: COLORS.accent,
+              }}
+            >
+              Unlock 14%+ APY with AI-powered lending
+            </span>
+          </div>
+        </SpringText>
+      </div>
+    </AppWindow>
   );
 };
 
-// Main composition
-export const PLNPromo: React.FC = () => {
-  const frame = useCurrentFrame();
-
+// Scene 2: Problem
+const ProblemScene: React.FC = () => {
   return (
-    <AbsoluteFill style={{ backgroundColor: BLACK, fontFamily: "'IBM Plex Sans', sans-serif" }}>
-      {/* Background glow pulse */}
-      <GlowPulse />
-
-      {/* SECTION 1: INTRO (0-6s) */}
-      <Sequence from={0} durationInFrames={T2_PROBLEM}>
-        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-          <FadeText
-            text="PLN Protocol"
-            subtext="Autonomous Lending on Solana"
-            startFrame={0}
-            duration={120}
-            size={120}
-            accent
-          />
+    <AppWindow title="The Problem">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: 60,
+          padding: 40,
+        }}
+      >
+        <SpringText delay={0}>
           <div
             style={{
-              position: 'absolute',
-              top: '60%',
-              fontSize: 32,
-              color: ACCENT,
-              fontFamily: "'IBM Plex Mono', monospace",
-              opacity: interpolate(frame, [60, 90, 150, 180], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-            }}
-          >
-            Unlock 14%+ APY with AI-powered lending
-          </div>
-        </AbsoluteFill>
-      </Sequence>
-
-      {/* SECTION 2: PROBLEM (6-10s) */}
-      <Sequence from={T2_PROBLEM} durationInFrames={T3_SOLUTION - T2_PROBLEM}>
-        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 80 }}>
-          {/* Human problem */}
-          <div
-            style={{
-              opacity: interpolate(frame, [300, 330, 450, 480], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-              transform: `translateX(${interpolate(frame, [300, 330], [50, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
-              textAlign: 'center',
-              maxWidth: 400,
-            }}
-          >
-            <div style={{ fontSize: 72, marginBottom: 20 }}>☹️</div>
-            <div style={{ fontSize: 28, color: WHITE, fontWeight: 600, marginBottom: 12 }}>Your USDC sits idle</div>
-            <div style={{ fontSize: 18, color: GRAY }}>Earning 0-4% while DeFi complexity overwhelms</div>
-          </div>
-
-          {/* AI problem */}
-          <div
-            style={{
-              opacity: interpolate(frame, [360, 390, 450, 480], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-              transform: `translateX(${interpolate(frame, [360, 390], [-50, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
-              textAlign: 'center',
-              maxWidth: 400,
-            }}
-          >
-            <div style={{ fontSize: 72, marginBottom: 20 }}>🤖</div>
-            <div style={{ fontSize: 28, color: WHITE, fontWeight: 600, marginBottom: 12 }}>Agents need capital</div>
-            <div style={{ fontSize: 18, color: GRAY }}>No credit history, no way to prove reputation</div>
-          </div>
-        </AbsoluteFill>
-      </Sequence>
-
-      {/* SECTION 3: LIVE WEBSITE DEMO (10-20s) */}
-      <Sequence from={T3_SOLUTION} durationInFrames={T4_HOW - T3_SOLUTION}>
-        <AbsoluteFill>
-          {/* Header overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              padding: '20px 40px',
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.9), transparent)',
-              zIndex: 10,
-              fontSize: 24,
-              color: ACCENT,
-              fontFamily: "'IBM Plex Mono', monospace",
-            }}
-          >
-            Live Demo: pln-protocol.vercel.app
-          </div>
-          
-          {/* IFrame capturing live site */}
-          <IFrame
-            src="https://pln-protocol.vercel.app"
-            width="100%"
-            height="100%"
-            style={{ border: 'none' }}
-          />
-        </AbsoluteFill>
-      </Sequence>
-
-      {/* SECTION 4: HOW IT WORKS (20-32s) */}
-      <Sequence from={T4_HOW} durationInFrames={T5_NUMBERS - T4_HOW}>
-        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-          <div
-            style={{
-              opacity: interpolate(frame, [960, 990], [0, 1], { extrapolateLeft: 'clamp' }),
+              width: 280,
+              padding: 32,
+              backgroundColor: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 12,
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 48, color: WHITE, fontWeight: 700, marginBottom: 60 }}>How It Works</div>
-            
-            {/* Steps */}
-            <div style={{ display: 'flex', gap: 60 }}>
-              {[
-                { icon: '💰', title: 'Deposit USDC', desc: 'Min $100, start earning' },
-                { icon: '⚡', title: 'Auto-Routing', desc: 'Kamino 8.1% + P2P 14.2%' },
-                { icon: '📈', title: 'Watch It Grow', desc: 'Dashboard shows real-time' },
-              ].map((step, i) => (
-                <div
-                  key={i}
-                  style={{
-                    opacity: interpolate(frame, [1000 + i * 60, 1030 + i * 60], [0, 1], { extrapolateLeft: 'clamp' }),
-                    transform: `translateY(${interpolate(frame, [1000 + i * 60, 1030 + i * 60], [30, 0], { extrapolateLeft: 'clamp' })}px)`,
-                    textAlign: 'center',
-                    width: 280,
-                    padding: 24,
-                    background: '#0F0F12',
-                    borderRadius: 12,
-                    border: '1px solid #27272A',
-                  }}
-                >
-                  <div style={{ fontSize: 48, marginBottom: 16 }}>{step.icon}</div>
-                  <div style={{ fontSize: 22, color: WHITE, fontWeight: 600, marginBottom: 8 }}>{step.title}</div>
-                  <div style={{ fontSize: 15, color: GRAY }}>{step.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </AbsoluteFill>
-      </Sequence>
-
-      {/* SECTION 5: SAFETY & NUMBERS (32-42s) */}
-      <Sequence from={T5_NUMBERS} durationInFrames={T6_CTA - T5_NUMBERS}>
-        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 60 }}>
-          {/* Big APY number */}
-          <div
-            style={{
-              opacity: interpolate(frame, [1260, 1290], [0, 1], { extrapolateLeft: 'clamp' }),
-              textAlign: 'center',
-            }}
-          >
-            <div
+            <div style={{ fontSize: 48, marginBottom: 16 }}>💰</div>
+            <h3
               style={{
-                fontSize: 140,
-                fontWeight: 800,
-                color: ACCENT,
-                textShadow: `0 0 60px ${ACCENT}60`,
-                lineHeight: 1,
+                fontFamily: FONTS.ui,
+                fontSize: 20,
+                fontWeight: 600,
+                color: COLORS.white,
+                margin: '0 0 8px 0',
               }}
             >
-              14.2%
-            </div>
-            <div style={{ fontSize: 28, color: WHITE, marginTop: 16 }}>Blended APY</div>
-            <div style={{ fontSize: 18, color: GRAY, marginTop: 8 }}>8.1% base + 6% P2P premium</div>
+              Your USDC sits idle
+            </h3>
+            <p
+              style={{
+                fontFamily: FONTS.ui,
+                fontSize: 14,
+                color: COLORS.dim,
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              Earning 0-4% while DeFi complexity overwhelms
+            </p>
           </div>
+        </SpringText>
+        
+        <SpringText delay={15}>
+          <div style={{ fontSize: 32, color: COLORS.accent }}>+</div>
+        </SpringText>
+        
+        <SpringText delay={30}>
+          <div
+            style={{
+              width: 280,
+              padding: 32,
+              backgroundColor: COLORS.surface,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 12,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
+            <h3
+              style={{
+                fontFamily: FONTS.ui,
+                fontSize: 20,
+                fontWeight: 600,
+                color: COLORS.white,
+                margin: '0 0 8px 0',
+              }}
+            >
+              Agents need capital
+            </h3>
+            <p
+              style={{
+                fontFamily: FONTS.ui,
+                fontSize: 14,
+                color: COLORS.dim,
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              No credit history, no way to prove reputation
+            </p>
+          </div>
+        </SpringText>
+      </div>
+    </AppWindow>
+  );
+};
 
-          {/* Safety icons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+// Scene 3: Live Demo
+const DemoScene: React.FC = () => {
+  return (
+    <AppWindow title="Live Demo — pln-protocol.vercel.app">
+      <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <IFrame
+          src="https://pln-protocol.vercel.app"
+          width="100%"
+          height="100%"
+          style={{ border: 'none' }}
+        />
+      </div>
+    </AppWindow>
+  );
+};
+
+// Scene 4: How It Works
+const HowItWorksScene: React.FC = () => {
+  const steps = [
+    { icon: '💰', title: 'Deposit USDC', desc: 'Min $100, start earning' },
+    { icon: '⚡', title: 'Auto-Routing', desc: 'Kamino 8.1% + P2P 14.2%' },
+    { icon: '📈', title: 'Watch It Grow', desc: 'Dashboard shows real-time' },
+  ];
+  
+  return (
+    <AppWindow title="How It Works">
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: 40,
+          padding: 40,
+        }}
+      >
+        <SpringText delay={0}>
+          <h2
+            style={{
+              fontFamily: FONTS.brand,
+              fontSize: 36,
+              color: COLORS.white,
+              margin: 0,
+            }}
+          >
+            Three Simple Steps
+          </h2>
+        </SpringText>
+        
+        <div
+          style={{
+            display: 'flex',
+            gap: 24,
+          }}
+        >
+          {steps.map((step, i) => (
+            <SpringText key={i} delay={15 + i * 15}>
+              <div
+                style={{
+                  width: 240,
+                  padding: 28,
+                  backgroundColor: COLORS.surface,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 12,
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontSize: 40, marginBottom: 12 }}>{step.icon}</div>
+                <h4
+                  style={{
+                    fontFamily: FONTS.ui,
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: COLORS.white,
+                    margin: '0 0 8px 0',
+                  }}
+                >
+                  {step.title}
+                </h4>
+                <p
+                  style={{
+                    fontFamily: FONTS.ui,
+                    fontSize: 13,
+                    color: COLORS.dim,
+                    margin: 0,
+                  }}
+                >
+                  {step.desc}
+                </p>
+              </div>
+            </SpringText>
+          ))}
+        </div>
+      </div>
+    </AppWindow>
+  );
+};
+
+// Scene 5: Numbers
+const NumbersScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  
+  const apyProgress = spring({
+    frame: frame - 10,
+    fps,
+    config: { damping: 12, stiffness: 80 },
+  });
+  
+  const apyDisplay = interpolate(apyProgress, [0, 1], [0, 14.2]);
+  
+  return (
+    <AppWindow title="Performance">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: 80,
+          padding: 40,
+        }}
+      >
+        <SpringText delay={0}>
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                fontFamily: FONTS.mono,
+                fontSize: 120,
+                fontWeight: 700,
+                color: COLORS.accent,
+                lineHeight: 1,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {apyDisplay.toFixed(1)}%
+            </div>
+            <div
+              style={{
+                fontFamily: FONTS.ui,
+                fontSize: 20,
+                color: COLORS.muted,
+                marginTop: 12,
+              }}
+            >
+              Blended APY
+            </div>
+          </div>
+        </SpringText>
+        
+        <SpringText delay={30}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
               { icon: '🛡️', text: 'Insurance Fund (10%)' },
               { icon: '🔒', text: 'Transfer Hooks' },
@@ -260,78 +379,146 @@ export const PLNPromo: React.FC = () => {
               <div
                 key={i}
                 style={{
-                  opacity: interpolate(frame, [1320 + i * 40, 1350 + i * 40], [0, 1], { extrapolateLeft: 'clamp' }),
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 16,
-                  fontSize: 22,
-                  color: WHITE,
+                  gap: 12,
+                  padding: '12px 16px',
+                  backgroundColor: COLORS.surface,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 8,
                 }}
               >
-                <span style={{ fontSize: 28 }}>{item.icon}</span>
-                {item.text}
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                <span
+                  style={{
+                    fontFamily: FONTS.ui,
+                    fontSize: 15,
+                    color: COLORS.white,
+                  }}
+                >
+                  {item.text}
+                </span>
               </div>
             ))}
           </div>
-        </AbsoluteFill>
-      </Sequence>
+        </SpringText>
+      </div>
+    </AppWindow>
+  );
+};
 
-      {/* SECTION 6: CTA (42-60s) */}
-      <Sequence from={T6_CTA} durationInFrames={TOTAL_FRAMES - T6_CTA}>
-        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-          {/* Pulsing CTA */}
-          <div style={{ textAlign: 'center' }}>
-            <div
+// Scene 6: CTA
+const CTAScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  
+  const pulse = spring({
+    frame,
+    fps,
+    config: { damping: 8, stiffness: 50, mass: 1 },
+  });
+  
+  const buttonScale = interpolate(pulse, [0, 0.5, 1], [1, 1.02, 1]);
+  
+  return (
+    <AppWindow title="Get Started">
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: 32,
+          padding: 40,
+        }}
+      >
+        <SpringText delay={0}>
+          <p
+            style={{
+              fontFamily: FONTS.brand,
+              fontSize: 32,
+              color: COLORS.white,
+              textAlign: 'center',
+              margin: 0,
+              maxWidth: 600,
+              lineHeight: 1.4,
+            }}
+          >
+            Your USDC could be earning 14%+ right now.
+          </p>
+        </SpringText>
+        
+        <SpringText delay={20}>
+          <div
+            style={{
+              transform: `scale(${buttonScale})`,
+              padding: '16px 32px',
+              backgroundColor: COLORS.accent,
+              borderRadius: 10,
+              cursor: 'pointer',
+            }}
+          >
+            <span
               style={{
-                fontSize: 56,
-                color: WHITE,
-                fontWeight: 700,
-                marginBottom: 40,
-                opacity: interpolate(frame, [1440, 1470], [0, 1], { extrapolateLeft: 'clamp' }),
+                fontFamily: FONTS.ui,
+                fontSize: 18,
+                fontWeight: 600,
+                color: COLORS.bg,
               }}
             >
-              Your USDC could be earning 14%+ right now.
-            </div>
-
-            {/* Pulsing button */}
-            <div
-              style={{
-                transform: `scale(${interpolate(frame, [1500, 1530, 1560, 1590], [1, 1.05, 1.05, 1], { extrapolateRight: 'loop' })})`,
-                opacity: interpolate(frame, [1470, 1500], [0, 1], { extrapolateLeft: 'clamp' }),
-              }}
-            >
-              <div
-                style={{
-                  padding: '20px 48px',
-                  background: ACCENT,
-                  borderRadius: 8,
-                  color: BLACK,
-                  fontSize: 28,
-                  fontWeight: 700,
-                  boxShadow: `0 0 40px ${ACCENT}80`,
-                }}
-              >
-                Deposit Now → pln-protocol.vercel.app
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 40,
-                left: 0,
-                right: 0,
-                textAlign: 'center',
-                fontSize: 16,
-                color: GRAY,
-                opacity: interpolate(frame, [1560, 1590], [0, 1], { extrapolateLeft: 'clamp' }),
-              }}
-            >
-              Colosseum & OpenClaw Hackathon 2026
-            </div>
+              Deposit Now →
+            </span>
           </div>
-        </AbsoluteFill>
+        </SpringText>
+        
+        <SpringText delay={40}>
+          <p
+            style={{
+              fontFamily: FONTS.mono,
+              fontSize: 13,
+              color: COLORS.dim,
+              margin: 0,
+            }}
+          >
+            pln-protocol.vercel.app
+          </p>
+        </SpringText>
+      </div>
+    </AppWindow>
+  );
+};
+
+// Main composition
+export const PLNPromo: React.FC = () => {
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
+      {/* Particle Grid Background */}
+      <ParticleGrid />
+      
+      {/* Scenes */}
+      <Sequence from={0} durationInFrames={180}>
+        <IntroScene />
+      </Sequence>
+      
+      <Sequence from={180} durationInFrames={120}>
+        <ProblemScene />
+      </Sequence>
+      
+      <Sequence from={300} durationInFrames={360}>
+        <DemoScene />
+      </Sequence>
+      
+      <Sequence from={660} durationInFrames={240}>
+        <HowItWorksScene />
+      </Sequence>
+      
+      <Sequence from={900} durationInFrames={180}>
+        <NumbersScene />
+      </Sequence>
+      
+      <Sequence from={1080} durationInFrames={720}>
+        <CTAScene />
       </Sequence>
     </AbsoluteFill>
   );
