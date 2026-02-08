@@ -420,21 +420,21 @@ const PLNLanding = () => {
         
         /* TERMINAL */
         .terminal-container {
-          max-width: 480px;
-          margin: 32px auto 0;
+          max-width: 420px;
+          margin: 24px auto 0;
           background: #0a0a0d;
           border: 1px solid #00FFB833;
-          border-radius: 12px;
+          border-radius: 10px;
           overflow: hidden;
-          box-shadow: 0 0 40px rgba(34, 197, 94, 0.1), 0 0 80px rgba(34, 197, 94, 0.05);
+          box-shadow: 0 0 30px rgba(0, 255, 184, 0.08);
         }
         
         .terminal-header {
           background: #111111;
-          padding: 10px 14px;
+          padding: 8px 12px;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           border-bottom: 1px solid #222222;
         }
         
@@ -444,8 +444,8 @@ const PLNLanding = () => {
         }
         
         .terminal-dot {
-          width: 10px;
-          height: 10px;
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
         }
         
@@ -460,18 +460,17 @@ const PLNLanding = () => {
         }
         
         .terminal-body {
-          padding: 16px;
+          padding: 12px 16px;
           font-family: 'IBM Plex Mono', monospace;
           font-size: 12px;
-          line-height: 1.5;
-          min-height: 300px;
+          line-height: 1.4;
           color: #a1a1aa;
         }
         
         @media (min-width: 768px) {
           .terminal-body {
             font-size: 13px;
-            padding: 20px;
+            padding: 16px 20px;
           }
         }
         
@@ -495,7 +494,7 @@ const PLNLanding = () => {
         }
         
         .terminal-footer {
-          padding: 12px 16px;
+          padding: 10px 12px;
           border-top: 1px solid #222222;
           text-align: center;
         }
