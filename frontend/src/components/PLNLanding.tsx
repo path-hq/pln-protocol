@@ -1347,9 +1347,9 @@ const PLNLanding = () => {
             
             <div className="install-alt">
               <div className="install-alt-title">Or try the web app directly:</div>
-              <a href="/lend" className="install-alt-btn">
+              <a href="/dashboard" className="install-alt-btn">
                 <Wallet size={16} />
-                Open Lend Dashboard
+                Open Dashboard
               </a>
             </div>
           </div>

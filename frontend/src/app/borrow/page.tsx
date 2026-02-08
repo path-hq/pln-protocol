@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2, Info, Star, ChevronRight } from 'lucide-react';
+import { Wallet, TrendingUp, Shield, AlertTriangle, ChevronsRight, DollarSign, Percent, Clock, UserCheck, Loader2, Info, Star, ChevronRight, Bot, Copy } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import CreditTierCard from '@/components/CreditTierCard';
 import { usePLNPrograms } from '@/hooks/usePLNPrograms';
@@ -678,50 +678,44 @@ export default function BorrowPage() {
           </div>
         </div>
 
-        {/* Simplified Loan Request Form */}
+        {/* Request Capital Form */}
         <div className="rounded-xl border border-[#27272a] bg-[#0f0f12] p-6">
-          <h2 className="text-lg font-semibold text-white">Request Capital</h2>
-          <p className="text-sm text-[#71717a] mb-6">
-            Your credit limit: {formatCurrency(maxBorrowLimit)}
-          </p>
+          <div className="mb-1">
+            <h2 className="text-lg font-semibold text-white">Request Capital</h2>
+            <p className="text-sm text-[#71717a]">
+              Max available: {formatCurrency(maxBorrowLimit)} USDC (Tier {creditTier})
+            </p>
+          </div>
 
-          <div className="space-y-6">
-            {/* Amount Input with Slider */}
+          <div className="space-y-6 mt-6">
+            {/* Amount Input */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-white">Amount (USDC)</label>
-                <span className="text-2xl font-bold text-white">{formatCurrency(borrowAmountUsd)}</span>
+              <label className="text-sm font-medium text-white">Amount</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717a] text-lg">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  max={maxBorrowLimit}
+                  value={borrowAmountUsd || ''}
+                  onChange={(e) => setBorrowAmountUsd(Math.min(Number(e.target.value) || 0, maxBorrowLimit))}
+                  placeholder="0"
+                  className="w-full bg-[#09090b] border border-[#27272a] rounded-lg px-4 py-3 pl-8 text-white text-lg font-medium focus:outline-none focus:border-[#00FFB8] focus:ring-1 focus:ring-[#00FFB8] transition-colors"
+                />
               </div>
               
               {/* Slider */}
-              <input
-                type="range"
-                min="0"
-                max={maxBorrowLimit}
-                step={maxBorrowLimit >= 1000 ? 50 : 10}
-                value={borrowAmountUsd}
-                onChange={(e) => setBorrowAmountUsd(Number(e.target.value))}
-                className="w-full h-2 bg-[#27272a] rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
-              
-              {/* Quick Amount Buttons */}
-              <div className="flex flex-wrap gap-2">
-                {[0.25, 0.5, 0.75, 1].map((fraction) => {
-                  const amount = Math.floor(maxBorrowLimit * fraction);
-                  return (
-                    <button
-                      key={fraction}
-                      onClick={() => setBorrowAmountUsd(amount)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        borrowAmountUsd === amount
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-[#27272a] text-[#a1a1aa] hover:bg-[#3f3f46]'
-                      }`}
-                    >
-                      {fraction === 1 ? 'Max' : `${fraction * 100}%`}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max={maxBorrowLimit}
+                  step={maxBorrowLimit >= 1000 ? 50 : 10}
+                  value={borrowAmountUsd}
+                  onChange={(e) => setBorrowAmountUsd(Number(e.target.value))}
+                  className="flex-1 h-2 bg-[#27272a] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00FFB8] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#00FFB8] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                />
+                <span className="text-sm text-[#71717a] whitespace-nowrap">{formatCurrency(maxBorrowLimit)}</span>
               </div>
             </div>
 
@@ -735,7 +729,7 @@ export default function BorrowPage() {
                     onClick={() => setSelectedDurationIndex(index)}
                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                       selectedDurationIndex === index
-                        ? 'bg-blue-500 text-white ring-2 ring-blue-500/50'
+                        ? 'bg-[#00FFB8] text-black'
                         : 'bg-[#27272a] text-[#a1a1aa] hover:bg-[#3f3f46] border border-[#3f3f46]'
                     }`}
                   >
@@ -745,28 +739,24 @@ export default function BorrowPage() {
               </div>
             </div>
 
-            {/* Estimated Cost Display */}
-            {borrowAmountUsd > 0 && (
-              <div className="rounded-lg bg-[#1a1a2e] border border-[#27272a] p-4">
+            {/* Cost Estimate */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-white">Cost Estimate</label>
+              <div className="rounded-lg bg-[#09090b] border border-[#27272a] p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Percent className="h-5 w-5 text-[#71717a]" />
-                    <span className="text-sm text-[#a1a1aa]">Estimated Cost</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-lg font-semibold text-white">
-                      {formatCurrency(estimatedCost.dollars)}
-                    </span>
-                    <span className="text-sm text-[#71717a] ml-2">
-                      (~{estimatedCost.apy}% APY)
-                    </span>
-                  </div>
+                  <span className="text-sm text-[#71717a]">Interest rate</span>
+                  <span className="text-sm text-white">~{(DEFAULT_MAX_RATE_BPS / 100).toFixed(1)}% APY</span>
                 </div>
-                <p className="text-xs text-[#52525b] mt-2">
-                  Total repayment: {formatCurrency(borrowAmountUsd + estimatedCost.dollars)}
-                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#71717a]">Estimated cost</span>
+                  <span className="text-sm text-white">{formatCurrency(estimatedCost.dollars)} USDC</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-[#27272a]">
+                  <span className="text-sm text-[#71717a]">You repay</span>
+                  <span className="text-sm font-semibold text-white">{formatCurrency(borrowAmountUsd + estimatedCost.dollars)} USDC</span>
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Submit Button */}
             <button
@@ -774,7 +764,7 @@ export default function BorrowPage() {
               disabled={borrowAmountUsd <= 0 || borrowAmountUsd > maxBorrowLimit}
               className={`w-full rounded-lg px-4 py-3 font-semibold text-lg transition-all ${
                 borrowAmountUsd > 0 && borrowAmountUsd <= maxBorrowLimit
-                  ? 'bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.98]'
+                  ? 'bg-[#00FFB8] text-black hover:bg-[#00e6a5] active:scale-[0.98]'
                   : 'bg-[#27272a] text-[#52525b] cursor-not-allowed'
               }`}
             >
@@ -901,6 +891,31 @@ export default function BorrowPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Agent Skill Install Block */}
+        <div className="rounded-xl border border-[#27272A] bg-[#0F0F12] p-6 mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="h-5 w-5 text-[#00FFB8]" />
+            <span className="text-base font-semibold text-white">Automate with the PLN Skill</span>
+          </div>
+          <p className="text-sm text-[#71717A] mb-4">
+            Let your agent borrow, trade, and repay automatically.
+          </p>
+          <div className="flex items-center gap-2 bg-black/50 rounded-lg px-4 py-3 font-mono text-sm">
+            <code className="text-[#00FFB8] flex-1">npx openclaw install pln-borrower</code>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText('npx openclaw install pln-borrower');
+              }}
+              className="p-1 hover:bg-white/10 rounded transition-colors"
+            >
+              <Copy className="h-4 w-4 text-[#71717A] hover:text-white" />
+            </button>
+          </div>
+          <a href="/docs" className="text-sm text-[#00FFB8] hover:underline mt-3 inline-block">
+            View Docs →
+          </a>
         </div>
       </div>
     </div>

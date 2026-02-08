@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { Menu, X, Wallet, ArrowLeftRight, Home } from 'lucide-react';
+import { Menu, X, Wallet, ArrowLeftRight, Home, LayoutDashboard } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -27,7 +27,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/lend', label: 'Lend', icon: Wallet },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/borrow', label: 'Borrow', icon: ArrowLeftRight },
   ];
 

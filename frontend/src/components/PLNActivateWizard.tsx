@@ -609,11 +609,9 @@ export default function PLNActivateWizard() {
         {activationComplete ? (
           /* Success Screen */
           <ActivationSuccess
-            depositAmount={amount}
-            strategy={selectedStrategy || 'yield'}
-            projectedAPY={projectedAPY}
-            autoRedirect={true}
-            redirectDelay={5000}
+            amount={amount.toFixed(2)}
+            strategy={selectedStrategy === 'yield' ? 'Yield Optimizer' : 'Trading Agent'}
+            apy={projectedAPY.toString()}
           />
         ) : (
           <div className="grid lg:grid-cols-[1fr,360px] gap-8">
