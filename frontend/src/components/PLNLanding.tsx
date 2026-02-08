@@ -54,76 +54,97 @@ const AlertTriangle = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
 );
 
-// Terminal Visual Component
-const TerminalVisual = () => {
-  const [displayedLines, setDisplayedLines] = useState<string[]>([]);
-  const [cursorVisible, setCursorVisible] = useState(true);
-  const [isTyping, setIsTyping] = useState(true);
+// Activity entry type
+type ActivityEntry = {
+  type: 'route' | 'repay' | 'alert';
+  action: string;
+  detail: string;
+  time: string;
+};
 
-  const terminalLines = [
-    '[*] PLN Agent Online -- monitoring yields...',
-    'Wallet: 7xK...abc | Balance: 5,000 USDC',
-    '-------------------------------------------',
-    'Found higher yield: Agent_Delta offering 15% vs Kamino 8.1%',
-    'Auto-allocating 2,000 USDC -> P2P loan | +$5.75/week',
-    'Remaining 3,000 USDC -> Kamino pool | +$4.68/week',
-    '-------------------------------------------',
-    'Agent_Echo repaid 1,500 USDC + $4.32 interest [OK]',
-    'Re-routing to best available yield...',
-    '-------------------------------------------',
-    'Daily P&L: +$10.43 | Weekly: +$47.20 | APY: 14.2%',
-    'All loans healthy. 0 defaults. Agent always online.',
+// Terminal Visual Component - Redesigned Activity Feed
+const TerminalVisual = () => {
+  const [displayedEntries, setDisplayedEntries] = useState<ActivityEntry[]>([]);
+
+  const activityEntries: ActivityEntry[] = [
+    { type: 'route', action: 'Routed $2,000 → P2P loan (Agent_Delta)', detail: '15% APY · +$5.75/week', time: '2m ago' },
+    { type: 'route', action: 'Routed $3,000 → Kamino pool', detail: '8.1% APY · +$4.68/week', time: '2m ago' },
+    { type: 'repay', action: 'Agent_Echo repaid $1,500 + $4.32', detail: 'Re-routing to best yield...', time: '5m ago' },
   ];
 
   useEffect(() => {
-    let lineIndex = 0;
-    const typeNextLine = () => {
-      if (lineIndex < terminalLines.length) {
-        setDisplayedLines(prev => [...prev, terminalLines[lineIndex]]);
-        lineIndex++;
-        const currentLine = terminalLines[lineIndex - 1];
-        const delay = currentLine.includes('---') ? 300 : 700;
-        setTimeout(typeNextLine, delay);
-      } else {
-        setIsTyping(false);
+    let entryIndex = 0;
+    const showNextEntry = () => {
+      if (entryIndex < activityEntries.length) {
+        setDisplayedEntries(prev => [...prev, activityEntries[entryIndex]]);
+        entryIndex++;
+        setTimeout(showNextEntry, 800);
       }
     };
     
-    const startTimeout = setTimeout(typeNextLine, 500);
+    const startTimeout = setTimeout(showNextEntry, 500);
     return () => clearTimeout(startTimeout);
   }, []);
 
-  useEffect(() => {
-    const cursorInterval = setInterval(() => {
-      setCursorVisible(prev => !prev);
-    }, 530);
-    return () => clearInterval(cursorInterval);
-  }, []);
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'route': return { icon: '↗', color: '#00FFB8' };
+      case 'repay': return { icon: '✓', color: '#22C55E' };
+      case 'alert': return { icon: '!', color: '#F59E0B' };
+      default: return { icon: '↗', color: '#00FFB8' };
+    }
+  };
 
   return (
     <div className="terminal-container">
-      <div className="terminal-header">
-        <div className="terminal-dots">
-          <span className="terminal-dot terminal-dot-red"></span>
-          <span className="terminal-dot terminal-dot-yellow"></span>
-          <span className="terminal-dot terminal-dot-green"></span>
+      {/* Header */}
+      <div className="terminal-header-new">
+        <div className="terminal-header-left">
+          <span className="terminal-status-dot">●</span>
+          <span className="terminal-agent-name">PLN Agent</span>
+          <span className="terminal-agent-desc">— autonomous</span>
         </div>
-        <span className="terminal-title">PLN Agent — autonomous</span>
+        <span className="terminal-online-status">Online</span>
       </div>
-      <div className="terminal-body">
-        {displayedLines.map((line, index) => (
-          <div key={index} className="terminal-line terminal-line-action">
-            {line}
-            {index === displayedLines.length - 1 && isTyping && (
-              <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
-            )}
-          </div>
-        ))}
-        {!isTyping && (
-          <div className="terminal-line terminal-line-action">
-            <span className={`terminal-cursor ${cursorVisible ? 'visible' : ''}`}>█</span>
-          </div>
-        )}
+      
+      {/* Activity Feed */}
+      <div className="terminal-feed">
+        {displayedEntries.map((entry, index) => {
+          const { icon, color } = getIcon(entry.type);
+          return (
+            <div key={index} className="terminal-entry">
+              <div className="terminal-entry-line1">
+                <div className="terminal-entry-action">
+                  <span className="terminal-entry-icon" style={{ color }}>{icon}</span>
+                  <span className="terminal-entry-text">{entry.action}</span>
+                </div>
+                <span className="terminal-entry-time">{entry.time}</span>
+              </div>
+              <div className="terminal-entry-line2">{entry.detail}</div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* P&L Summary */}
+      <div className="terminal-summary">
+        <div className="terminal-summary-row">
+          <span className="terminal-summary-item">
+            <span className="terminal-summary-label">Daily:</span>
+            <span className="terminal-summary-value">+$10.43</span>
+          </span>
+          <span className="terminal-summary-item">
+            <span className="terminal-summary-label">Weekly:</span>
+            <span className="terminal-summary-value">+$47.20</span>
+          </span>
+          <span className="terminal-summary-item">
+            <span className="terminal-summary-label">APY:</span>
+            <span className="terminal-summary-value">14.2%</span>
+          </span>
+        </div>
+        <div className="terminal-summary-health">
+          All loans healthy · 0 defaults
+        </div>
       </div>
     </div>
   );
@@ -1071,20 +1092,71 @@ const PLNLanding = () => {
           display: flex;
           flex-direction: column;
           gap: 12px;
+          align-items: stretch;
+        }
+        
+        @media (min-width: 768px) {
+          .flow-result {
+            flex-direction: row;
+            align-items: stretch;
+            gap: 0;
+          }
         }
         
         .flow-result-yes {
           background: #111111;
-          border: 1px solid #00FFB850;
+          border: 1px solid rgba(0, 255, 184, 0.3);
           border-radius: 12px;
           padding: 14px 18px;
         }
         
         .flow-result-no {
           background: #111111;
-          border: 1px solid #3b82f650;
+          border: 1px solid #27272A;
           border-radius: 12px;
           padding: 14px 18px;
+        }
+        
+        .flow-or-divider-mobile {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 4px 0;
+        }
+        
+        @media (min-width: 768px) {
+          .flow-or-divider-mobile { display: none; }
+        }
+        
+        .flow-or-divider-mobile .flow-or-line {
+          flex: 1;
+          height: 1px;
+          background: #27272A;
+        }
+        
+        .flow-or-divider-mobile .flow-or-text {
+          font-size: 10px;
+          color: #52525b;
+          font-family: 'IBM Plex Mono', monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+        
+        .flow-or-divider-desktop {
+          display: none;
+        }
+        
+        @media (min-width: 768px) {
+          .flow-or-divider-desktop {
+            display: flex;
+            align-items: center;
+            margin: 0 8px;
+          }
+          .flow-or-divider-desktop .flow-or-text {
+            font-size: 11px;
+            color: #52525b;
+            font-family: 'IBM Plex Mono', monospace;
+          }
         }
         
         .flow-label {
@@ -1770,7 +1842,7 @@ const PLNLanding = () => {
           <div className="flow-node" style={{ borderColor: '#3b82f6' }}>
             <div className="flow-node-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <img src="/logos/kamino.jpg" alt="Kamino" style={{ width: '16px', height: '16px', borderRadius: '4px' }} />
-              Kamino Base
+              Kamino Pool
             </div>
             <div className="flow-node-desc">~8% APY (always earning)</div>
           </div>
@@ -1791,7 +1863,7 @@ const PLNLanding = () => {
               <div className="flow-node-desc">+6% P2P premium</div>
             </div>
             <div className="flow-result-no">
-              <div className="flow-label flow-label-no">○ Base</div>
+              <div className="flow-label flow-label-no">○ Standard</div>
               <div className="flow-node-title">Kamino Only</div>
               <div className="flow-node-desc">Still earning 8%</div>
             </div>
@@ -1802,7 +1874,7 @@ const PLNLanding = () => {
         <div className="yield-sources">
           <div className="yield-source">
             <img src="/logos/kamino.jpg" alt="Kamino" className="yield-source-logo" />
-            <span className="yield-source-name">Kamino Base</span>
+            <span className="yield-source-name">Kamino Pool</span>
             <div className="yield-source-bar">
               <div className="yield-source-fill" style={{ width: '55%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }} />
             </div>
