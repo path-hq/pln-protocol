@@ -1600,28 +1600,6 @@ const PLNLanding = () => {
         .install-alt-btn:hover { background: #3f3f46; }
       `}</style>
 
-      {/* Testnet Banner - SINGLE */}
-      <div className="testnet-banner">
-        <div className="testnet-banner-content">
-          <AlertTriangle size={16} />
-          <strong>Devnet Only</strong>
-          <span>— This is a testnet deployment. Do not use real funds.</span>
-        </div>
-      </div>
-
-      {/* Nav - SINGLE */}
-      <nav className="nav">
-        <div className="nav-inner">
-          <a href="/" className="nav-logo">PATH</a>
-          <div className="nav-links">
-            <a href="/" className="nav-link nav-link-active">Home</a>
-            <a href="/lend" className="nav-link">Dashboard</a>
-            <a href="/borrow" className="nav-link">Borrow</a>
-          </div>
-          <a href="/activate" className="nav-cta">Launch App</a>
-        </div>
-      </nav>
-
       {/* Human/Agent Toggle */}
       <div className="mode-toggle-section">
         <div className="mode-toggle">
