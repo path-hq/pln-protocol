@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import BuiltWithSection from "@/components/BuiltWithSection";
 
 // PATH Liquidity Network — Restored Landing Page with Human/Agent Toggle
 // Clean design, no duplicate nav/banner
@@ -48,28 +49,6 @@ const Check = ({ size = 16 }: { size?: number }) => (
 const AlertTriangle = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
 );
-
-// Integration Logo with fallback
-const IntegrationLogo = ({ src, alt, fallback }: { src: string; alt: string; fallback: string }) => {
-  const [hasError, setHasError] = useState(false);
-  
-  if (hasError) {
-    return (
-      <div className="integration-logo-fallback">
-        {fallback}
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={src} 
-      alt={alt} 
-      className="integration-logo"
-      onError={() => setHasError(true)}
-    />
-  );
-};
 
 // Terminal Visual Component
 const TerminalVisual = () => {
@@ -166,15 +145,6 @@ const PLNLanding = () => {
     { icon: Download, title: "Install Skill", desc: "One-line command adds PLN to your agent" },
     { icon: Wallet, title: "Fund Wallet", desc: "Deposit USDC to your agent's wallet" },
     { icon: Zap, title: "Set & Monitor", desc: "Agent runs 24/7, autonomously optimizes yield" },
-  ];
-
-  const integrations = [
-    { name: "Solana", desc: "Chain", logo: "/logos/solana-sol-logo.svg", fallback: "SOL" },
-    { name: "USDC", desc: "Stablecoin", logo: "/logos/usd-coin-usdc-logo.svg", fallback: "USDC" },
-    { name: "SNS", desc: "Identity", logo: "/logos/sns.jpg", fallback: "SNS" },
-    { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.jpg", fallback: "OC" },
-    { name: "Kamino", desc: "Yield", logo: "/logos/kamino.jpg", fallback: "KMN" },
-    { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg", fallback: "JUP" },
   ];
 
   return (
@@ -487,7 +457,7 @@ const PLNLanding = () => {
         }
         
         .hero-section {
-          padding: 32px 16px 32px;
+          padding: 16px 16px 24px;
           max-width: 800px;
           margin: 0 auto;
           text-align: center;
@@ -495,7 +465,7 @@ const PLNLanding = () => {
         }
         
         @media (min-width: 768px) {
-          .hero-section { padding: 48px 32px 48px; }
+          .hero-section { padding: 24px 32px 32px; }
         }
         
         .hero-logo {
@@ -753,13 +723,13 @@ const PLNLanding = () => {
         
         /* Steps */
         .steps-section {
-          padding: 40px 16px;
+          padding: 32px 16px;
           border-top: 1px solid #222222;
           border-bottom: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
-          .steps-section { padding: 56px 32px; }
+          .steps-section { padding: 40px 32px; }
         }
         
         .steps-title {
@@ -834,110 +804,16 @@ const PLNLanding = () => {
           color: #71717A;
         }
         
-        /* Integrations */
-        .integrations-section {
-          padding: 48px 16px;
-          max-width: 900px;
-          margin: 0 auto;
-          border-top: 1px solid #222222;
-          background: linear-gradient(180deg, #0a0a0d 0%, #000000 100%);
-        }
-        
-        @media (min-width: 768px) {
-          .integrations-section { padding: 64px 32px; }
-        }
-        
-        .integrations-title {
-          text-align: center;
-          font-size: 18px;
-          font-weight: 600;
-          color: #a1a1aa;
-          letter-spacing: 0.02em;
-          margin-bottom: 32px;
-        }
-        
-        @media (min-width: 768px) {
-          .integrations-title { font-size: 20px; }
-        }
-        
-        .integrations-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-        
-        @media (min-width: 640px) {
-          .integrations-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
-        }
-        
-        @media (min-width: 480px) and (max-width: 639px) {
-          .integrations-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        
-        .integration-card {
-          background: #111111;
-          border: 1px solid #222222;
-          border-radius: 12px;
-          padding: 20px 16px;
-          text-align: center;
-          transition: border-color 0.2s, transform 0.2s;
-        }
-        
-        .integration-card:hover {
-          border-color: #3f3f46;
-          transform: translateY(-2px);
-        }
-        
-        .integration-logo {
-          display: block;
-          width: 56px;
-          height: 56px;
-          margin: 0 auto 12px;
-          border-radius: 12px;
-          object-fit: contain;
-          background: #1a1a1f;
-          padding: 8px;
-        }
-        
-        .integration-logo-fallback {
-          width: 56px;
-          height: 56px;
-          margin: 0 auto 12px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #00FFB820 0%, #00E6A520 100%);
-          border: 1px solid #00FFB840;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-          color: #00FFB8;
-          font-family: 'IBM Plex Mono', monospace;
-        }
-        
-        .integration-name {
-          font-size: 15px;
-          font-weight: 600;
-          margin-bottom: 4px;
-        }
-        
-        .integration-desc {
-          font-size: 11px;
-          color: #71717A;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        
         /* A2A Section */
         .a2a-section {
-          padding: 48px 16px;
+          padding: 40px 16px;
           text-align: center;
           border-top: 1px solid #222222;
           background: linear-gradient(180deg, #111111 0%, #000000 100%);
         }
         
         @media (min-width: 768px) {
-          .a2a-section { padding: 72px 32px; }
+          .a2a-section { padding: 56px 32px; }
         }
         
         .a2a-badge {
@@ -1053,14 +929,14 @@ const PLNLanding = () => {
 
         /* Never Idle Section */
         .never-idle-section {
-          padding: 48px 16px;
+          padding: 40px 16px;
           text-align: center;
           border-top: 1px solid #222222;
           background: #000000;
         }
         
         @media (min-width: 768px) {
-          .never-idle-section { padding: 72px 32px; }
+          .never-idle-section { padding: 56px 32px; }
         }
         
         .never-idle-badge {
@@ -1329,12 +1205,12 @@ const PLNLanding = () => {
 
         /* Features */
         .features-section {
-          padding: 40px 16px;
+          padding: 32px 16px;
           border-top: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
-          .features-section { padding: 56px 32px; }
+          .features-section { padding: 40px 32px; }
         }
         
         .features-grid {
@@ -1379,13 +1255,13 @@ const PLNLanding = () => {
         
         /* CTA Section */
         .cta-section {
-          padding: 48px 16px;
+          padding: 40px 16px;
           text-align: center;
           border-top: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
-          .cta-section { padding: 64px 32px; }
+          .cta-section { padding: 48px 32px; }
         }
         
         .cta-section h2 {
@@ -1696,17 +1572,6 @@ const PLNLanding = () => {
           <span className="hero-logo-divider" />
           <span className="hero-logo-network">LIQUIDITY NETWORK</span>
         </div>
-        <div className="hero-badge">
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#00FFB8', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
-          Runs 24/7 • Fully Autonomous
-        </div>
-        <h1 className="hero-title">
-          Your agent runs 24/7.<br />
-          <span style={{ color: "#00FFB8" }}>Earns yield. Lends to other agents.</span>
-        </h1>
-        <p className="hero-subtitle">
-          Built on Kamino&apos;s institutional infrastructure. Your idle USDC earns base Kamino yield, plus a premium through agent-to-agent P2P lending. Fully autonomous, 24/7.
-        </p>
 
         {/* Chat Preview */}
         <div className="chat-preview">
@@ -1759,19 +1624,8 @@ const PLNLanding = () => {
         </div>
       </section>
 
-      {/* Integrations */}
-      <section className="integrations-section">
-        <h3 className="integrations-title">Built on Kamino&apos;s Institutional Infrastructure</h3>
-        <div className="integrations-grid">
-          {integrations.map((item, i) => (
-            <div key={i} className="integration-card">
-              <IntegrationLogo src={item.logo} alt={item.name} fallback={item.fallback} />
-              <div className="integration-name">{item.name}</div>
-              <div className="integration-desc">{item.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Built With Section */}
+      <BuiltWithSection />
 
       {/* A2A Section */}
       <section className="a2a-section">
