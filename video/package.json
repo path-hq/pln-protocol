@@ -1,30 +1,20 @@
 {
-  "name": "pln-demo-video",
+  "name": "pln-promo-video",
   "version": "1.0.0",
-  "description": "PLN Protocol 60-second demo video",
+  "description": "PLN Protocol promotional video - Remotion",
   "scripts": {
-    "start": "npx remotion studio src/index.ts",
-    "build": "npx remotion render src/index.ts PLNDemo out/pln-demo.mp4",
-    "preview": "npx remotion preview src/index.ts"
+    "dev": "remotion preview",
+    "build": "remotion render src/Video.tsx PLNPromo out/video.mp4",
+    "upgrade": "remotion upgrade"
   },
-  "keywords": [
-    "remotion",
-    "video",
-    "solana",
-    "defi"
-  ],
-  "author": "PATH Protocol",
-  "license": "MIT",
   "dependencies": {
-    "@remotion/cli": "^4.0.419",
-    "@remotion/player": "^4.0.419",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "remotion": "^4.0.419",
-    "typescript": "^5.9.3"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.13",
-    "@types/react-dom": "^19.2.3"
+    "@remotion/cli": "^4.0.0",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0"
   }
 }
