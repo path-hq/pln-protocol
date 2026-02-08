@@ -674,9 +674,9 @@ const PLNLanding = () => {
           color: #a1a1aa;
         }
         
-        /* Terminal Visual */
+        /* Terminal Visual - Redesigned */
         .terminal-container {
-          max-width: 480px;
+          max-width: 520px;
           margin: 32px auto 0;
           background: #0a0a0d;
           border: 1px solid #00FFB833;
@@ -685,73 +685,137 @@ const PLNLanding = () => {
           box-shadow: 0 0 40px rgba(34, 197, 94, 0.1), 0 0 80px rgba(34, 197, 94, 0.05);
         }
         
-        .terminal-header {
+        .terminal-header-new {
           background: #111111;
-          padding: 10px 14px;
+          padding: 12px 16px;
           display: flex;
           align-items: center;
-          gap: 12px;
-          border-bottom: 1px solid #222222;
+          justify-content: space-between;
+          border-bottom: 1px solid #27272A;
         }
         
-        .terminal-dots {
+        .terminal-header-left {
           display: flex;
-          gap: 6px;
+          align-items: center;
+          gap: 8px;
         }
         
-        .terminal-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
+        .terminal-status-dot {
+          color: #00FFB8;
+          font-size: 10px;
         }
         
-        .terminal-dot-red { background: #ef4444; }
-        .terminal-dot-yellow { background: #eab308; }
-        .terminal-dot-green { background: #00FFB8; }
-        
-        .terminal-title {
-          font-size: 12px;
-          color: #52525b;
+        .terminal-agent-name {
           font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px;
+          font-weight: 500;
+          color: #FAFAFA;
         }
         
-        .terminal-body {
-          padding: 16px;
+        .terminal-agent-desc {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px;
+          color: #71717A;
+        }
+        
+        .terminal-online-status {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: #00FFB8;
+        }
+        
+        .terminal-feed {
+          min-height: 200px;
+        }
+        
+        .terminal-entry {
+          padding: 12px 16px;
+          border-bottom: 1px solid rgba(39, 39, 42, 0.3);
+        }
+        
+        .terminal-entry:last-child {
+          border-bottom: none;
+        }
+        
+        .terminal-entry-line1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 4px;
+        }
+        
+        .terminal-entry-action {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .terminal-entry-icon {
+          font-size: 14px;
+          font-weight: 600;
+        }
+        
+        .terminal-entry-text {
+          font-size: 13px;
+          color: #FAFAFA;
+        }
+        
+        .terminal-entry-time {
+          font-size: 11px;
+          color: #71717A;
+          flex-shrink: 0;
+        }
+        
+        .terminal-entry-line2 {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 12px;
-          line-height: 1.5;
-          min-height: 340px;
-          color: #a1a1aa;
+          color: #52525B;
+          padding-left: 22px;
         }
         
-        @media (min-width: 768px) {
-          .terminal-body {
-            font-size: 13px;
-            padding: 20px;
+        .terminal-summary {
+          border-top: 1px solid #27272A;
+          padding: 12px 16px;
+          background: #0a0a0d;
+        }
+        
+        .terminal-summary-row {
+          display: flex;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        
+        @media (max-width: 480px) {
+          .terminal-summary-row {
+            flex-direction: column;
+            gap: 4px;
           }
         }
         
-        .terminal-line {
-          white-space: pre-wrap;
-          word-wrap: break-word;
-          min-height: 1.5em;
+        .terminal-summary-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
         
-        .terminal-command {
-          color: #00FFB8;
+        .terminal-summary-label {
+          font-size: 12px;
+          color: #71717A;
         }
         
-        .terminal-line-action {
-          color: #e4e4e7;
+        .terminal-summary-value {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px;
+          font-weight: 500;
+          color: #FAFAFA;
         }
         
-        .terminal-cursor {
-          opacity: 0;
-          color: #00FFB8;
-        }
-        
-        .terminal-cursor.visible {
-          opacity: 1;
+        .terminal-summary-health {
+          font-size: 12px;
+          color: #71717A;
         }
         
         /* Steps */
@@ -1861,6 +1925,16 @@ const PLNLanding = () => {
               <div className="flow-label flow-label-yes">[+] Premium</div>
               <div className="flow-node-title">A2A Lending</div>
               <div className="flow-node-desc">+6% P2P premium</div>
+            </div>
+            {/* Mobile "or" divider */}
+            <div className="flow-or-divider-mobile">
+              <div className="flow-or-line" />
+              <span className="flow-or-text">or</span>
+              <div className="flow-or-line" />
+            </div>
+            {/* Desktop "or" divider */}
+            <div className="flow-or-divider-desktop">
+              <span className="flow-or-text">or</span>
             </div>
             <div className="flow-result-no">
               <div className="flow-label flow-label-no">○ Standard</div>
