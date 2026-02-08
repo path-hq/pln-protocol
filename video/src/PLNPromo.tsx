@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Sequence, useCurrentFrame, interpolate, IFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame, interpolate, IFrame } from 'remotion';
 
 // 60 second video, 30fps = 1800 frames
 const FPS = 30;
@@ -17,7 +17,7 @@ const T2_PROBLEM = 300;      // 6-10s: Problem
 const T3_SOLUTION = 600;     // 10-20s: Website demo (iframe)
 const T4_HOW = 960;          // 20-32s: How it works
 const T5_NUMBERS = 1260;     // 32-42s: Safety & APY
-const T6_CTA = 1800;         // 42-60s: CTA
+const T6_CTA = 1560;         // 42-60s: CTA start
 
 // Animated text component
 const FadeText: React.FC<{
@@ -87,6 +87,8 @@ const GlowPulse: React.FC = () => {
 
 // Main composition
 export const PLNPromo: React.FC = () => {
+  const frame = useCurrentFrame();
+
   return (
     <AbsoluteFill style={{ backgroundColor: BLACK, fontFamily: "'IBM Plex Sans', sans-serif" }}>
       {/* Background glow pulse */}
@@ -110,7 +112,7 @@ export const PLNPromo: React.FC = () => {
               fontSize: 32,
               color: ACCENT,
               fontFamily: "'IBM Plex Mono', monospace",
-              opacity: interpolate(useCurrentFrame(), [60, 90, 150, 180], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+              opacity: interpolate(frame, [60, 90, 150, 180], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
             }}
           >
             Unlock 14%+ APY with AI-powered lending
@@ -124,8 +126,8 @@ export const PLNPromo: React.FC = () => {
           {/* Human problem */}
           <div
             style={{
-              opacity: interpolate(useCurrentFrame(), [300, 330, 450, 480], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-              transform: `translateX(${interpolate(useCurrentFrame(), [300, 330], [50, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
+              opacity: interpolate(frame, [300, 330, 450, 480], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+              transform: `translateX(${interpolate(frame, [300, 330], [50, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
               textAlign: 'center',
               maxWidth: 400,
             }}
@@ -138,8 +140,8 @@ export const PLNPromo: React.FC = () => {
           {/* AI problem */}
           <div
             style={{
-              opacity: interpolate(useCurrentFrame(), [360, 390, 450, 480], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-              transform: `translateX(${interpolate(useCurrentFrame(), [360, 390], [-50, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
+              opacity: interpolate(frame, [360, 390, 450, 480], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+              transform: `translateX(${interpolate(frame, [360, 390], [-50, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}px)`,
               textAlign: 'center',
               maxWidth: 400,
             }}
@@ -187,7 +189,7 @@ export const PLNPromo: React.FC = () => {
         <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
           <div
             style={{
-              opacity: interpolate(useCurrentFrame(), [960, 990], [0, 1], { extrapolateLeft: 'clamp' }),
+              opacity: interpolate(frame, [960, 990], [0, 1], { extrapolateLeft: 'clamp' }),
               textAlign: 'center',
             }}
           >
@@ -203,8 +205,8 @@ export const PLNPromo: React.FC = () => {
                 <div
                   key={i}
                   style={{
-                    opacity: interpolate(useCurrentFrame(), [1000 + i * 60, 1030 + i * 60], [0, 1], { extrapolateLeft: 'clamp' }),
-                    transform: `translateY(${interpolate(useCurrentFrame(), [1000 + i * 60, 1030 + i * 60], [30, 0], { extrapolateLeft: 'clamp' })}px)`,
+                    opacity: interpolate(frame, [1000 + i * 60, 1030 + i * 60], [0, 1], { extrapolateLeft: 'clamp' }),
+                    transform: `translateY(${interpolate(frame, [1000 + i * 60, 1030 + i * 60], [30, 0], { extrapolateLeft: 'clamp' })}px)`,
                     textAlign: 'center',
                     width: 280,
                     padding: 24,
@@ -229,7 +231,7 @@ export const PLNPromo: React.FC = () => {
           {/* Big APY number */}
           <div
             style={{
-              opacity: interpolate(useCurrentFrame(), [1260, 1290], [0, 1], { extrapolateLeft: 'clamp' }),
+              opacity: interpolate(frame, [1260, 1290], [0, 1], { extrapolateLeft: 'clamp' }),
               textAlign: 'center',
             }}
           >
@@ -258,7 +260,7 @@ export const PLNPromo: React.FC = () => {
               <div
                 key={i}
                 style={{
-                  opacity: interpolate(useCurrentFrame(), [1320 + i * 40, 1350 + i * 40], [0, 1], { extrapolateLeft: 'clamp' }),
+                  opacity: interpolate(frame, [1320 + i * 40, 1350 + i * 40], [0, 1], { extrapolateLeft: 'clamp' }),
                   display: 'flex',
                   alignItems: 'center',
                   gap: 16,
@@ -285,7 +287,7 @@ export const PLNPromo: React.FC = () => {
                 color: WHITE,
                 fontWeight: 700,
                 marginBottom: 40,
-                opacity: interpolate(useCurrentFrame(), [1440, 1470], [0, 1], { extrapolateLeft: 'clamp' }),
+                opacity: interpolate(frame, [1440, 1470], [0, 1], { extrapolateLeft: 'clamp' }),
               }}
             >
               Your USDC could be earning 14%+ right now.
@@ -294,8 +296,8 @@ export const PLNPromo: React.FC = () => {
             {/* Pulsing button */}
             <div
               style={{
-                transform: `scale(${interpolate(useCurrentFrame(), [1500, 1530, 1560, 1590], [1, 1.05, 1.05, 1], { extrapolateRight: 'loop' })})`,
-                opacity: interpolate(useCurrentFrame(), [1470, 1500], [0, 1], { extrapolateLeft: 'clamp' }),
+                transform: `scale(${interpolate(frame, [1500, 1530, 1560, 1590], [1, 1.05, 1.05, 1], { extrapolateRight: 'loop' })})`,
+                opacity: interpolate(frame, [1470, 1500], [0, 1], { extrapolateLeft: 'clamp' }),
               }}
             >
               <div
@@ -323,7 +325,7 @@ export const PLNPromo: React.FC = () => {
                 textAlign: 'center',
                 fontSize: 16,
                 color: GRAY,
-                opacity: interpolate(useCurrentFrame(), [1560, 1590], [0, 1], { extrapolateLeft: 'clamp' }),
+                opacity: interpolate(frame, [1560, 1590], [0, 1], { extrapolateLeft: 'clamp' }),
               }}
             >
               Colosseum & OpenClaw Hackathon 2026
