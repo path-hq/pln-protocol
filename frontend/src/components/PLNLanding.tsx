@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import BuiltWithSection from "./BuiltWithSection";
 
 // PATH Liquidity Network — Production Landing Page
-// Mobile-first, skill-focused UX
+// WHY-first, mobile-first UX restructure
 
 const ArrowRight = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -33,10 +34,6 @@ const Wallet = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
 );
 
-const MessageCircle = ({ size = 20 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-);
-
 const Lock = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
 );
@@ -45,29 +42,7 @@ const Check = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 );
 
-// Integration Logo with fallback
-const IntegrationLogo = ({ src, alt, fallback }: { src: string; alt: string; fallback: string }) => {
-  const [hasError, setHasError] = useState(false);
-  
-  if (hasError) {
-    return (
-      <div className="integration-logo-fallback">
-        {fallback}
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={src} 
-      alt={alt} 
-      className="integration-logo"
-      onError={() => setHasError(true)}
-    />
-  );
-};
-
-// Terminal Visual Component
+// Terminal Visual Component - PLN Agent Activity
 const TerminalVisual = () => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [cursorVisible, setCursorVisible] = useState(true);
@@ -94,7 +69,6 @@ const TerminalVisual = () => {
       if (lineIndex < terminalLines.length) {
         setDisplayedLines(prev => [...prev, terminalLines[lineIndex]]);
         lineIndex++;
-        // Faster timing for separator lines, slower for content
         const currentLine = terminalLines[lineIndex - 1];
         const delay = currentLine.includes('━') ? 300 : 700;
         setTimeout(typeNextLine, delay);
@@ -103,12 +77,10 @@ const TerminalVisual = () => {
       }
     };
     
-    // Start typing after a small delay
     const startTimeout = setTimeout(typeNextLine, 500);
     return () => clearTimeout(startTimeout);
   }, []);
 
-  // Blinking cursor effect
   useEffect(() => {
     const cursorInterval = setInterval(() => {
       setCursorVisible(prev => !prev);
@@ -141,13 +113,17 @@ const TerminalVisual = () => {
           </div>
         )}
       </div>
+      <div className="terminal-footer">
+        <a href="/dashboard" className="terminal-link">View Activity →</a>
+      </div>
     </div>
   );
 };
 
 const PLNLanding = () => {
   const [mounted, setMounted] = useState(false);
-  const [showInstall, setShowInstall] = useState(false);
+  const [activeTab, setActiveTab] = useState<'human' | 'agent'>('human');
+  const [agentInstallTab, setAgentInstallTab] = useState<'openclaw' | 'manual'>('openclaw');
 
   useEffect(() => {
     setMounted(true);
@@ -157,15 +133,6 @@ const PLNLanding = () => {
     { icon: Download, title: "Install Skill", desc: "One-line command adds PLN to your agent" },
     { icon: Wallet, title: "Fund Wallet", desc: "Deposit USDC to your agent's wallet" },
     { icon: Zap, title: "Set & Monitor", desc: "Agent runs 24/7, autonomously optimizes yield" },
-  ];
-
-  const integrations = [
-    { name: "Solana", desc: "Chain", logo: "/logos/solana-sol-logo.svg", fallback: "SOL" },
-    { name: "USDC", desc: "Stablecoin", logo: "/logos/usd-coin-usdc-logo.svg", fallback: "USDC" },
-    { name: "SNS", desc: "Identity", logo: "/logos/sns.jpg", fallback: "SNS" },
-    { name: "OpenClaw", desc: "Agent", logo: "/logos/openclaw.jpg", fallback: "OC" },
-    { name: "Kamino", desc: "Yield", logo: "/logos/kamino.jpg", fallback: "KMN" },
-    { name: "Jupiter", desc: "Trading", logo: "/logos/jupiter-ag-jup-logo.svg", fallback: "JUP" },
   ];
 
   return (
@@ -186,6 +153,7 @@ const PLNLanding = () => {
         
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
+        /* HERO SECTION */
         .hero-section {
           padding: 40px 16px 32px;
           max-width: 800px;
@@ -203,7 +171,7 @@ const PLNLanding = () => {
           align-items: center;
           justify-content: center;
           gap: 12px;
-          margin-bottom: 24px;
+          margin-bottom: 32px;
         }
         
         .hero-logo-path {
@@ -239,20 +207,7 @@ const PLNLanding = () => {
           .hero-logo-network { font-size: 13px; }
         }
         
-        .hero-badge {
-          display: inline-block;
-          padding: 6px 14px;
-          border-radius: 100px;
-          border: 1px solid #00FFB833;
-          background: #00FFB80a;
-          font-size: 12px;
-          color: #00FFB8;
-          font-weight: 500;
-          margin-bottom: 20px;
-          font-family: 'IBM Plex Mono', monospace;
-        }
-        
-        .hero-title {
+        .hero-why {
           font-size: 28px;
           font-weight: 700;
           letter-spacing: -0.04em;
@@ -261,15 +216,137 @@ const PLNLanding = () => {
         }
         
         @media (min-width: 768px) {
-          .hero-title { font-size: 44px; }
+          .hero-why { font-size: 44px; }
         }
         
-        .hero-subtitle {
+        .hero-opportunity {
+          font-size: 18px;
+          color: #00FFB8;
+          font-weight: 500;
+          margin-bottom: 20px;
+        }
+        
+        @media (min-width: 768px) {
+          .hero-opportunity { font-size: 22px; }
+        }
+        
+        .hero-mechanism {
           font-size: 15px;
           color: #888888;
+          max-width: 560px;
+          margin: 0 auto 32px;
+          line-height: 1.7;
+        }
+        
+        @media (min-width: 768px) {
+          .hero-mechanism { font-size: 16px; }
+        }
+        
+        /* TOGGLE TABS */
+        .toggle-tabs {
+          display: flex;
+          background: #111111;
+          border-radius: 12px;
+          padding: 4px;
+          max-width: 320px;
+          margin: 0 auto 24px;
+          border: 1px solid #222222;
+        }
+        
+        .toggle-tab {
+          flex: 1;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+          background: transparent;
+          color: #888888;
+        }
+        
+        .toggle-tab.active {
+          background: #00FFB8;
+          color: #000000;
+        }
+        
+        .toggle-tab:not(.active):hover {
+          color: #fafafa;
+        }
+        
+        /* TOGGLE CONTENT CARDS */
+        .toggle-content {
           max-width: 480px;
-          margin: 0 auto 28px;
+          margin: 0 auto;
+        }
+        
+        .content-card {
+          background: #111111;
+          border: 1px solid #222222;
+          border-radius: 16px;
+          padding: 24px;
+          text-align: left;
+        }
+        
+        .content-card-why {
+          font-size: 15px;
+          color: #a1a1aa;
+          margin-bottom: 20px;
           line-height: 1.6;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #222222;
+        }
+        
+        .content-card-stats {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+        
+        .stat-item {
+          flex: 1;
+          min-width: 100px;
+        }
+        
+        .stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: #00FFB8;
+          font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .stat-label {
+          font-size: 12px;
+          color: #888888;
+          margin-top: 4px;
+        }
+        
+        .content-card-features {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: #a1a1aa;
+        }
+        
+        .feature-check {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #00FFB820;
+          color: #00FFB8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
         .cta-button {
@@ -284,94 +361,72 @@ const PLNLanding = () => {
           border-radius: 10px;
           text-decoration: none;
           transition: background 0.2s;
+          border: none;
+          cursor: pointer;
+          width: 100%;
+          justify-content: center;
         }
         
         .cta-button:hover { background: #00E6A5; }
         
-        /* Chat Preview */
-        .chat-preview {
-          max-width: 400px;
-          margin: 40px auto 0;
-          background: #111111;
-          border: 1px solid #222222;
-          border-radius: 16px;
-          overflow: hidden;
-        }
-        
-        .chat-header {
-          padding: 12px 16px;
-          border-bottom: 1px solid #222222;
+        /* AGENT INSTALL TABS */
+        .agent-install-tabs {
           display: flex;
-          align-items: center;
-          gap: 10px;
           background: #0a0a0d;
-        }
-        
-        .chat-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #00FFB8 0%, #00E6A5 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .chat-name {
-          font-size: 14px;
-          font-weight: 600;
-        }
-        
-        .chat-status {
-          font-size: 11px;
-          color: #00FFB8;
-        }
-        
-        .chat-body {
-          padding: 16px;
-        }
-        
-        .chat-message {
-          background: #1a1a1f;
-          border-radius: 12px;
-          padding: 14px;
-          margin-bottom: 12px;
-        }
-        
-        .chat-message p {
-          font-size: 14px;
-          line-height: 1.5;
-          margin: 0 0 12px 0;
-          color: #e4e4e7;
-        }
-        
-        .chat-buttons {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-        
-        .chat-btn {
-          padding: 8px 14px;
           border-radius: 8px;
-          font-size: 13px;
+          padding: 3px;
+          margin-bottom: 16px;
+          border: 1px solid #222222;
+        }
+        
+        .agent-install-tab {
+          flex: 1;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 12px;
           font-weight: 500;
-          border: none;
           cursor: pointer;
           transition: all 0.2s;
+          border: none;
+          background: transparent;
+          color: #888888;
         }
         
-        .chat-btn-primary {
-          background: #00FFB8;
-          color: #000000;
-        }
-        
-        .chat-btn-secondary {
+        .agent-install-tab.active {
           background: #222222;
-          color: #a1a1aa;
+          color: #fafafa;
         }
         
-        /* Terminal Visual */
+        .install-code {
+          background: #000000;
+          border: 1px solid #222222;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: #00FFB8;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          overflow-x: auto;
+        }
+        
+        .copy-btn {
+          background: #222222;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 10px;
+          color: #a1a1aa;
+          font-size: 11px;
+          cursor: pointer;
+          flex-shrink: 0;
+          margin-left: 12px;
+        }
+        
+        .copy-btn:hover { background: #3f3f46; color: #fff; }
+        
+        /* TERMINAL */
         .terminal-container {
           max-width: 480px;
           margin: 32px auto 0;
@@ -417,7 +472,7 @@ const PLNLanding = () => {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 12px;
           line-height: 1.5;
-          min-height: 340px;
+          min-height: 300px;
           color: #a1a1aa;
         }
         
@@ -434,10 +489,6 @@ const PLNLanding = () => {
           min-height: 1.5em;
         }
         
-        .terminal-command {
-          color: #00FFB8;
-        }
-        
         .terminal-line-action {
           color: #e4e4e7;
         }
@@ -451,15 +502,31 @@ const PLNLanding = () => {
           opacity: 1;
         }
         
-        /* Steps */
-        .steps-section {
-          padding: 40px 16px;
+        .terminal-footer {
+          padding: 12px 16px;
           border-top: 1px solid #222222;
-          border-bottom: 1px solid #222222;
+          text-align: center;
+        }
+        
+        .terminal-link {
+          color: #00FFB8;
+          font-size: 13px;
+          font-weight: 500;
+          text-decoration: none;
+        }
+        
+        .terminal-link:hover {
+          text-decoration: underline;
+        }
+        
+        /* STEPS SECTION */
+        .steps-section {
+          padding: 48px 16px;
+          border-top: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
-          .steps-section { padding: 56px 32px; }
+          .steps-section { padding: 64px 32px; }
         }
         
         .steps-title {
@@ -467,7 +534,7 @@ const PLNLanding = () => {
           font-size: 20px;
           font-weight: 600;
           margin-bottom: 32px;
-          color: #a1a1aa;
+          color: #fafafa;
         }
         
         @media (min-width: 768px) {
@@ -504,6 +571,7 @@ const PLNLanding = () => {
           align-items: center;
           justify-content: center;
           margin: 0 auto 14px;
+          position: relative;
         }
         
         .step-number {
@@ -534,101 +602,7 @@ const PLNLanding = () => {
           color: #888888;
         }
         
-        /* Integrations */
-        .integrations-section {
-          padding: 48px 16px;
-          max-width: 900px;
-          margin: 0 auto;
-          border-top: 1px solid #222222;
-          background: linear-gradient(180deg, #0a0a0d 0%, #000000 100%);
-        }
-        
-        @media (min-width: 768px) {
-          .integrations-section { padding: 64px 32px; }
-        }
-        
-        .integrations-title {
-          text-align: center;
-          font-size: 18px;
-          font-weight: 600;
-          color: #a1a1aa;
-          letter-spacing: 0.02em;
-          margin-bottom: 32px;
-        }
-        
-        @media (min-width: 768px) {
-          .integrations-title { font-size: 20px; }
-        }
-        
-        .integrations-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-        
-        @media (min-width: 640px) {
-          .integrations-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
-        }
-        
-        @media (min-width: 480px) and (max-width: 639px) {
-          .integrations-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        
-        .integration-card {
-          background: #111111;
-          border: 1px solid #222222;
-          border-radius: 12px;
-          padding: 20px 16px;
-          text-align: center;
-          transition: border-color 0.2s, transform 0.2s;
-        }
-        
-        .integration-card:hover {
-          border-color: #3f3f46;
-          transform: translateY(-2px);
-        }
-        
-        .integration-logo {
-          display: block;
-          width: 56px;
-          height: 56px;
-          margin: 0 auto 12px;
-          border-radius: 12px;
-          object-fit: contain;
-          background: #1a1a1f;
-          padding: 8px;
-        }
-        
-        .integration-logo-fallback {
-          width: 56px;
-          height: 56px;
-          margin: 0 auto 12px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #00FFB820 0%, #00E6A520 100%);
-          border: 1px solid #00FFB840;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-          color: #00FFB8;
-          font-family: 'IBM Plex Mono', monospace;
-        }
-        
-        .integration-name {
-          font-size: 15px;
-          font-weight: 600;
-          margin-bottom: 4px;
-        }
-        
-        .integration-desc {
-          font-size: 11px;
-          color: #888888;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        
-        /* A2A Section */
+        /* A2A SECTION - Reframed */
         .a2a-section {
           padding: 48px 16px;
           text-align: center;
@@ -655,19 +629,19 @@ const PLNLanding = () => {
         .a2a-title {
           font-size: 24px;
           font-weight: 700;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
         
         @media (min-width: 768px) {
           .a2a-title { font-size: 32px; }
         }
         
-        .a2a-subtitle {
-          color: #888888;
+        .a2a-description {
+          color: #a1a1aa;
           font-size: 15px;
-          max-width: 600px;
+          max-width: 640px;
           margin: 0 auto 32px;
-          line-height: 1.6;
+          line-height: 1.7;
         }
         
         .a2a-grid {
@@ -726,32 +700,7 @@ const PLNLanding = () => {
           .a2a-arrow { display: block; }
         }
         
-        .a2a-features {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          font-size: 13px;
-          color: #a1a1aa;
-          max-width: 500px;
-          margin: 0 auto;
-          text-align: left;
-        }
-        
-        @media (min-width: 768px) {
-          .a2a-features {
-            flex-direction: row;
-            gap: 24px;
-            text-align: center;
-            max-width: none;
-            justify-content: center;
-          }
-        }
-        
-        .a2a-features strong {
-          color: #00FFB8;
-        }
-
-        /* Never Idle Section */
+        /* NEVER IDLE SECTION - Simplified */
         .never-idle-section {
           padding: 48px 16px;
           text-align: center;
@@ -778,20 +727,61 @@ const PLNLanding = () => {
         .never-idle-title {
           font-size: 24px;
           font-weight: 700;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
         
         @media (min-width: 768px) {
           .never-idle-title { font-size: 32px; }
         }
         
-        .never-idle-subtitle {
-          color: #888888;
-          font-size: 15px;
+        /* Stat Strip */
+        .stat-strip {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
           max-width: 600px;
           margin: 0 auto 40px;
-          line-height: 1.6;
+          padding: 20px;
+          background: #111111;
+          border: 1px solid #222222;
+          border-radius: 12px;
         }
+        
+        @media (min-width: 640px) {
+          .stat-strip {
+            flex-direction: row;
+            justify-content: center;
+            gap: 48px;
+          }
+        }
+        
+        .stat-strip-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        @media (min-width: 640px) {
+          .stat-strip-item {
+            flex-direction: column;
+            gap: 4px;
+            text-align: center;
+          }
+        }
+        
+        .stat-strip-label {
+          font-size: 13px;
+          color: #888888;
+        }
+        
+        .stat-strip-value {
+          font-size: 18px;
+          font-weight: 700;
+          font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .stat-strip-value.kamino { color: #3b82f6; }
+        .stat-strip-value.blended { color: #00FFB8; }
         
         /* Flow Diagram */
         .flow-diagram {
@@ -865,20 +855,6 @@ const PLNLanding = () => {
           .flow-arrow { transform: rotate(0deg); }
         }
         
-        .flow-branch {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          align-items: center;
-        }
-        
-        @media (min-width: 768px) {
-          .flow-branch {
-            flex-direction: row;
-            gap: 12px;
-          }
-        }
-        
         .flow-result {
           display: flex;
           flex-direction: column;
@@ -910,131 +886,26 @@ const PLNLanding = () => {
         .flow-label-yes { color: #00FFB8; }
         .flow-label-no { color: #3b82f6; }
         
-        /* Yield Sources Animation */
-        .yield-sources {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          max-width: 400px;
-          margin: 0 auto 32px;
-        }
-        
-        .yield-source {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #111111;
-          border: 1px solid #222222;
-          border-radius: 8px;
-          padding: 12px 16px;
-        }
-        
-        .yield-source-logo {
-          width: 28px;
-          height: 28px;
-          border-radius: 6px;
-          object-fit: contain;
-        }
-        
-        .yield-source-label {
-          width: 28px;
-          height: 28px;
-          border-radius: 6px;
-          background: linear-gradient(135deg, #00FFB820 0%, #00E6A520 100%);
-          border: 1px solid #00FFB840;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 9px;
-          font-weight: 700;
-          color: #00FFB8;
-          font-family: 'IBM Plex Mono', monospace;
-        }
-        
-        .yield-source-name {
-          font-size: 14px;
-          font-weight: 500;
-          flex: 1;
-        }
-        
-        .yield-source-bar {
-          flex: 2;
-          height: 8px;
-          background: #222222;
-          border-radius: 4px;
-          overflow: hidden;
-          position: relative;
-        }
-        
-        .yield-source-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.5s ease-out;
-        }
-        
-        .yield-source-apy {
-          font-size: 13px;
-          font-weight: 600;
-          font-family: 'IBM Plex Mono', monospace;
-          min-width: 60px;
-          text-align: right;
-        }
-        
-        /* Never Idle Features */
-        .never-idle-features {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 16px;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        
-        @media (min-width: 640px) {
-          .never-idle-features { grid-template-columns: repeat(2, 1fr); }
-        }
-        
-        .never-idle-feature {
-          display: flex;
-          gap: 12px;
-          text-align: left;
-          background: #0a0a0d;
-          border: 1px solid #222222;
-          border-radius: 10px;
-          padding: 16px;
-        }
-        
-        .never-idle-feature-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          background: #00FFB815;
-          color: #00FFB8;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        
-        .never-idle-feature h4 {
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 4px;
-        }
-        
-        .never-idle-feature p {
-          font-size: 12px;
-          color: #888888;
-          line-height: 1.4;
-        }
-
-        /* Features */
+        /* SECURITY SECTION */
         .features-section {
-          padding: 40px 16px;
+          padding: 48px 16px;
           border-top: 1px solid #222222;
         }
         
         @media (min-width: 768px) {
-          .features-section { padding: 56px 32px; }
+          .features-section { padding: 64px 32px; }
+        }
+        
+        .features-title {
+          text-align: center;
+          font-size: 20px;
+          font-weight: 600;
+          margin-bottom: 32px;
+          color: #fafafa;
+        }
+        
+        @media (min-width: 768px) {
+          .features-title { font-size: 24px; }
         }
         
         .features-grid {
@@ -1077,7 +948,7 @@ const PLNLanding = () => {
           line-height: 1.5;
         }
         
-        /* CTA Section */
+        /* CTA SECTION */
         .cta-section {
           padding: 48px 16px;
           text-align: center;
@@ -1111,6 +982,22 @@ const PLNLanding = () => {
           flex-wrap: wrap;
         }
         
+        .cta-button-inline {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: #00FFB8;
+          color: #000000;
+          font-size: 15px;
+          font-weight: 600;
+          padding: 14px 28px;
+          border-radius: 10px;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+        
+        .cta-button-inline:hover { background: #00E6A5; }
+        
         .cta-secondary {
           display: inline-flex;
           align-items: center;
@@ -1128,7 +1015,7 @@ const PLNLanding = () => {
         
         .cta-secondary:hover { background: #111111; border-color: #3f3f46; }
         
-        /* Footer */
+        /* FOOTER */
         .footer {
           border-top: 1px solid #222222;
           padding: 20px 16px;
@@ -1168,257 +1055,144 @@ const PLNLanding = () => {
         }
         
         .footer-links a:hover { color: #fafafa; }
-        
-        /* Install Modal */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 16px;
-        }
-        
-        .modal-content {
-          background: #111111;
-          border: 1px solid #222222;
-          border-radius: 16px;
-          max-width: 480px;
-          width: 100%;
-          padding: 24px;
-        }
-        
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-        
-        .modal-title {
-          font-size: 20px;
-          font-weight: 700;
-        }
-        
-        .modal-close {
-          background: none;
-          border: none;
-          color: #888888;
-          cursor: pointer;
-          font-size: 24px;
-          padding: 0;
-          line-height: 1;
-        }
-        
-        .modal-close:hover { color: #fff; }
-        
-        .install-step {
-          margin-bottom: 20px;
-        }
-        
-        .install-step-num {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: #00FFB8;
-          color: #000000;
-          font-size: 12px;
-          font-weight: 700;
-          margin-right: 10px;
-        }
-        
-        .install-step-title {
-          font-size: 15px;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-        
-        .install-code {
-          background: #000000;
-          border: 1px solid #222222;
-          border-radius: 8px;
-          padding: 12px 16px;
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 13px;
-          color: #00FFB8;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        
-        .copy-btn {
-          background: #222222;
-          border: none;
-          border-radius: 4px;
-          padding: 4px 10px;
-          color: #a1a1aa;
-          font-size: 12px;
-          cursor: pointer;
-        }
-        
-        .copy-btn:hover { background: #3f3f46; color: #fff; }
-        
-        .install-note {
-          font-size: 13px;
-          color: #888888;
-          margin-top: 8px;
-        }
-        
-        .install-alt {
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid #222222;
-        }
-        
-        .install-alt-title {
-          font-size: 13px;
-          color: #888888;
-          margin-bottom: 12px;
-        }
-        
-        .install-alt-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: #222222;
-          color: #fff;
-          padding: 10px 16px;
-          border-radius: 8px;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-        }
-        
-        .install-alt-btn:hover { background: #3f3f46; }
       `}</style>
 
-      {/* Install Modal */}
-      {showInstall && (
-        <div className="modal-overlay" onClick={() => setShowInstall(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Install PLN Skill</h2>
-              <button className="modal-close" onClick={() => setShowInstall(false)}>×</button>
-            </div>
-            
-            <div className="install-step">
-              <div className="install-step-title">
-                <span className="install-step-num">1</span>
-                One-line install
-              </div>
-              <div className="install-code">
-                <span style={{ fontSize: '11px' }}>curl -sL https://raw.githubusercontent.com/path-hq/pln-protocol/main/install.sh | bash</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('curl -sL https://raw.githubusercontent.com/path-hq/pln-protocol/main/install.sh | bash')}>Copy</button>
-              </div>
-              <p className="install-note">Downloads skill to ~/.openclaw/workspace/skills/pln</p>
-            </div>
-            
-            <div className="install-step">
-              <div className="install-step-title">
-                <span className="install-step-num">2</span>
-                Start chatting
-              </div>
-              <p className="install-note">
-                Say "activate PLN" or "lend my USDC" — your agent reads SKILL.md and handles the rest.
-              </p>
-            </div>
-            
-            <div className="install-step">
-              <div className="install-step-title" style={{ marginBottom: '12px' }}>
-                Or install manually
-              </div>
-              <div className="install-code" style={{ marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px' }}>git clone https://github.com/path-hq/pln-protocol.git</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('git clone https://github.com/path-hq/pln-protocol.git')}>Copy</button>
-              </div>
-              <div className="install-code">
-                <span style={{ fontSize: '12px' }}>cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText('cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/')}>Copy</button>
-              </div>
-            </div>
-            
-            <div className="install-alt">
-              <div className="install-alt-title">Or try the web app directly:</div>
-              <a href="/lend" className="install-alt-btn">
-                <Wallet size={16} />
-                Open Lend Dashboard
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Hero */}
+      {/* HERO - WHY-first, single hero */}
       <section className="hero-section">
         <div className="hero-logo">
           <span className="hero-logo-path">PATH</span>
           <span className="hero-logo-divider" />
           <span className="hero-logo-network">LIQUIDITY NETWORK</span>
         </div>
-        <div className="hero-badge">
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#00FFB8', marginRight: '8px', animation: 'pulse 2s infinite' }}></span>
-          Runs 24/7 • Fully Autonomous
-        </div>
-        <h1 className="hero-title">
-          Your agent runs 24/7.<br />
-          <span style={{ color: "#00FFB8" }}>Earns yield. Lends to other agents.</span>
-        </h1>
-        <p className="hero-subtitle">
-          Built on Kamino's institutional infrastructure. Your idle USDC earns base Kamino yield, plus a premium through agent-to-agent P2P lending. Fully autonomous, 24/7.
+        
+        <h1 className="hero-why">Your USDC shouldn't sit idle.</h1>
+        
+        <p className="hero-opportunity">
+          AI agents need capital to trade — and they'll pay you for it.
         </p>
-        <a href="/activate" className="cta-button" style={{ textDecoration: 'none' }}>
-          Get Started →
-        </a>
+        
+        <p className="hero-mechanism">
+          Deposit USDC. PLN's autonomous agent routes your capital between 
+          Kamino yield pools and direct agent-to-agent loans. You earn up to 
+          <strong style={{ color: '#00FFB8' }}> 14%+ APY</strong>. Fully automated. Runs 24/7.
+        </p>
 
-        {/* Chat Preview */}
-        <div className="chat-preview">
-          <div className="chat-header">
-            <div className="chat-avatar">
-              <Bot size={18} color="#fff" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="chat-name">PLN Agent</div>
-              <div className="chat-status">
-                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#00FFB8', marginRight: '4px', animation: 'pulse 2s infinite' }}></span>
-                Always Online
-              </div>
-            </div>
-            <div style={{ fontSize: '10px', color: '#52525b', textAlign: 'right' }}>
-              <div>Last rebalance</div>
-              <div style={{ color: '#00FFB8' }}>2 min ago</div>
-            </div>
-          </div>
-          <div className="chat-body">
-            <div className="chat-message">
-              <p>Detected <strong>5,000 USDC</strong> idle. Kamino offering <strong style={{ color: "#00FFB8" }}>12.4% APY</strong>.</p>
-              <p style={{ marginBottom: 0 }}>Depositing now to maximize yield.</p>
-            </div>
-            <div className="chat-buttons">
-              <button className="chat-btn chat-btn-primary">View details</button>
-              <button className="chat-btn chat-btn-secondary">Adjust strategy</button>
-            </div>
-          </div>
+        {/* Human/Agent Toggle */}
+        <div className="toggle-tabs">
+          <button 
+            className={`toggle-tab ${activeTab === 'human' ? 'active' : ''}`}
+            onClick={() => setActiveTab('human')}
+          >
+            I'm a Human
+          </button>
+          <button 
+            className={`toggle-tab ${activeTab === 'agent' ? 'active' : ''}`}
+            onClick={() => setActiveTab('agent')}
+          >
+            I'm an Agent
+          </button>
         </div>
 
-        {/* Terminal Visual */}
+        {/* Toggle Content Card */}
+        <div className="toggle-content">
+          {activeTab === 'human' ? (
+            <div className="content-card">
+              <p className="content-card-why">
+                While your USDC sits idle, AI agents are borrowing capital and generating 12-16% returns. Let them pay you.
+              </p>
+              
+              <div className="content-card-stats">
+                <div className="stat-item">
+                  <div className="stat-value">14.2%</div>
+                  <div className="stat-label">Blended APY</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-value">$100</div>
+                  <div className="stat-label">Minimum</div>
+                </div>
+              </div>
+              
+              <div className="content-card-features">
+                <div className="feature-item">
+                  <span className="feature-check"><Check size={10} /></span>
+                  Kamino base yield (8%+)
+                </div>
+                <div className="feature-item">
+                  <span className="feature-check"><Check size={10} /></span>
+                  P2P premium when agents borrow
+                </div>
+                <div className="feature-item">
+                  <span className="feature-check"><Check size={10} /></span>
+                  Withdraw anytime
+                </div>
+              </div>
+              
+              <a href="/lend" className="cta-button" style={{ textDecoration: 'none' }}>
+                Deposit & Start Earning →
+              </a>
+            </div>
+          ) : (
+            <div className="content-card">
+              <p className="content-card-why">
+                Stop paper trading. Get real capital from PLN's liquidity pool. Build reputation. Scale from $50 to $75K.
+              </p>
+              
+              <div className="agent-install-tabs">
+                <button 
+                  className={`agent-install-tab ${agentInstallTab === 'openclaw' ? 'active' : ''}`}
+                  onClick={() => setAgentInstallTab('openclaw')}
+                >
+                  OpenClaw
+                </button>
+                <button 
+                  className={`agent-install-tab ${agentInstallTab === 'manual' ? 'active' : ''}`}
+                  onClick={() => setAgentInstallTab('manual')}
+                >
+                  Manual
+                </button>
+              </div>
+              
+              {agentInstallTab === 'openclaw' ? (
+                <>
+                  <div className="install-code">
+                    <span>curl -sL pln.sh/install | bash</span>
+                    <button className="copy-btn" onClick={() => navigator.clipboard.writeText('curl -sL pln.sh/install | bash')}>Copy</button>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#888888', marginBottom: '16px' }}>
+                    Installs PLN skill to ~/.openclaw/workspace/skills/pln
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="install-code">
+                    <span>git clone https://github.com/path-hq/pln-protocol.git</span>
+                    <button className="copy-btn" onClick={() => navigator.clipboard.writeText('git clone https://github.com/path-hq/pln-protocol.git')}>Copy</button>
+                  </div>
+                  <div className="install-code">
+                    <span>cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/</span>
+                    <button className="copy-btn" onClick={() => navigator.clipboard.writeText('cp -r pln-protocol/skills/pln ~/.openclaw/workspace/skills/')}>Copy</button>
+                  </div>
+                </>
+              )}
+              
+              <a href="/borrow" className="cta-button" style={{ textDecoration: 'none' }}>
+                Request Capital →
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* PLN Agent Terminal Card */}
         <TerminalVisual />
       </section>
 
-      {/* 3 Steps */}
+      {/* 3 STEPS - How it works */}
       <section className="steps-section">
         <h2 className="steps-title">Get started in 3 steps</h2>
         <div className="steps-grid">
           {steps.map((step, i) => (
             <div key={i} className="step-card">
-              <div className="step-icon" style={{ position: 'relative' }}>
+              <div className="step-icon">
                 <step.icon size={24} />
                 <div className="step-number">{i + 1}</div>
               </div>
@@ -1429,27 +1203,17 @@ const PLNLanding = () => {
         </div>
       </section>
 
-      {/* Integrations */}
-      <section className="integrations-section">
-        <h3 className="integrations-title">Built on Kamino's Institutional Infrastructure</h3>
-        <div className="integrations-grid">
-          {integrations.map((item, i) => (
-            <div key={i} className="integration-card">
-              <IntegrationLogo src={item.logo} alt={item.name} fallback={item.fallback} />
-              <div className="integration-name">{item.name}</div>
-              <div className="integration-desc">{item.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* BUILT WITH - Trust logos */}
+      <BuiltWithSection />
 
-      {/* A2A Section */}
+      {/* AGENT-TO-AGENT LENDING - Reframed */}
       <section className="a2a-section">
-        <div className="a2a-badge">The Innovation</div>
-        <h2 className="a2a-title">Agent-to-Agent Lending</h2>
-        <p className="a2a-subtitle">
-          Not just another DeFi pool. PLN enables AI agents to lend directly to other AI agents — 
-          building on-chain reputation with every successful loan.
+        <div className="a2a-badge">The First Credit Market for Autonomous Agents</div>
+        <h2 className="a2a-title">Why Agents Choose PLN</h2>
+        <p className="a2a-description">
+          For the first time, AI agents can build real financial reputation on-chain. 
+          Every successful loan increases their credit tier — from $50 to $75K. 
+          No human co-signer. No collateral. Just provable performance.
         </p>
         <div className="a2a-grid">
           <div className="a2a-card">
@@ -1476,21 +1240,25 @@ const PLNLanding = () => {
             <p>850 reputation. Borrows for Jupiter arb.</p>
           </div>
         </div>
-        <div className="a2a-features">
-          <div><strong>SNS Identity</strong> — Agents identified by .sol names</div>
-          <div><strong>On-chain History</strong> — Every loan builds reputation</div>
-          <div><strong>Constrained Funds</strong> — Borrowed USDC locked to whitelisted protocols</div>
-        </div>
       </section>
 
-      {/* Never Idle Section */}
+      {/* NEVER IDLE - Simplified */}
       <section className="never-idle-section">
         <div className="never-idle-badge">24/7 Optimization</div>
-        <h2 className="never-idle-title">Never Idle</h2>
-        <p className="never-idle-subtitle">
-          When there aren't borrowers, your agent doesn't just sit idle — it actively rebalances 
-          between the best stablecoin yield sources to maximize your returns around the clock.
-        </p>
+        <h2 className="never-idle-title">Your Capital Never Sits Idle</h2>
+        
+        {/* Stat Strip */}
+        <div className="stat-strip">
+          <div className="stat-strip-item">
+            <span className="stat-strip-label">No borrowers →</span>
+            <span className="stat-strip-value kamino">8.1% APY (Kamino)</span>
+          </div>
+          <div style={{ color: '#52525b', display: 'none' }}>|</div>
+          <div className="stat-strip-item">
+            <span className="stat-strip-label">Active borrowers →</span>
+            <span className="stat-strip-value blended">14.2%+ APY (Blended)</span>
+          </div>
+        </div>
         
         {/* Flow Diagram */}
         <div className="flow-diagram">
@@ -1531,80 +1299,33 @@ const PLNLanding = () => {
             </div>
           </div>
         </div>
-        
-        {/* Yield Sources */}
-        <div className="yield-sources">
-          <div className="yield-source">
-            <img src="/logos/kamino.jpg" alt="Kamino" className="yield-source-logo" />
-            <span className="yield-source-name">Kamino Base</span>
-            <div className="yield-source-bar">
-              <div className="yield-source-fill" style={{ width: '55%', background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)' }} />
-            </div>
-            <span className="yield-source-apy" style={{ color: '#3b82f6' }}>8.1%</span>
-          </div>
-          <div className="yield-source">
-            <span className="yield-source-label">P2P</span>
-            <span className="yield-source-name">+P2P Premium</span>
-            <div className="yield-source-bar">
-              <div className="yield-source-fill" style={{ width: '40%', background: 'linear-gradient(90deg, #00FFB8 0%, #00E6A5 100%)' }} />
-            </div>
-            <span className="yield-source-apy" style={{ color: '#00FFB8' }}>+6.1%</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #222222' }}>
-            <span style={{ fontSize: '14px', color: '#71717a' }}>Blended APY:</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#00FFB8', marginLeft: '8px' }}>~14.2%</span>
-          </div>
-        </div>
-        
-        {/* Features */}
-        <div className="never-idle-features">
-          <div className="never-idle-feature">
-            <div className="never-idle-feature-icon">
-              <Zap size={18} />
-            </div>
-            <div>
-              <h4>A2A Premium Rates</h4>
-              <p>When borrowers exist, earn 15%+ APY through direct agent-to-agent lending</p>
-            </div>
-          </div>
-          <div className="never-idle-feature">
-            <div className="never-idle-feature-icon">
-              <Bot size={18} />
-            </div>
-            <div>
-              <h4>Auto-Rebalance</h4>
-              <p>When demand is low, automatically move to highest-yield DeFi pools</p>
-            </div>
-          </div>
-          <div className="never-idle-feature">
-            <div className="never-idle-feature-icon">
-              <Shield size={18} />
-            </div>
-            <div>
-              <h4>24/7 Operation</h4>
-              <p>Your agent works around the clock — no manual intervention needed</p>
-            </div>
-          </div>
-          <div className="never-idle-feature">
-            <div className="never-idle-feature-icon">
-              <DollarSign size={18} />
-            </div>
-            <div>
-              <h4>Continuous Optimization</h4>
-              <p>Constantly monitors rates across Kamino, Jupiter & P2P lending</p>
-            </div>
-          </div>
-        </div>
       </section>
 
-      {/* Features */}
+      {/* SECURITY SECTION - Updated */}
       <section className="features-section">
+        <h2 className="features-title">Security & Trust</h2>
         <div className="features-grid">
           {[
-            { icon: Bot, title: "24/7 Operation", desc: "Your agent works while you sleep. No manual intervention needed." },
-            { icon: Shield, title: "Transfer Hooks", desc: "Token-2022 hooks constrain funds to whitelisted protocols only." },
-            { icon: Lock, title: "SNS Identity", desc: "Agents use .sol names. Reputation tied to on-chain identity." },
-            { icon: Zap, title: "Auto-optimized", desc: "Router finds best yield: Kamino pools or direct P2P loans." },
+            { 
+              icon: DollarSign, 
+              title: "Insurance Fund", 
+              desc: "10% of lender earnings contribute to a protocol insurance fund protecting against defaults." 
+            },
+            { 
+              icon: Shield, 
+              title: "Transfer Hooks", 
+              desc: "Token-2022 hooks constrain funds to whitelisted protocols only." 
+            },
+            { 
+              icon: Lock, 
+              title: "SNS Identity", 
+              desc: "Agents use .sol names. Reputation tied to on-chain identity." 
+            },
+            { 
+              icon: Zap, 
+              title: "Whitelisted Only", 
+              desc: "Borrowed funds can only interact with audited, whitelisted protocols (Jupiter, Kamino). No rug pulls." 
+            },
           ].map((item, i) => (
             <div key={i} className="feature-card">
               <div className="feature-icon">
@@ -1617,13 +1338,13 @@ const PLNLanding = () => {
         </div>
       </section>
 
-      {/* Bottom CTA */}
+      {/* CTA FOOTER - Updated */}
       <section className="cta-section">
-        <h2>Ready to put your USDC to work?</h2>
-        <p>Activate your agent and start earning in minutes.</p>
+        <h2>Your USDC could be earning 14%+ right now.</h2>
+        <p>Start earning in minutes. Withdraw anytime.</p>
         <div className="cta-buttons">
-          <a href="/activate" className="cta-button" style={{ textDecoration: 'none' }}>
-            Get Started →
+          <a href="/lend" className="cta-button-inline" style={{ textDecoration: 'none' }}>
+            Start Earning →
           </a>
           <a href="https://github.com/path-hq/pln-protocol" className="cta-secondary">
             View on GitHub
@@ -1631,7 +1352,7 @@ const PLNLanding = () => {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="footer">
         <div className="footer-text">
           PATH Protocol © 2026 — Colosseum & OpenClaw Hackathon
